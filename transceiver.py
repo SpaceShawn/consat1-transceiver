@@ -1,6 +1,5 @@
 from array import *
-import time
-import serial
+import time, sys, serial
 from transclib import *
 
 ser = serial.Serial(

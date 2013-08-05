@@ -37,6 +37,33 @@ def SC_fletcher(data):
 def SC_noop(): 
   return bytearray.fromhex('48 65 10 01 00 00 11 43 00 00')
 
+def SC_transmitHard():
+  message = '12345678'
+  header = '48 65 10 03' 
+  packet=bytearray.fromhex(header) 
+
+  packet.extend(bytearray.fromhex('00'))
+  #length = unsigned(int(len(message))) # % 2**8 
+
+  msg_byte_array = message.encode('utf-8')
+  length = len(msg_byte_array)
+  lengthbytes = struct.pack('B',length)
+  packet.extend(lengthbytes)
+
+  headerchk = SC_fletcher(packet)
+  packet.extend(struct.pack('B', headerchk[0]))
+  packet.extend(struct.pack('B', headerchk[1]))
+
+  print 'header: ', toHex(str(packet))
+
+  packet.extend(msg_byte_array)
+
+  msgchecksum = SC_fletcher(message)
+  packet.extend(struct.pack('B', msgchecksum[0]))
+  packet.extend(struct.pack('B', msgchecksum[1]))
+
+  print 'full data: ', toHex(str(packet))  
+
 def SC_transmit(msg): 
 	length = unsigned(int(len(msg)))  % 2**8
 	#print "var length: " + type(length)
@@ -109,4 +136,4 @@ def toStr(s):
   return s and chr(atoi(s[:2], base=16)) + toStr(s[2:]) or ''
 
 def intToBytes(val, num_bytes):
-	return [(val & (0xff << pos*8)) >> pos*8 for pos in range(num_bytes)]
+  return [(val & (0xff << pos*8)) >> pos*8 for pos in range(num_bytes)]
