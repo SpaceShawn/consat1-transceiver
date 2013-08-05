@@ -37,79 +37,51 @@ def SC_fletcher(data):
 def SC_noop(): 
   return bytearray.fromhex('48 65 10 01 00 00 11 43 00 00')
 
-def SC_transmitHard():
-  message = '12345678'
+def SC_transmit(payload):
+  payload = '12345678'
+  print '\r\n>> Hardcoded payload: "12345678"'
+  payload_byte_array = payload.encode('utf-8')
+  length = len(payload_byte_array)
+  length_bytes = struct.pack('B',length)  
+  print "Payload:  ", length, " bytes out of a maximum 255\r\n"
+
+  print 'Adding 4 bytes for header ...'
   header = '48 65 10 03' 
   packet=bytearray.fromhex(header) 
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
 
+  print "Adding 2 bytes for payload size ..."
   packet.extend(bytearray.fromhex('00'))
-  #length = unsigned(int(len(message))) # % 2**8 
+  packet.extend(length_bytes)
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
 
-  msg_byte_array = message.encode('utf-8')
-  length = len(msg_byte_array)
-  lengthbytes = struct.pack('B',length)
-  packet.extend(lengthbytes)
+  print "Adding 2 bytes for header checksum ..."  
+  header_checksum = SC_fletcher(packet)
+  packet.extend(struct.pack('B', header_checksum[0]))
+  packet.extend(struct.pack('B', header_checksum[1]))
+  print "checksum: ", header_checksum
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
 
-  headerchk = SC_fletcher(packet)
-  packet.extend(struct.pack('B', headerchk[0]))
-  packet.extend(struct.pack('B', headerchk[1]))
+  print "Adding", len(payload_byte_array), "bytes for payload .."
+  packet.extend(payload_byte_array)
+  print "Message:  ", toHex(str(payload_byte_array))
+  print "Message:  ", len(payload_byte_array), " bytes"
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
 
-  print 'header: ', toHex(str(packet))
+  print "Adding 2 bytes for payload checksum"
+  payload_checksum = SC_fletcher(payload)
+  packet.extend(struct.pack('B', payload_checksum[0]))
+  packet.extend(struct.pack('B', payload_checksum[1]))
+  print "checksum: ", payload_checksum
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
 
-  packet.extend(msg_byte_array)
-
-  msgchecksum = SC_fletcher(message)
-  packet.extend(struct.pack('B', msgchecksum[0]))
-  packet.extend(struct.pack('B', msgchecksum[1]))
-
-  print 'full data: ', toHex(str(packet))  
-
-def SC_transmit(msg): 
-	length = unsigned(int(len(msg)))  % 2**8
-	#print "var length: " + type(length)
-	lengthbytes = struct.pack('B', length)
-	print 'payload leng: ' + str(length)
-	msg_checksum = SC_fletcher(msg)
-	print 'messagecheck: ' + str(msg_checksum)
-	
-	# header
-	header = '48 65 10 03' #H E transmit ?? 1st_length
-	packet = bytearray.fromhex(header)
-	print 'header base : ' + toHex(str(packet))
-
-	# length
-	# add '00' byte before length
-	packet.extend(bytearray.fromhex('00'))
-	packet.extend(lengthbytes)
-	print 'added length: ' + toHex(str(packet))
-	print 'length.size : ' + SC_size(lengthbytes) + ' bytes'
-	header_checksum = SC_fletcher(packet)
-	print 'headck1 size: ' + SC_size(header_checksum[0]) + " bytes";
-	print 'headck2 size: ' + SC_size(header_checksum[1]) + " bytes";
-	print 'header check: ' + str(header_checksum)
-
-	packet.extend(struct.pack('B', header_checksum[0]))
-	packet.extend(struct.pack('B', header_checksum[1]))
-#	packet.extend(intToBytes(header_checksum[0],1))
-#	packet.extend(intToBytes(header_checksum[1],1))
-		
-	print 'full header : ' + toHex(str(packet))
-	
-	packet.extend(msg.encode('utf-8'))
-
-	print 'fullhead+msg: ' + toHex(str(packet))
-	print 'msg checksum: ' + toHex(str(msg_checksum[0])) + toHex(str(msg_checksum[1]));
-	print 'msgchk1 size: ' + SC_size(msg_checksum[0]) + " bytes";
-	print 'msgchk2 size: ' + SC_size(msg_checksum[1]) + " bytes";
-	
-	packet.extend(struct.pack('B', msg_checksum[0]))
-	packet.extend(struct.pack('B', msg_checksum[1]))
-#	packet.extend(intToBytes(msg_checksum[0],1))
-#	packet.extend(intToBytes(msg_checksum[1],1))
-
-	print 'fullmsginhex: ' + toHex(str(packet))
-
-	return packet
+  print 'SENDING:: ', toHex(str(packet))  
+  return packet
 
 def SC_getConfig():
   return ''
