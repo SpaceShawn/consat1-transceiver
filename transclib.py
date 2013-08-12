@@ -37,9 +37,14 @@ def SC_fletcher(data):
 def SC_noop(): 
   return bytearray.fromhex('48 65 10 01 00 00 11 43 00 00')
 
+def SC_getConfig(): 
+##  return bytearray.fromhex('48 65 10 04 00 00 14 4c 00 00')
+  return bytearray.fromhex('48 65 10 05 00 00 15 4f') #00 00
+
 def SC_transmit(payload):
-  payload = '12345678'
-  print '\r\n>> Hardcoded payload: "12345678"'
+  return bytearray.fromhex('48 65 10 03 0a 1d 53 64 65 66 67 68 69 6a 6b 6c 6d 15 21')
+##  payload = '12345678'
+##  print '\r\n>> Hardcoded payload: "12345678"'
   payload_byte_array = payload.encode('utf-8')
   length = len(payload_byte_array)
   length_bytes = struct.pack('B',length)  
@@ -83,17 +88,14 @@ def SC_transmit(payload):
   print 'SENDING:: ', toHex(str(packet))  
   return packet
 
-def SC_getConfig():
-  return ''
-
 def SC_setConfig():
   return false;
 
 def SC_size(data):
-	return str(sys.getsizeof(data))
+  return str(sys.getsizeof(data))
 
 def unsigned(n):
-	return n & 0xFFFFFFFF
+  return n & 0xFFFFFFFF
 
 def toHex(s):
   lst = []

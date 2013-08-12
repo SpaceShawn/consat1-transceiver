@@ -40,6 +40,33 @@ ser = serial.Serial(
   writeTimeout=3
   )
 
+def SC_writeCallback(input):
+  ser.write(input)
+  out = ''	
+  time.sleep(1);
+
+  while ser.inWaiting() > 0:
+    out += ser.read(1)
+    
+  if out!= '':
+    print 'Response:'    
+    print toHex(out)
+    if (toHex(out) == '486520010a0a35a1'):
+      print 'Acknowledge'
+    elif (toHex(out) == '48652001ffff1f80'):
+      print 'Not-Acknowledge'
+  else :
+    print 'You suck'
+  print '\r'
+
+def SC_printMenu():
+  print 'checksum - return a checksum of the entered text \r'
+  print 'noop - send no-op sequence\r'
+  print 'getconfig - send getConfig\r'
+  print 'setconfig - send setconfig\r'
+  print 'transmit - transmit hard-coded data\r'
+  print 'exit - and close the serial port\r\n'
+
 #  print "error opening serial port: " + str(e)
 #  exit()
 
@@ -48,59 +75,36 @@ if ser.isOpen():
   input=1
   while 1:
     input=raw_input(">> ")
+
     if input == "exit":
       ser.close()
       exit()
+
     elif input == "menu":
-      print 'noop - send no-op sequence\r'
-      print 'getconfig - send getConfig\r'
-      print 'setconfig - send setconfig\r'
-      print 'transmit - transmit hard-coded data\r\n'
+      SC_printMenu()
+
+    elif input == "getconfig":
+      input = SC_getConfig()
+      SC_writeCallback(input)
 
     elif input == "noop":
       input = SC_noop()
-      #ser.write(input + '\r\n')
-      ser.write(input)
-      out = ''	
-      time.sleep(1);
+      SC_writeCallback(input)
 
-      while ser.inWaiting() > 0:
-	out += ser.read(1)
-
-      if out!= '':
-	print toHex(out)
-	print ('>>')
     elif input == "transmit":
       print 'Enter a message to transmit'
       input=raw_input()
+      SC_writeCallback(SC_transmit(input))
 
-      ser.write(SC_transmit(input))
-      print 'Response:'
-      out = ''	
-      time.sleep(1);
-
-      while ser.inWaiting() > 0:
-	out += ser.read(1)
-
-      if out!= '':
-	print toHex(out)
-	print ('>>')
     elif input == "checksum":
       print 'Enter a message to checksum'
       input=raw_input()
-      print SC_fletcher8(input)
+      print '8-bit', SC_fletcher8(input)
 #      print SC_fletcher16(input)
-      print SC_fletcher32(input)
+      print '32-bit', SC_fletcher32(input)
     else:
-      ser.write(input + '\r\n')
-      out = ''	
-      time.sleep(1);
+      SC_printMenu() 
 
-      while ser.inWaiting() > 0:
-	out += ser.read(1)
-
-	if out!= '':
-	  print ">>" + out
 #	except Exception, e1:
 #		print "error communicating...:" + str(e1)
 else :
