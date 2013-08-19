@@ -50,22 +50,25 @@ def SC_writeCallback(input):
     
   if out!= '':
     print 'Response:'    
-    print toHex(out)
-    if (toHex(out) == '486520010a0a35a1'):
+    response = toHex(out)
+    print response
+    if ((response == '486520060a0a3ab0') | (response == '486520010a0a35a1') | (response == '486520030a0a37a7')):
       print 'Acknowledge'
-    elif (toHex(out) == '48652001ffff1f80'):
+    elif (response == '48652001ffff1f80'):
       print 'Not-Acknowledge'
   else :
     print 'You suck'
   print '\r'
 
 def SC_printMenu():
-  print 'checksum - return a checksum of the entered text \r'
-  print 'noop - send no-op sequence\r'
-  print 'getconfig - send getConfig\r'
-  print 'setconfig - send setconfig\r'
-  print 'transmit - transmit hard-coded data\r'
-  print 'exit - and close the serial port\r\n'
+  print 'checksum - cs - return a checksum of the entered text \r'
+  print 'noop - np - send no-op sequence\r'
+  print 'getconfig- gc - send getConfig\r'
+  print 'setconfig - sc - send setconfig\r'
+  print 'transmit - t - transmit given data\r'
+  print 'testtransmit - tt - transmit hard-coded data\r'
+  print 'setled - sl - set the LED configuration\r'
+  print 'exit - q - and close the serial port\r\n'
 
 #  print "error opening serial port: " + str(e)
 #  exit()
@@ -76,27 +79,35 @@ if ser.isOpen():
   while 1:
     input=raw_input(">> ")
 
-    if input == "exit":
+    if ((input == "exit") | (input == "q")):
       ser.close()
       exit()
 
     elif input == "menu":
       SC_printMenu()
 
-    elif input == "getconfig":
+    elif ((input == "getconfig") | (input == "gc")):
       input = SC_getConfig()
       SC_writeCallback(input)
 
-    elif input == "noop":
+    elif ((input == "noop") | (input == "np")) :
       input = SC_noop()
       SC_writeCallback(input)
 
-    elif input == "transmit":
+    elif ((input == "transmit") | (input == "t")):
       print 'Enter a message to transmit'
       input=raw_input()
       SC_writeCallback(SC_transmit(input))
 
-    elif input == "checksum":
+    elif ((input == "testtransmit") | (input == "tt")):
+      input = SC_testTransmit()
+      SC_writeCallback(input)
+
+    elif ((input == "setled") | (input == "sl")):
+      input=SC_setLED()
+      SC_writeCallback(input)
+
+    elif ((input == "checksum") | (input == "cs")):
       print 'Enter a message to checksum'
       input=raw_input()
       print '8-bit', SC_fletcher8(input)

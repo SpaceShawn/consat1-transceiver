@@ -41,17 +41,32 @@ def SC_getConfig():
 ##  return bytearray.fromhex('48 65 10 04 00 00 14 4c 00 00')
   return bytearray.fromhex('48 65 10 05 00 00 15 4f') #00 00
 
-def SC_transmit(payload):
-  return bytearray.fromhex('48 65 10 03 0a 1d 53 64 65 66 67 68 69 6a 6b 6c 6d 15 21')
-##  payload = '12345678'
-##  print '\r\n>> Hardcoded payload: "12345678"'
-  payload_byte_array = payload.encode('utf-8')
+def SC_setLED():
+  return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4f 52 42 56 45 32 43 55 41 09 00 00 00 41 00 06 00 37 7c')
+
+def SC_testTransmit():
+## weirdness: "A payload checksum is then used to verify the accuracy of the payload. The checksum is calculated across all pertinent bytes of the message excluding the two sync characters of each message 'He'
+## possible interpretation:
+### header checksum is of header minus sync bytes, payload checksum is of total minus sync bytes
+### header checksum is of header minus sync bytes, payload checksum is of payload minus sync bytes
+### header checksum is of header in full, payload checksum is of total minus sync bytes
+###  payload = '12345678'
+##  print '\r\n>> Hardcoded payload: "12345678"'  return bytearray.fromhex('48 65 10 03 0a 1d 53 64 65 66 67 68 69 6a 6b 6c 6d 15 21')
+  return bytearray.fromhex('48 65 10 03 00 FF 12 48 41 31 32 33 34 35 36 37 38 39 42 31 32 33 34 35 36 37 38 39 43 31 32 33 34 35 36 37 38 39 44 31 32 33 34 35 36 37 38 39 45 31 32 33 34 35 36 37 38 39 46 31 32 33 34 35 36 37 38 39 47 31 32 33 34 35 36 37 38 39 48 31 32 33 34 35 36 37 38 39 49 31 32 33 34 35 36 37 38 39 4a 31 32 33 34 35 36 37 38 39 4b 31 32 33 34 35 36 37 38 39 4c 31 32 33 34 35 36 37 38 39 4d 31 32 33 34 35 36 37 38 39 4e 31 32 33 34 35 36 37 38 39 4f 31 32 33 34 35 36 37 38 39 50 31 32 33 34 35 36 37 38 39 51 31 32 33 34 35 36 37 38 39 52 31 32 33 34 35 36 37 38 39 53 31 32 33 34 35 36 37 38 39 54 31 32 33 34 35 36 37 38 39 55 31 32 33 34 35 36 37 38 39 56 31 32 33 34 35 36 37 38 39 57 31 32 33 34 35 36 37 38 39 58 31 32 33 34 35 36 37 38 39 59 5a 31 32 33 34 aa 4b')
+
+def SC_transmit(payload): 
+  payload="A123456789B123456789C123456789D123456789E123456789F123456789G123456789H123456789I123456789J123456789K123456789L123456789M123456789N123456789O123456789P123456789Q123456789R123456789S123456789T123456789U123456789V123456789W123456789X123456789Y123456789Z1234"
+#  payload_byte_array = payload.encode('utf-8')
+  payload_byte_array = bytearray.fromhex('41 31 32 33 34 35 36 37 38 39 42 31 32 33 34 35 36 37 38 39 43 31 32 33 34 35 36 37 38 39 44 31 32 33 34 35 36 37 38 39 45 31 32 33 34 35 36 37 38 39 46 31 32 33 34 35 36 37 38 39 47 31 32 33 34 35 36 37 38 39 48 31 32 33 34 35 36 37 38 39 49 31 32 33 34 35 36 37 38 39 4a 31 32 33 34 35 36 37 38 39 4b 31 32 33 34 35 36 37 38 39 4c 31 32 33 34 35 36 37 38 39 4d 31 32 33 34 35 36 37 38 39 4e 31 32 33 34 35 36 37 38 39 4f 31 32 33 34 35 36 37 38 39 50 31 32 33 34 35 36 37 38 39 51 31 32 33 34 35 36 37 38 39 52 31 32 33 34 35 36 37 38 39 53 31 32 33 34 35 36 37 38 39 54 31 32 33 34 35 36 37 38 39 55 31 32 33 34 35 36 37 38 39 56 31 32 33 34 35 36 37 38 39 57 31 32 33 34 35 36 37 38 39 58 31 32 33 34 35 36 37 38 39 59 5a 31 32 33 34')
   length = len(payload_byte_array)
   length_bytes = struct.pack('B',length)  
   print "Payload:  ", length, " bytes out of a maximum 255\r\n"
 
-  print 'Adding 4 bytes for header ...'
-  header = '48 65 10 03' 
+  print 'Keeping 2 bytes separate for sync characters'
+  syncbytes = bytearray.fromhex('48 65')
+
+  print 'Adding 2 bytes for header ...'
+  header = '10 03' 
   packet=bytearray.fromhex(header) 
   print "transmit: ", toHex(str(packet))
   print "bytesize: ", len(packet), " bytes\r\n"
@@ -66,7 +81,7 @@ def SC_transmit(payload):
   header_checksum = SC_fletcher(packet)
   packet.extend(struct.pack('B', header_checksum[0]))
   packet.extend(struct.pack('B', header_checksum[1]))
-  print "checksum: ", header_checksum
+  print "checksum: ", header_checksum, " should be: (12,48)" 
   print "transmit: ", toHex(str(packet))
   print "bytesize: ", len(packet), " bytes\r\n"
 
@@ -81,12 +96,13 @@ def SC_transmit(payload):
   payload_checksum = SC_fletcher(payload)
   packet.extend(struct.pack('B', payload_checksum[0]))
   packet.extend(struct.pack('B', payload_checksum[1]))
-  print "checksum: ", payload_checksum
+  print "checksum: ", payload_checksum, " should be: (aa,4b)"
   print "transmit: ", toHex(str(packet))
   print "bytesize: ", len(packet), " bytes\r\n"
 
-  print 'SENDING:: ', toHex(str(packet))  
-  return packet
+  transmission = syncbytes.extend(packet)
+  print 'SENDING:: ', toHex(str(transmission))  
+  return transmission
 
 def SC_setConfig():
   return false;
