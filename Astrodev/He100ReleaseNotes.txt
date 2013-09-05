@@ -1,0 +1,33 @@
+He100_Fimrwares_060513:
+1) AFSK Option
+2) Continuous TX Refinement
+
+He100_Firmwares_103012:
+1) Immediate fix firmware boot issue due to compiled code
+
+He100_Firmwares_102212:
+1) Addition of OA Key and External Interfaces
+2) Extension of Configuration Message for future use
+3) AFC On/Off
+4) 1200 bps GFSK
+5) Firmware Revision Message
+6) Pin Function Setting
+7) Seperation of He-100 RevL and RevK hardwares
+
+He100_Firmwares_040412_OR13A:
+1) Addition of Beacon Function.
+2) Addition of telemetry logging. (Pre formal test release)
+3) Addition of Firmware Write/Upload. (Pre formal test release)
+4) Addition of Fast PA Setting.
+5) Addition of RF Configuration Packet. (Pre formal test release)
+6) Addition of Write Over Air Key. (Pre formal test release)
+7) Addition of read firmware revision.
+
+He100_Firmwares_021312_OR12B:
+1) 0x7E Receive Packet Bug Fix: Radio rejects packets which contain 0x7E byte within payload. 
+
+He100_Firmwares_020712_OR12A:
+1) Optimize telemetry gathering 
+
+He100_Firmwares_120911_OR11A:
+V2.0 Software Release.

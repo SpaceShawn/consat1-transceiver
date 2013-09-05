@@ -2,37 +2,63 @@ from math import *
 import struct
 import sys
 
+from itertools import islice, izip
+
 def SC_computeFletcher(data, size, modulo, limit=None):
-	valA, valB = 1, 0
+	valA, valB = 0xf, 0xf
 	length = len(data)	
 	if isinstance(data, str):
 		if limit is not None and length > limit:
 			data = data[:limit]
 		for char in data:
-			valA += ord(char)
+			valA += (ord(char) << 8) # & 0xf
 			valB += valA
-			valA %= modulo
-			valB %= modulo
+		valA %= modulo 
+		valB %= modulo 
 	else:
 		if limit is not None and length > limit:
 			data = data[:limit]
 		for c in data:
-			valA += c
+			valA += (c << 8) #& 0xf
 			valB += valA
-			valA %= modulo
-			valB %= modulo
-#	return (valA << (size/2), valB)
+		valA %= modulo 
+		valB %= modulo 
+	
 	return (valA, valB)
 #	return (valB << (size/2)) + valA
+
+def fletcher_checksum(data): 
+    sum1 = 0
+    sum2 = 0
+    
+    length = len(data)
+    for byte1, byte2 in izip(islice(data, 0, length, 2),
+                            islice(data, 1, length, 2)):
+        sum1 = sum1 + ((ord(byte1) << 8) | ord(byte2))
+        sum2 = (sum2 + sum1)
+    
+    if length % 2 == 1:
+        sum1 = sum1 + (ord(data[-1]) << 8)
+        sum2 = sum1 + sum2
+    
+    while sum1 > 0xFFFF:
+        sum1 = (sum1 & 0xFFFF) + (sum1 >> 16)
+    
+    while sum2 > 0xFFFF:
+        sum2 = (sum2 & 0xFFFF) + (sum2 >> 16)
+    
+    #return (sum2 << 16) | sum1
+    return (sum2, sum1)
 
 def SC_fletcher8(data):
   return SC_computeFletcher(data, 8, 255, limit=21)
 
 def SC_fletcher32(data):
-  return SC_computeFletcher(data, 32, 65535, limit=360)
+  return SC_computeFletcher(data, 32, 65535, limit=359)
 
 def SC_fletcher(data):
-  return SC_fletcher8(data)
+ # return SC_fletcher8(data)
+  return fletcher_checksum(data)
 
 def SC_noop(): 
   return bytearray.fromhex('48 65 10 01 00 00 11 43 00 00')
@@ -56,14 +82,14 @@ def SC_testTransmit():
 
 def SC_transmit(payload): 
   payload="A123456789B123456789C123456789D123456789E123456789F123456789G123456789H123456789I123456789J123456789K123456789L123456789M123456789N123456789O123456789P123456789Q123456789R123456789S123456789T123456789U123456789V123456789W123456789X123456789Y123456789Z1234"
-#  payload_byte_array = payload.encode('utf-8')
-  payload_byte_array = bytearray.fromhex('41 31 32 33 34 35 36 37 38 39 42 31 32 33 34 35 36 37 38 39 43 31 32 33 34 35 36 37 38 39 44 31 32 33 34 35 36 37 38 39 45 31 32 33 34 35 36 37 38 39 46 31 32 33 34 35 36 37 38 39 47 31 32 33 34 35 36 37 38 39 48 31 32 33 34 35 36 37 38 39 49 31 32 33 34 35 36 37 38 39 4a 31 32 33 34 35 36 37 38 39 4b 31 32 33 34 35 36 37 38 39 4c 31 32 33 34 35 36 37 38 39 4d 31 32 33 34 35 36 37 38 39 4e 31 32 33 34 35 36 37 38 39 4f 31 32 33 34 35 36 37 38 39 50 31 32 33 34 35 36 37 38 39 51 31 32 33 34 35 36 37 38 39 52 31 32 33 34 35 36 37 38 39 53 31 32 33 34 35 36 37 38 39 54 31 32 33 34 35 36 37 38 39 55 31 32 33 34 35 36 37 38 39 56 31 32 33 34 35 36 37 38 39 57 31 32 33 34 35 36 37 38 39 58 31 32 33 34 35 36 37 38 39 59 5a 31 32 33 34')
+  payload_byte_array = payload.encode('utf-8')
+  payload_byte_array = bytearray.fromhex('41 31 32 33 34 35 36 37 38 39 42 31 32 33 34 35 36 37 38 39 43 31 32 33 34 35 36 37 38 39 44 31 32 33 34 35 36 37 38 39 45 31 32 33 34 35 36 37 38 39 46 31 32 33 34 35 36 37 38 39 47 31 32 33 34 35 36 37 38 39 48 31 32 33 34 35 36 37 38 39 49 31 32 33 34 35 36 37 38 39 4a 31 32 33 34 35 36 37 38 39 4b 31 32 33 34 35 36 37 38 39 4c 31 32 33 34 35 36 37 38 39 4d 31 32 33 34 35 36 37 38 39 4e 31 32 33 34 35 36 37 38 39 4f 31 32 33 34 35 36 37 38 39 50 31 32 33 34 35 36 37 38 39 51 31 32 33 34 35 36 37 38 39 52 31 32 33 34 35 36 37 38 39 53 31 32 33 34 35 36 37 38 39 54 31 32 33 34 35 36 37 38 39 55 31 32 33 34 35 36 37 38 39 56 31 32 33 34 35 36 37 38 39 57 31 32 33 34 35 36 37 38 39 58 31 32 33 34 35 36 37 38 39 59 31 32 33 34 35 36 37 38 39 5a 31 32 33 34')
   length = len(payload_byte_array)
   length_bytes = struct.pack('B',length)  
   print "Payload:  ", length, " bytes out of a maximum 255\r\n"
 
   print 'Keeping 2 bytes separate for sync characters'
-  syncbytes = bytearray.fromhex('48 65')
+  transmission = bytearray.fromhex('48 65')
 
   print 'Adding 2 bytes for header ...'
   header = '10 03' 
@@ -88,7 +114,7 @@ def SC_transmit(payload):
   print "Adding", len(payload_byte_array), "bytes for payload .."
   packet.extend(payload_byte_array)
   print "Message:  ", toHex(str(payload_byte_array))
-  print "Message:  ", len(payload_byte_array), " bytes"
+  print "bytesize:  ", len(payload_byte_array), " bytes\r\n"
   print "transmit: ", toHex(str(packet))
   print "bytesize: ", len(packet), " bytes\r\n"
 
@@ -96,11 +122,12 @@ def SC_transmit(payload):
   payload_checksum = SC_fletcher(payload)
   packet.extend(struct.pack('B', payload_checksum[0]))
   packet.extend(struct.pack('B', payload_checksum[1]))
-  print "checksum: ", payload_checksum, " should be: (aa,4b)"
+  print "checksum: ", payload_checksum, " should be: (170,75)\r\n"#aa,4b
   print "transmit: ", toHex(str(packet))
   print "bytesize: ", len(packet), " bytes\r\n"
 
-  transmission = syncbytes.extend(packet)
+  transmission.extend(packet)
+  print "total payload: ", len(transmission), " bytes\r\n"
   print 'SENDING:: ', toHex(str(transmission))  
   return transmission
 
