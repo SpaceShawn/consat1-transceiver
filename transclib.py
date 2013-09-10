@@ -5,7 +5,10 @@ import sys
 from itertools import islice, izip
 
 def SC_computeFletcher(data, size, modulo, limit=None):
-	valA, valB = 0xf, 0xf
+	#valA, valB = 0xf, 0xf
+	#valA, valB = 0xf, 0xf
+	valA, valB = 0, 0
+
 	length = len(data)	
 	if isinstance(data, str):
 		if limit is not None and length > limit:
@@ -57,8 +60,8 @@ def SC_fletcher32(data):
   return SC_computeFletcher(data, 32, 65535, limit=359)
 
 def SC_fletcher(data):
- # return SC_fletcher8(data)
-  return fletcher_checksum(data)
+  return SC_fletcher8(data)
+ # return fletcher_checksum(data)
 
 def SC_noop(): 
   return bytearray.fromhex('48 65 10 01 00 00 11 43 00 00')
@@ -69,6 +72,9 @@ def SC_getConfig():
 
 def SC_setLED():
   return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4f 52 42 56 45 32 43 55 41 09 00 00 00 41 00 06 00 37 7c')
+
+def SC_setBAUD():
+  return bytearray.fromhex('48 65 10 05 00 2e 43 7d 01 00 00 00 00 00 00 00 02 04 02 06 04 a 00 00 20 a7 06 00 80 32 02 00 4e 4f 43 41 4c 4c 4e 4f 43 41 4c 4c a 64 60 00 00 00 00 00 00 00 de 35')
 
 def SC_testTransmit():
 ## weirdness: "A payload checksum is then used to verify the accuracy of the payload. The checksum is calculated across all pertinent bytes of the message excluding the two sync characters of each message 'He'
@@ -81,9 +87,9 @@ def SC_testTransmit():
   return bytearray.fromhex('48 65 10 03 00 FF 12 48 41 31 32 33 34 35 36 37 38 39 42 31 32 33 34 35 36 37 38 39 43 31 32 33 34 35 36 37 38 39 44 31 32 33 34 35 36 37 38 39 45 31 32 33 34 35 36 37 38 39 46 31 32 33 34 35 36 37 38 39 47 31 32 33 34 35 36 37 38 39 48 31 32 33 34 35 36 37 38 39 49 31 32 33 34 35 36 37 38 39 4a 31 32 33 34 35 36 37 38 39 4b 31 32 33 34 35 36 37 38 39 4c 31 32 33 34 35 36 37 38 39 4d 31 32 33 34 35 36 37 38 39 4e 31 32 33 34 35 36 37 38 39 4f 31 32 33 34 35 36 37 38 39 50 31 32 33 34 35 36 37 38 39 51 31 32 33 34 35 36 37 38 39 52 31 32 33 34 35 36 37 38 39 53 31 32 33 34 35 36 37 38 39 54 31 32 33 34 35 36 37 38 39 55 31 32 33 34 35 36 37 38 39 56 31 32 33 34 35 36 37 38 39 57 31 32 33 34 35 36 37 38 39 58 31 32 33 34 35 36 37 38 39 59 5a 31 32 33 34 aa 4b')
 
 def SC_transmit(payload): 
-  payload="A123456789B123456789C123456789D123456789E123456789F123456789G123456789H123456789I123456789J123456789K123456789L123456789M123456789N123456789O123456789P123456789Q123456789R123456789S123456789T123456789U123456789V123456789W123456789X123456789Y123456789Z1234"
+  #payload="A123456789B123456789C123456789D123456789E123456789F123456789G123456789H123456789I123456789J123456789K123456789L123456789M123456789N123456789O123456789P123456789Q123456789R123456789S123456789T123456789U123456789V123456789W123456789X123456789Y123456789Z1234"
   payload_byte_array = payload.encode('utf-8')
-  payload_byte_array = bytearray.fromhex('41 31 32 33 34 35 36 37 38 39 42 31 32 33 34 35 36 37 38 39 43 31 32 33 34 35 36 37 38 39 44 31 32 33 34 35 36 37 38 39 45 31 32 33 34 35 36 37 38 39 46 31 32 33 34 35 36 37 38 39 47 31 32 33 34 35 36 37 38 39 48 31 32 33 34 35 36 37 38 39 49 31 32 33 34 35 36 37 38 39 4a 31 32 33 34 35 36 37 38 39 4b 31 32 33 34 35 36 37 38 39 4c 31 32 33 34 35 36 37 38 39 4d 31 32 33 34 35 36 37 38 39 4e 31 32 33 34 35 36 37 38 39 4f 31 32 33 34 35 36 37 38 39 50 31 32 33 34 35 36 37 38 39 51 31 32 33 34 35 36 37 38 39 52 31 32 33 34 35 36 37 38 39 53 31 32 33 34 35 36 37 38 39 54 31 32 33 34 35 36 37 38 39 55 31 32 33 34 35 36 37 38 39 56 31 32 33 34 35 36 37 38 39 57 31 32 33 34 35 36 37 38 39 58 31 32 33 34 35 36 37 38 39 59 31 32 33 34 35 36 37 38 39 5a 31 32 33 34')
+  #payload_byte_array = bytearray.fromhex('41 31 32 33 34 35 36 37 38 39 42 31 32 33 34 35 36 37 38 39 43 31 32 33 34 35 36 37 38 39 44 31 32 33 34 35 36 37 38 39 45 31 32 33 34 35 36 37 38 39 46 31 32 33 34 35 36 37 38 39 47 31 32 33 34 35 36 37 38 39 48 31 32 33 34 35 36 37 38 39 49 31 32 33 34 35 36 37 38 39 4a 31 32 33 34 35 36 37 38 39 4b 31 32 33 34 35 36 37 38 39 4c 31 32 33 34 35 36 37 38 39 4d 31 32 33 34 35 36 37 38 39 4e 31 32 33 34 35 36 37 38 39 4f 31 32 33 34 35 36 37 38 39 50 31 32 33 34 35 36 37 38 39 51 31 32 33 34 35 36 37 38 39 52 31 32 33 34 35 36 37 38 39 53 31 32 33 34 35 36 37 38 39 54 31 32 33 34 35 36 37 38 39 55 31 32 33 34 35 36 37 38 39 56 31 32 33 34 35 36 37 38 39 57 31 32 33 34 35 36 37 38 39 58 31 32 33 34 35 36 37 38 39 59 5a 31 32 33 34')
   length = len(payload_byte_array)
   length_bytes = struct.pack('B',length)  
   print "Payload:  ", length, " bytes out of a maximum 255\r\n"
@@ -107,7 +113,7 @@ def SC_transmit(payload):
   header_checksum = SC_fletcher(packet)
   packet.extend(struct.pack('B', header_checksum[0]))
   packet.extend(struct.pack('B', header_checksum[1]))
-  print "checksum: ", header_checksum, " should be: (12,48)" 
+  print "checksum: ", header_checksum#, " should be: (12,48)" 
   print "transmit: ", toHex(str(packet))
   print "bytesize: ", len(packet), " bytes\r\n"
 
@@ -122,7 +128,7 @@ def SC_transmit(payload):
   payload_checksum = SC_fletcher(payload)
   packet.extend(struct.pack('B', payload_checksum[0]))
   packet.extend(struct.pack('B', payload_checksum[1]))
-  print "checksum: ", payload_checksum, " should be: (170,75)\r\n"#aa,4b
+  print "checksum: ", payload_checksum#, " should be: (170,75)\r\n"#aa,4b
   print "transmit: ", toHex(str(packet))
   print "bytesize: ", len(packet), " bytes\r\n"
 

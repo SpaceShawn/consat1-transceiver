@@ -67,6 +67,7 @@ def SC_printMenu():
   print 'setconfig - sc - send setconfig\r'
   print 'transmit - t - transmit given data\r'
   print 'testtransmit - tt - transmit hard-coded data\r'
+  print 'setbaud - sb - set the BAUD rate from 9600 to 38400\r'
   print 'setled - sl - set the LED configuration\r'
   print 'exit - q - and close the serial port\r\n'
 
