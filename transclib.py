@@ -1,8 +1,15 @@
 from math import *
 import struct
 import sys
+import signal # for interrupt handler
 
 from itertools import islice, izip
+
+def signal_handler(signal, frame):
+  print 'You pressed Cntl+C! Exiting Cleanly...'
+  ser.close()
+  sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
 
 def SC_computeFletcher(data, size, modulo, limit=None):
 	#valA, valB = 0xf, 0xf
@@ -72,6 +79,24 @@ def SC_getConfig():
 
 def SC_setLED():
   return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4f 52 42 56 45 32 43 55 41 09 00 00 00 41 00 06 00 37 7c')
+
+# function to allow enable simultaneous transmission and receiving
+def SC_converse():
+  return false;
+
+def SC_listen():
+  while True:
+    action = raw_input("=> ")
+    if action == 'q':
+      print "Stopping listener"
+      break
+
+    while ser.inWaiting() > 0:
+      out += ser.read(1)
+#      out = ser.readline()    
+    if out!= '':
+      print 'Incoming:'    
+      response = toHex(out)
 
 def SC_setBAUD():
   return bytearray.fromhex('48 65 10 05 00 2e 43 7d 01 00 00 00 00 00 00 00 02 04 02 06 04 a 00 00 20 a7 06 00 80 32 02 00 4e 4f 43 41 4c 4c 4e 4f 43 41 4c 4c a 64 60 00 00 00 00 00 00 00 de 35')

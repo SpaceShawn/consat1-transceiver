@@ -63,6 +63,7 @@ def SC_writeCallback(input):
 def SC_printMenu():
   print 'checksum - cs - return a checksum of the entered text \r'
   print 'noop - np - send no-op sequence\r'
+  print 'listen - l - listen for incoming communication\r'
   print 'getconfig- gc - send getConfig\r'
   print 'setconfig - sc - send setconfig\r'
   print 'transmit - t - transmit given data\r'

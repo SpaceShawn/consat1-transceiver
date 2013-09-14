@@ -1,7 +1,8 @@
 On Connection:
 <20130912194550.362 SYS>
 Set timeouts: ReadInterval=-1, ReadTotalTimeoutMultiplier=0, ReadTotalTimeoutConstant=0, WriteTotalTimeoutMultiplier=0, WriteTotalTimeoutConstant=0
-<20130912194550.367 SYS>
+<2013091219455t
+.367 SYS>
 Baud rate 9600
 <20130912194550.373 SYS>
 DTR on
@@ -19,6 +20,7 @@ Set chars: Eof=0x00, Error=0x00, Break=0x00, Event=0x00, Xon=0x00, Xoff=0x00
 Handflow: ControlHandShake=(DTR_CONTROL), FlowReplace=(TRANSMIT_TOGGLE, RTS_CONTROL), XonLimit=0, XoffLimit=0
 <20130912194550.409 SYS>
 Set timeouts: ReadInterval=-1, ReadTotalTimeoutMultiplier=0, ReadTotalTimeoutConstant=0, WriteTotalTimeoutMultiplier=0, WriteTotalTimeoutConstant=0
+
 
 Function
 HEX
