@@ -2,7 +2,7 @@ from math import *
 import struct
 import sys
 import signal # for interrupt handler
-
+import binascii # to convert incoming messages to ascii
 from itertools import islice, izip
 
 def signal_handler(signal, frame):
@@ -84,19 +84,33 @@ def SC_setLED():
 def SC_converse():
   return false;
 
-def SC_listen():
+def SC_listen(ser):
   while True:
-    action = raw_input("=> ")
+    action = raw_input(": ")
     if action == 'q':
       print "Stopping listener"
       break
-
+    out = ''
     while ser.inWaiting() > 0:
       out += ser.read(1)
 #      out = ser.readline()    
-    if out!= '':
-      print 'Incoming:'    
-      response = toHex(out)
+    if out != '':
+      data = bytearray.fromhex(toHex(out))
+      payload_length = len(data) - 10 
+      
+      payload = "" 
+      for i in xrange(0,payload_length) :
+        j=i+8
+        payload += str(chr(data[j]))
+      #payload = payload.strip().decode('hex')
+      
+      print "\n<< Incoming:\n", toHex(out), "\n", toHex(out.strip()).decode('hex'), "\n"
+      print "Sync Bytes: ", chr(data[0]), chr(data[1]), "\r"
+      print "Command Type: ", data[2], data[3], "\r"
+      print "Payload Size: ", data[4], data[5], "\r"
+      print "Header Check: ", data[6], data[7], "\r"
+      print "Payload Check: ", data[len(data)-2], data[len(data)-1], "\r\n"
+      print "Payload: ", payload,"\r\n"
 
 def SC_setBAUD():
   return bytearray.fromhex('48 65 10 05 00 2e 43 7d 01 00 00 00 00 00 00 00 02 04 02 06 04 a 00 00 20 a7 06 00 80 32 02 00 4e 4f 43 41 4c 4c 4e 4f 43 41 4c 4c a 64 60 00 00 00 00 00 00 00 de 35')

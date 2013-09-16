@@ -88,6 +88,9 @@ if ser.isOpen():
     elif input == "menu":
       SC_printMenu()
 
+    elif ((input == "listen") | (input == "l")):
+      SC_listen(ser) 
+
     elif ((input == "getconfig") | (input == "gc")):
       input = SC_getConfig()
       SC_writeCallback(input)
