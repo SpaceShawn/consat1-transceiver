@@ -77,12 +77,26 @@ def SC_getConfig():
 ##  return bytearray.fromhex('48 65 10 04 00 00 14 4c 00 00')
   return bytearray.fromhex('48 65 10 05 00 00 15 4f') #00 00
 
-def SC_setLED():
+def SC_setLEDPulse():
   return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4f 52 42 56 45 32 43 55 41 09 00 00 00 41 00 06 00 37 7c')
+
+def SC_setLEDTx():
+  return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 42 00 00 00 32 74')
+
+def SC_setLEDRx():
+  return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 43 00 00 00 33 78')
 
 # function to allow enable simultaneous transmission and receiving
 def SC_converse():
   return false;
+
+def SC_beacon(instance):
+  return {
+    '0' : bytearray.fromhex('49 65 10 11 00 01 22 74 00 B8 28'),
+    '1' : bytearray.fromhex('48 65 10 11 00 01 22 74 01 B9 29'),
+    '2' : bytearray.fromhex('48 65 10 11 00 01 22 74 02 BA 2A'),
+    '3' : bytearray.fromhex('48 65 10 11 00 01 22 74 03 BB 2B'),
+  }.get(instance, 0)
 
 def SC_listen(ser):
   while True:
@@ -101,7 +115,7 @@ def SC_listen(ser):
       payload = "" 
       for i in xrange(0,payload_length) :
         j=i+8
-        payload += str(chr(data[j]))
+        payload += chr(data[j])
       #payload = payload.strip().decode('hex')
       
       print "\n<< Incoming:\n", toHex(out), "\n", toHex(out.strip()).decode('hex'), "\n"
@@ -110,7 +124,7 @@ def SC_listen(ser):
       print "Payload Size: ", data[4], data[5], "\r"
       print "Header Check: ", data[6], data[7], "\r"
       print "Payload Check: ", data[len(data)-2], data[len(data)-1], "\r\n"
-      print "Payload: ", payload,"\r\n"
+      print "\r\nPayload: ", payload,"\r\n"
 
 def SC_setBAUD():
   return bytearray.fromhex('48 65 10 05 00 2e 43 7d 01 00 00 00 00 00 00 00 02 04 02 06 04 a 00 00 20 a7 06 00 80 32 02 00 4e 4f 43 41 4c 4c 4e 4f 43 41 4c 4c a 64 60 00 00 00 00 00 00 00 de 35')
@@ -177,7 +191,7 @@ def SC_transmit(payload):
   return transmission
 
 def SC_setConfig():
-  return false;
+  return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 41 00 00 00 31 70');
 
 def SC_size(data):
   return str(sys.getsizeof(data))

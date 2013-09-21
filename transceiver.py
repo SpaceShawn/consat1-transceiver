@@ -65,10 +65,11 @@ def SC_printMenu():
   print 'noop - np - send no-op sequence\r'
   print 'listen - l - listen for incoming communication\r'
   print 'getconfig- gc - send getConfig\r'
-  print 'setconfig - sc - send setconfig\r'
+  print 'setconfig - sc - send setconfig to project defaults\r'
   print 'transmit - t - transmit given data\r'
   print 'testtransmit - tt - transmit hard-coded data\r'
-  print 'setbaud - sb - set the BAUD rate from 9600 to 38400\r'
+  print 'setbaud - sbaud - set the BAUD from 9600 to 38400\r'
+  print 'setbeacon - sbeacon - set the Beacon rate from input\r'
   print 'setled - sl - set the LED configuration\r'
   print 'exit - q - and close the serial port\r\n'
 
@@ -108,8 +109,38 @@ if ser.isOpen():
       input = SC_testTransmit()
       SC_writeCallback(input)
 
-    elif ((input == "setled") | (input == "sl")):
+    elif ((input == "setbaud") | (input == "sbaud")):
       input=SC_setLED()
+      SC_writeCallback(input)
+
+    elif ((input == "setbeacon") | (input == "sbeacon")):
+      print 'Enter a beacon level from (0-3)'
+      input=raw_input()
+
+      try:
+        beacon_level = int(input)
+      except ValueError:
+        print "incorrect input"
+
+      if beacon_level < 4 | beacon_level >= 0:
+        SC_writeCallback(SC_beacon(input))
+      else:
+        print "incorrect input"
+
+    elif ((input == "setconfig") | (input == "sc")):
+      input=SC_setConfig()
+      SC_writeCallback(input)
+
+    elif ((input == "setledpulse") | (input == "slp")):
+      input=SC_setLEDPulse()
+      SC_writeCallback(input)
+
+    elif ((input == "setledtx") | (input == "sltx")):
+      input=SC_setLEDTx()
+      SC_writeCallback(input)
+
+    elif ((input == "setledrx") | (input == "slrx")):
+      input=SC_setLEDRx()
       SC_writeCallback(input)
 
     elif ((input == "checksum") | (input == "cs")):
