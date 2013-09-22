@@ -18,12 +18,24 @@
 #include <stdlib.h>
 #include <SC_transceiverLib.cc>
 
-int main() {
-    int transceiver;
-    string hex = "48651001000011430000"; // NOOP
-    unsigned char bytes[10] = null;
+int main() 
+{
+    /* Serial instance and configuration variables */
+    int serial_device = 0; // serial_device instance
+    int rv = 0; // return value
 
-    if (transceiver = open_port()) {
-        n = write(fd, bytes , 4);
+    /* Test data for transmission to the HE100 */
+    string hex = "48651001000011430000"; // HEX for HE100 NOOP command 
+    unsigned char bytes[10] = null;      // bytearray for transmission
+    
+    if (fd = open_port()) 
+    {    
+        if (configure_interface(fd)) {
+            int w = write (fd, bytes , 4); // 
+            char buf [255];
+            int r = read (fd, buf, sizeof buf);
+            close(fd);
+            return EXIT_SUCCESS;
+        }
     }
 }
