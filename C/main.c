@@ -21,10 +21,7 @@
 
 int main() 
 {
-    /* Serial instance and configuration variables */
     int fd = 0; // serial_device instance
-
-    /* Test data for transmission to the HE100 */
     char *hex = "48 65 10 01 00 00 11 43 00 00"; /* HEX for HE100 NOOP command */
     unsigned char bytes[10] = {0x48, 0x65, 0x10, 0x01, 0x00, 0x00, 0x11, 0x43, 0x00, 0x00};
 
@@ -34,7 +31,13 @@ int main()
         configureInterface(fd);
         int w = write (fd, bytes, 4); // 
         char buf [255];
-        int r = read (fd, buf, sizeof buf);
+		while(1)
+		{
+			char buffer[255];
+			int chars_read = read(fd, &buffer, sizeof(buffer));
+			buffer[chars_read] = '\0';
+			printf("%s", buffer);
+		}
         close(fd);
         return EXIT_SUCCESS;    
     }
