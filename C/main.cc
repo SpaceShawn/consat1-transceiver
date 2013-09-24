@@ -16,26 +16,26 @@
  * =====================================================================================
  */
 #include <stdlib.h>
-#include <SC_transceiverLib.cc>
+#include <string.h>
+#include "./SC_transceiverLib.h"
 
 int main() 
 {
     /* Serial instance and configuration variables */
-    int serial_device = 0; // serial_device instance
-    int rv = 0; // return value
+    int fd = 0; // serial_device instance
 
     /* Test data for transmission to the HE100 */
-    string hex = "48651001000011430000"; // HEX for HE100 NOOP command 
-    unsigned char bytes[10] = null;      // bytearray for transmission
-    
-    if (fd = open_port()) 
-    {    
-        if (configure_interface(fd)) {
-            int w = write (fd, bytes , 4); // 
-            char buf [255];
-            int r = read (fd, buf, sizeof buf);
-            close(fd);
-            return EXIT_SUCCESS;
-        }
+    char *hex = "48 65 10 01 00 00 11 43 00 00"; /* HEX for HE100 NOOP command */
+    char * bytes[10] = SC_convertHex2Bytes(hex); /* bytearray for transmission */
+
+    if (fd = openPort()) 
+    { 
+        fprintf(stderr, "Successfully opened port");
+        configureInterface(fd);
+        int w = write (fd, bytes, 4); // 
+        char buf [255];
+        int r = read (fd, buf, sizeof buf);
+        close(fd);
+        return EXIT_SUCCESS;    
     }
 }
