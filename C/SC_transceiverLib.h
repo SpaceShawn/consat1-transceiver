@@ -17,7 +17,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>   /*  Standard input/output definitions */
-#include <string>  /*  String function definitions */
+#include <string.h>  /*  String function definitions */
 #include <unistd.h>  /*  UNIX standard function definitions */
 #include <fcntl.h>   /*  File control definitions */
 #include <errno.h>   /*  Error number definitions */
@@ -26,7 +26,7 @@
 //char *port_address = "/dev/ttyS0";
 const char *port_address = "/dev/ttyUSB0";
 
-int 
+int
 openPort(void)
 {
     int fd; // File descriptor for the port
@@ -35,7 +35,7 @@ openPort(void)
     if (fd == -1) {
         // Could not open port
         fprintf(stderr, "open_port: Unable to open", port_address, "%s\n", strerror(errno));
-        return false;
+        return -1;
     }
 
     return(fd);
@@ -77,20 +77,21 @@ configureInterface (int fd)
 
 /** 
  * does no bounds checking, won't work with unicode console input, will crash if passed invalid character 
- **/
+ **
 char
 SC_convertHex2Bytes(char hex)
 {
-    /* Create buffer based on input hex string */
+    // Create buffer based on input hex string 
     char * buffer = malloc((strlen(hex) / 2 ) + 1);
-    char *h = hex; /* walk through the buffer */
-    char *b = buffer; /* point inside buffer */
+    char *h = hex; // walk through the buffer 
+    char *b = buffer; // point inside buffer 
 
-    /* offset into this string is the numeric value */
+    // offset into this string is the numeric value 
     char xlate[] = "0123456789abcdef";
 
     for ( ; *h; h+=2, ++b )
-        *b = ((strch(xlate, *h) - xlate) * 16) /* Multiply leading digit by 16 */
+        *b = ((strch(xlate, *h) - xlate) * 16) // Multiply leading digit by 16 
             + ((strchr(xlate, *(h+1))- xlate));
     return b;
 }
+*/
