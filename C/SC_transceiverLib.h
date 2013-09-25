@@ -24,7 +24,7 @@
 #include <termios.h> /*  POSIX terminal control definitions */
 
 //char *port_address = "/dev/ttyS0";
-const char *port_address = "/dev/ttyUSB0";
+const char *port_address = "/dev/ttyS2";
 
 int
 openPort(void)
