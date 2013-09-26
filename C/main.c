@@ -19,8 +19,9 @@
 #include <string.h>
 #include "./SC_transceiverLib.h"
 
-int main() 
+int main(int argc, char** argv) 
 {
+    unsigned char c='D'; // execution status
     int fd = 0; // serial_device instance
     char *hex = "48 65 10 01 00 00 11 43 00 00"; /* HEX for HE100 NOOP command */
     unsigned char bytes[10] = {0x48, 0x65, 0x10, 0x01, 0x00, 0x00, 0x11, 0x43, 0x00, 0x00};
@@ -31,13 +32,22 @@ int main()
         configureInterface(fd);
         int w = write (fd, bytes, 4); // 
         char buf [255];
-		while(1)
+	    /*  
+        while(1)
 		{
 			char buffer[255];
 			int chars_read = read(fd, &buffer, sizeof(buffer));
 			buffer[chars_read] = '\0';
 			printf("%s", buffer);
 		}
+        */
+        while (c!='q')
+        {
+            if (read(fd,&c,1)>0)
+                write(STDOUT_FILENO,&c,1);
+            if (read(STDIN_FILENO,&c,1)>0)
+                write(fd,&c,1);
+        }
         close(fd);
         return EXIT_SUCCESS;    
     }

@@ -22,6 +22,7 @@
 #include <fcntl.h>   /*  File control definitions */
 #include <errno.h>   /*  Error number definitions */
 #include <termios.h> /*  POSIX terminal control definitions */
+//#include "./lib/settings.c" 
 
 //char *port_address = "/dev/ttyS0";
 const char *port_address = "/dev/ttyS2";
@@ -30,7 +31,7 @@ int
 openPort(void)
 {
     int fd; // File descriptor for the port
-    fd = open(port_address, O_RDWR | O_NOCTTY | O_NDELAY);
+    fd = open(port_address, O_RDWR | O_NONBLOCK | O_NOCTTY | O_NDELAY);
 
     if (fd == -1) {
         // Could not open port
@@ -46,27 +47,31 @@ configureInterface (int fd)
 {
     int rv = 0; // return value
     struct termios settings;
-
+    
     if ( (rv = tcgetattr(fd, &settings)) < 0 ) 
     {
         fprintf(stderr, "Failed to get attribute: %d, %s\n", fd, strerror(errno));
         exit(EXIT_FAILURE);
     }
-
+    
     tcgetattr(fd, &settings); // get current settings
     cfsetispeed(&settings, B9600); // set input BAUD rate to 9600
     cfsetospeed(&settings, B9600); // set output BAUD rate to 9600
     cfmakeraw(&settings);
-
+    
+    settings.c_iflag=0;
+    settings.c_oflag=0;
+    settings.c_lflag=0;
     settings.c_cflag |= (CLOCAL | CREAD); // enable receiver and set local mode
     settings.c_cflag |= ~PARENB;  // no parity bit 
-    settings.c_cflag &= ~CSTOPB;  // 1 stop bit
+    settings.c_cflag &= ~CSTOPB;  // stop bits: 1 stop bit
     settings.c_cflag &= ~CSIZE;   // mask data size (needed??)
-    settings.c_cflag |= CS8;      // 8 data bits
+    settings.c_cflag |= CS8;      // byte size: 8 data bits
     settings.c_cflag &= ~CRTSCTS; // disable hardware flow control
     settings.c_cc[VMIN]  = 1;     // 
-    settings.c_cc[VTIME] = 2;     // 
-
+    settings.c_cc[VTIME] = 0;     // 
+    fcntl(STDIN_FILENO, F_SETFL); // non-blocking reads
+    
     /* Set the preceeding attributes */
     if ( (rv = tcsetattr(fd, TCSANOW, &settings)) < 0 ) 
     {

@@ -70,7 +70,9 @@ def SC_printMenu():
   print 'testtransmit - tt - transmit hard-coded data\r'
   print 'setbaud - sbaud - set the BAUD from 9600 to 38400\r'
   print 'setbeacon - sbeacon - set the Beacon rate from input\r'
-  print 'setled - sl - set the LED configuration\r'
+  print 'setledpulse - slp - set the LED to pulse every 2.5 seconds\r'
+  print 'setledtx - sltx - set the LED to pulse on transmit\r'
+  print 'setledrx - slrx - set the LED to pulse on receive\r'
   print 'exit - q - and close the serial port\r\n'
 
 #  print "error opening serial port: " + str(e)
