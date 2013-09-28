@@ -1,3 +1,6 @@
+noop_ack[8]     48 65 20 01 0a 0a 35 a1
+noop_noack[10]  48 65 10 01 00 00 11 43 00 00
+
 On Connection:
 <20130912194550.362 SYS>
 Set timeouts: ReadInterval=-1, ReadTotalTimeoutMultiplier=0, ReadTotalTimeoutConstant=0, WriteTotalTimeoutMultiplier=0, WriteTotalTimeoutConstant=0

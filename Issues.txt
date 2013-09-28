@@ -1,0 +1,2 @@
+- When he100.sh is run on Q6, and Kenwood sends a message, something is received, and LED stays on
+- Writing to serial device with C works on Mustang, not on Q6 when cross-compiled
