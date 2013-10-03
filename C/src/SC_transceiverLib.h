@@ -22,9 +22,9 @@
 #include <fcntl.h>   /*  File control definitions */
 #include <errno.h>   /*  Error number definitions */
 #include <termios.h> /*  POSIX terminal control definitions */
-//#include "./lib/settings.c" 
+#include "./settings.c" 
 
-const char *port_address = "/dev/ttyS0";
+//const char *port_address = "/dev/ttyS2"; // lt-stone
 
 int
 SC_openPort(void)
@@ -41,16 +41,61 @@ SC_openPort(void)
 
     if (fd == -1) {
         // Could not open port
-        fprintf(stderr, "SC_openPort: Unable to open port: ", port_address, "%s\n", strerror(errno));
+        fprintf(stderr, "\r\nSC_openPort: Unable to open port: ", port_address, "%s\n", strerror(errno));
         return -1;
     }
     
     if ( !isatty(fd) ) {
-        fprintf(stderr, "SC_openPort: Not a serial device!", port_address, "%s\n", strerror(errno));
+        fprintf(stderr, "\r\nSC_openPort: Not a serial device!", port_address, "%s\n", strerror(errno));
         return -1;
     }
 
     return(fd);
+}
+
+// Responses are 8 bytes ack or no ack 
+// noop_ack 486520010a0a35a1
+// some_ack 486520060a0a3ab0
+// tx_ac    486520030a0a37a7
+// noack    48652001ffff1f80
+unsigned char 
+SC_write(int fd, char *bytes) {
+    // Write noop
+    fprintf(stdout, "\r\nWriting to device: %s\r", bytes);
+    int w = write (fd, bytes, 10); // write given 10 bytes to fd 
+    fprintf(stdout, "\r\nWrite size: %d",w);
+
+    // Read response
+    unsigned char buffer[8]; 
+    int chars_read = read(fd, &buffer, sizeof(buffer));
+    //buffer[chars_read] = '\0';
+
+    // if response == transmission, He100 device is off!
+    // int result = memcmp( bytes, chars_read, 8 );
+
+    // Print    
+    fprintf(stdout, "\nResponse:  %s", buffer);
+    //printf("%hhX", buffer, "\n\r");
+
+    fprintf(stdout, "\r\nResponse Size: %d", sizeof(buffer));
+    int i=0;
+
+    printf("\r\nMessage:\n");
+    //fprintf(stdout, "%d", chars_read, "\n\r");  
+
+    for (i=0; i<chars_read; i++) 
+    {
+        printf("%02X",buffer[i]);
+    }
+
+    if (sizeof(buffer)>0) {
+        return 1;
+    } 
+}
+
+unsigned char
+SC_read(void) {
+    
 }
 
 void
@@ -61,21 +106,28 @@ SC_configureInterface (int fd)
     struct termios settings;
    
     // get current settings
-    if ( tcgetattr(fd, &settings) < 0 ) 
+    int get_settings = -1; 
+    if ( get_settings = tcgetattr(fd, &settings) < 0 ) 
     {
-        fprintf(stderr, "SC_configureInterface: failed to get config: %d, %s\n", fd, strerror(errno));
+        fprintf(
+            stderr, 
+            "\r\nSC_configureInterface: failed to get config: %d, %s\n", 
+            fd, 
+            strerror(errno)
+        );
         exit(EXIT_FAILURE);
     }
-    
+    fprintf(stdout, "\r\nSC_configureInterface: successfully acquired old settings: %d",  get_settings);
     cfmakeraw(&settings); // raw mode: 
     //Input is not assembled into lines and special characters are not processed.
 
     // attempt to set input and output baud rate to 9600
     if (cfsetispeed(&settings, B9600) < 0 || cfsetospeed(&settings, B9600) < 0) 
     {
-        fprintf(stderr, "SC_configureInterface: failed set BAUD rate: %d, %s\n", fd, strerror(errno));
+        fprintf(stderr, "\r\nSC_configureInterface: failed set BAUD rate: %d, %s\n", fd, strerror(errno));
         exit(EXIT_FAILURE);
     }
+    fprintf(stdout, "\r\nSC_configureInterface: successfully set new baud rate");
 
     // Input flags 
     settings.c_iflag = 0; // disable input processing
@@ -134,7 +186,7 @@ SC_configureInterface (int fd)
 
     // Read control behaviour 
     settings.c_cc[VMIN]  = 1;     // 1 byte is enough to return read
-    settings.c_cc[VTIME] = 5;     // read timeout in 1/10 seconds 
+    settings.c_cc[VTIME] = 30;     // read timeout in 1/10 seconds 
     
     // Special input characters
     // only if ICANON is set:
@@ -147,19 +199,24 @@ SC_configureInterface (int fd)
     //   defined and IEXTEN is set) 
     // only if IXON or IXOFF is set:
     //   VSTOP, VSTART 
-
+   
+    //tcsetattr(STDOUT_FILENO,TCSANOW,&stdio);
+    //tcsetattr(STDOUT_FILENO,TCSAFLUSH,&stdio);
     fcntl(STDIN_FILENO, F_SETFL); // non-blocking reads
     
     tcflush( fd, TCIFLUSH); // flush port before persisting changes 
-    if ( (tcsetattr(fd, TCSANOW, &settings)) < 0 ) // apply attributes
+    int apply_settings = -1;
+    if ( apply_settings = tcsetattr(fd, TCSANOW, &settings) < 0 ) // apply attributes
     {
-        fprintf(stderr, "SC_configureInterface: failed to set config: %d, %s\n", fd, strerror(errno));
+        fprintf(stderr, "\r\nSC_configureInterface: failed to set config: %d, %s\n", fd, strerror(errno));
         exit(EXIT_FAILURE);           
     }
+    fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings: %d", apply_settings);
 }
 
 /* 
-unsigned char *SC_hex2Binary(char *src)
+unsigned char 
+SC_hex2Binary(char *src)
 {
     unsigned char *out = malloc(strlen(src)/2);
     char buf[3] = {0};

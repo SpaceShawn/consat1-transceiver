@@ -1,3 +1,5 @@
+const char *port_address = "/dev/ttyS2"; // lt-stone
+
 struct he100_settings {
   int 	interface_baud_rate; // Radio Interface Baud Rate (9600=0x00)
   int 	tx_power_amp_level; // Tx Power Amp Level (min=0x00, max=0xFF)
@@ -14,9 +16,6 @@ struct he100_settings {
   int function_config; // Radio Configuration discrete behaviors
   int function_config2; // Radio Configuration discrete behaviors #2
 };
-
-const char *port_address = "/dev/ttyUSB0"; // mustang
-//const char *port_address = "/dev/ttyS2"; // lt-stone
 
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
 #define BAUDRATE B9600

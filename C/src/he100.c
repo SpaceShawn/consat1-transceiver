@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  main.cc
+ *       Filename:  he100.cc
  *
  *    Description:  Test opening the serial device, writing, reading, and closing.
  *
@@ -23,39 +23,25 @@ int main(int argc, char** argv)
 {
     unsigned char c='D'; // execution status
     int fd = 0; // serial_device instance
-    
+   
     unsigned char bytes[10] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43,0x00,0x00};
     unsigned char hello[15] = {0x48,0x65,0x10,0x03,0x00,0x05,0x18,0x4e,0x68,0x65,0x6c,0x6c,0x6f,0x16,0x2d};
 
     if (fd = SC_openPort()) 
     { 
-        fprintf(stderr, "Successfully opened port");
+        fprintf(stderr, "\r\nSuccessfully opened port: %s",port_address);
         SC_configureInterface(fd);
-       
-        // Write
-        int w = write (fd, bytes, 10); // write given 10 bytes to fd 
-       
-        // Read
-        // Responses are 8 bytes ack or no ack 
-        // noop_ack 486520010a0a35a1
-        // some_ack 486520060a0a3ab0
-        // tx_ac    486520030a0a37a7
-        // noack    48652001ffff1f80
-    	char buffer[8]; 
-		int chars_read = read(fd, &buffer, sizeof(buffer));
-		//buffer[chars_read] = '\0';
-	
-        // if response == transmission, He100 device is off!
-        // int result = memcmp( bytes, chars_read, 8 );
+        
+        fprintf(stdout, "\r\nCurrent status of device: %d",fd);
 
-        // Print    
-        printf("\nResponse: \n");
-        //printf("%s", buffer, "\n\r");  
-        printf("%d", chars_read, "\n\r");  
-        printf("Bytesize: ", sizeof(buffer));
-    	//printf("%x", buffer); // print as Hexadecimal
-	
+        // Write noop
+        SC_write(fd, bytes);
+
+        // Write Hello
+        SC_write(fd, hello);
+
         // Looping read
+        fprintf(stdout, "\r\nStarting looping read...");
         while (c!='q')
         {
             if (read(fd,&c,1)>0)
@@ -73,7 +59,8 @@ int main(int argc, char** argv)
                 stderr, 
                 "close: Unable to close the serial device connection!"
             );
-        }                        
+        }
+        fprintf(stdout, "Closed device %s successfully!\r\n",port_address);
         return EXIT_SUCCESS;    
     }
 }
