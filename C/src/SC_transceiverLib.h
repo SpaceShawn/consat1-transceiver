@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  SC_transceiverLib.cc
+ *       Filename:  SC_transceiverLib.c
  *
  *    Description:  Connect to a serial device
  *
@@ -17,12 +17,14 @@
  */
 #include <stdlib.h>
 #include <stdio.h>   /*  Standard input/output definitions */
+#include <stdint.h>  /*  Standard integer types */
 #include <string.h>  /*  String function definitions */
 #include <unistd.h>  /*  UNIX standard function definitions */
 #include <fcntl.h>   /*  File control definitions */
 #include <errno.h>   /*  Error number definitions */
 #include <termios.h> /*  POSIX terminal control definitions */
-#include "./settings.c" 
+#include "he100.h" 
+#include "./he100_cfg.h"
 
 //const char *port_address = "/dev/ttyS2"; // lt-stone
 
@@ -58,7 +60,7 @@ SC_openPort(void)
 // some_ack 486520060a0a3ab0
 // tx_ac    486520030a0a37a7
 // noack    48652001ffff1f80
-unsigned char 
+int 
 SC_write(int fd, char *bytes) {
     // Write noop
     fprintf(stdout, "\r\nWriting to device: %s\r", bytes);
@@ -85,7 +87,7 @@ SC_write(int fd, char *bytes) {
 
     for (i=0; i<chars_read; i++) 
     {
-        printf("%02X",buffer[i]);
+        printf("%02X ",buffer[i]);
     }
 
     if (sizeof(buffer)>0) {
@@ -117,7 +119,7 @@ SC_configureInterface (int fd)
         );
         exit(EXIT_FAILURE);
     }
-    fprintf(stdout, "\r\nSC_configureInterface: successfully acquired old settings: %d",  get_settings);
+    fprintf(stdout, "\r\nSC_configureInterface: successfully acquired old settings");
     cfmakeraw(&settings); // raw mode: 
     //Input is not assembled into lines and special characters are not processed.
 
@@ -211,10 +213,68 @@ SC_configureInterface (int fd)
         fprintf(stderr, "\r\nSC_configureInterface: failed to set config: %d, %s\n", fd, strerror(errno));
         exit(EXIT_FAILURE);           
     }
-    fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings: %d", apply_settings);
+    fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings");
 }
 
-/* 
+/**
+ * struct to hold values of fletcher checksum
+ */
+struct Tuple 
+{
+    uint16_t sum1;
+    uint16_t sum2;
+};
+
+/** 
+ * 8-bit implementation of the Fletcher Checksum
+ * @param data - uint8_t const - data on which to perform checksum
+ * @param bytes - size_t - number of bytes to process
+ * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
+ */
+struct Tuple
+SC_fletcher16( char *data, size_t bytes)
+{
+    uint16_t sum1 = 0xff, sum2 = 0xff;
+
+    while (bytes)
+    {
+        size_t tlen = bytes > 20 ? 20 : bytes; 
+        bytes -= tlen;
+        do
+        {
+            sum2 += sum1 += *data++;
+        }
+        while (--tlen);
+
+        // Reduce to 8-bit
+        sum1 = (sum1 & 0xff) + (sum1 >> 8);
+        sum2 = (sum2 & 0xff) + (sum2 >> 8);
+    }
+    // final reduction to 8 bits
+    sum1 = (sum1 & 0xff) + (sum1 >> 8);
+    sum2 = (sum2 & 0xff) + (sum2 >> 8);
+
+    // prepare and return checksum values 
+    //SC_fletcher_tuple r = { sum2 << 8 , sum1 };
+    Tuple r = { sum2, sum1 };
+    return r;
+}
+
+/**
+ * Function to prepare data for transmission
+ * @param char payload - data to be transmitted
+ * @param size_t length - length of data stream
+ */
+unsigned char 
+SC_prepareTransmission(char payload, size_t length)
+{
+    //!- payload should be in bytes
+    
+    
+}
+
+/* TODO
+
 unsigned char 
 SC_hex2Binary(char *src)
 {

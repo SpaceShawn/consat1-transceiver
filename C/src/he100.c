@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  he100.cc
+ *       Filename:  he100.c
  *
  *    Description:  Test opening the serial device, writing, reading, and closing.
  *
