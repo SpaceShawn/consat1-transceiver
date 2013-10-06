@@ -95,9 +95,30 @@ SC_write(int fd, char *bytes) {
     } 
 }
 
-unsigned char
-SC_read(void) {
-    
+void
+SC_read(int fd) {
+    // Read until receiving the 'q' input character from user!
+    while (c!='q')
+    {
+        char buffer[255];
+        response = read(fd,buffer,255);
+        buffer[response]=0;
+        printf(":%s:%d\n", buffer, response);       
+    }
+/*
+         // Looping read
+        fprintf(stdout, "\r\nStarting looping read...");
+        while (c!='q')
+        {
+            if (read(fd,&c,1)>0)
+                write(STDOUT_FILENO,&c,1);
+            if (read(STDIN_FILENO,&c,1)>0)
+                write(STDOUT_FILENO,"\nSending Transmission:",1);
+                write(STDOUT_FILENO,bytes,1);
+                write(STDOUT_FILENO,"\nResponse:",1);
+                write(fd,bytes,1);
+        }
+*/
 }
 
 void

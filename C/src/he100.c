@@ -40,18 +40,8 @@ int main(int argc, char** argv)
         // Write Hello
         SC_write(fd, hello);
 
-        // Looping read
-        fprintf(stdout, "\r\nStarting looping read...");
-        while (c!='q')
-        {
-            if (read(fd,&c,1)>0)
-                write(STDOUT_FILENO,&c,1);
-            if (read(STDIN_FILENO,&c,1)>0)
-                write(STDOUT_FILENO,"\nSending Transmission:",1);
-                write(STDOUT_FILENO,bytes,1);
-                write(STDOUT_FILENO,"\nResponse:",1);
-                write(fd,bytes,1);
-        }
+        // Read continuously from serial device
+        SC_read(fd);
         
         if (close(fd == -1)) 
         {
