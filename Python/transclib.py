@@ -1,15 +1,9 @@
 from math import *
 import struct
 import sys
-import signal # for interrupt handler
 import binascii # to convert incoming messages to ascii
 from itertools import islice, izip
 
-def signal_handler(signal, frame):
-  print 'You pressed Cntl+C! Exiting Cleanly...'
-  ser.close()
-  sys.exit(0)
-signal.signal(signal.SIGINT, signal_handler)
 
 def SC_computeFletcher(data, size, modulo, limit=None):
 	#valA, valB = 0xf, 0xf
@@ -98,6 +92,15 @@ def SC_beacon(instance):
     '3' : bytearray.fromhex('48 65 10 11 00 01 22 74 03 BB 2B'),
   }.get(instance, 0)
 
+def SC_powerAmplify(instance):
+  return {
+    '0'    :  bytearray.fromhex("00"), #bytearray.fromhex('48 65 10 06 00 22 38 74 00 03 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 43 00 00 00 36 DB'), # 0%
+    '1'    :  bytearray.fromhex(decToHex(64)),  #bytearray.fromhex('48 65 10 20 00 01 40 00 00'), # 25%
+    '2'    :  bytearray.fromhex("80"),  #bytearray.fromhex('48 65 10 06 00 22 38 74 80 03 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 43 00 00 00 36 DB'), # 50%
+    '3'    :  bytearray.fromhex("BF"),  #bytearray.fromhex('48 65 10 06 00 22 38 74 BF 03 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 43 00 00 00 36 DB'), # 75%
+    '4'   :   bytearray.fromhex("F1"),  #bytearray.fromhex('48 65 10 06 00 22 38 74 FF 03 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 43 00 00 00 36 DB'), # 100%
+  }.get(instance, 0)
+
 def SC_listen(ser):
   while True:
     action = raw_input(": ")
@@ -107,7 +110,6 @@ def SC_listen(ser):
     out = ''
     while ser.inWaiting() > 0:
       out += ser.read(1)
-#      out = ser.readline()    
     if out != '':
       data = bytearray.fromhex(toHex(out))
       payload_length = len(data) - 10 
@@ -117,7 +119,7 @@ def SC_listen(ser):
         j=i+8
         payload += chr(data[j])
       #payload = payload.strip().decode('hex')
-      
+       
       print "\n<< Incoming:\n", toHex(out), "\n", toHex(out.strip()).decode('hex'), "\n"
       print "Sync Bytes: ", chr(data[0]), chr(data[1]), "\r"
       print "Command Type: ", data[2], data[3], "\r"
@@ -139,10 +141,56 @@ def SC_testTransmit():
 ##  print '\r\n>> Hardcoded payload: "12345678"'  return bytearray.fromhex('48 65 10 03 0a 1d 53 64 65 66 67 68 69 6a 6b 6c 6d 15 21')
   return bytearray.fromhex('48 65 10 03 00 FF 12 48 41 31 32 33 34 35 36 37 38 39 42 31 32 33 34 35 36 37 38 39 43 31 32 33 34 35 36 37 38 39 44 31 32 33 34 35 36 37 38 39 45 31 32 33 34 35 36 37 38 39 46 31 32 33 34 35 36 37 38 39 47 31 32 33 34 35 36 37 38 39 48 31 32 33 34 35 36 37 38 39 49 31 32 33 34 35 36 37 38 39 4a 31 32 33 34 35 36 37 38 39 4b 31 32 33 34 35 36 37 38 39 4c 31 32 33 34 35 36 37 38 39 4d 31 32 33 34 35 36 37 38 39 4e 31 32 33 34 35 36 37 38 39 4f 31 32 33 34 35 36 37 38 39 50 31 32 33 34 35 36 37 38 39 51 31 32 33 34 35 36 37 38 39 52 31 32 33 34 35 36 37 38 39 53 31 32 33 34 35 36 37 38 39 54 31 32 33 34 35 36 37 38 39 55 31 32 33 34 35 36 37 38 39 56 31 32 33 34 35 36 37 38 39 57 31 32 33 34 35 36 37 38 39 58 31 32 33 34 35 36 37 38 39 59 5a 31 32 33 34 aa 4b')
 
+def SC_prepare(payload, command):
+  payload_byte_array = payload
+  length = len(payload_byte_array)
+  length_bytes = struct.pack('B',length)  
+  print "Payload:  ", length, " bytes out of a maximum 255\r\n"
+
+  print 'Keeping 2 bytes separate for sync characters'
+  transmission = bytearray.fromhex('48 65')
+
+  print 'Adding 2 bytes for header ...'
+  packet=bytearray.fromhex(command) 
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
+
+  print "Adding 2 bytes for payload size ..."
+  packet.extend(bytearray.fromhex('00'))
+  packet.extend(length_bytes)
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
+
+  print "Adding 2 bytes for header checksum ..."  
+  header_checksum = SC_fletcher(packet)
+  packet.extend(struct.pack('B', header_checksum[0]))
+  packet.extend(struct.pack('B', header_checksum[1]))
+  print "checksum: ", header_checksum#, " should be: (12,48)" 
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
+
+  print "Adding", len(payload_byte_array), "bytes for payload .."
+  packet.extend(payload_byte_array)
+  print "Message:  ", toHex(str(payload_byte_array))
+  print "bytesize:  ", len(payload_byte_array), " bytes\r\n"
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
+
+  print "Adding 2 bytes for payload checksum"
+  payload_checksum = SC_fletcher(payload)
+  packet.extend(struct.pack('B', payload_checksum[0]))
+  packet.extend(struct.pack('B', payload_checksum[1]))
+  print "checksum: ", payload_checksum#, " should be: (170,75)\r\n"#aa,4b
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
+
+  transmission.extend(packet)
+  print "total payload: ", len(transmission), " bytes\r\n"
+  print 'SENDING:: ', toHex(str(transmission))  
+  return transmission
+
 def SC_transmit(payload): 
-  #payload="A123456789B123456789C123456789D123456789E123456789F123456789G123456789H123456789I123456789J123456789K123456789L123456789M123456789N123456789O123456789P123456789Q123456789R123456789S123456789T123456789U123456789V123456789W123456789X123456789Y123456789Z1234"
   payload_byte_array = payload.encode('utf-8')
-  #payload_byte_array = bytearray.fromhex('41 31 32 33 34 35 36 37 38 39 42 31 32 33 34 35 36 37 38 39 43 31 32 33 34 35 36 37 38 39 44 31 32 33 34 35 36 37 38 39 45 31 32 33 34 35 36 37 38 39 46 31 32 33 34 35 36 37 38 39 47 31 32 33 34 35 36 37 38 39 48 31 32 33 34 35 36 37 38 39 49 31 32 33 34 35 36 37 38 39 4a 31 32 33 34 35 36 37 38 39 4b 31 32 33 34 35 36 37 38 39 4c 31 32 33 34 35 36 37 38 39 4d 31 32 33 34 35 36 37 38 39 4e 31 32 33 34 35 36 37 38 39 4f 31 32 33 34 35 36 37 38 39 50 31 32 33 34 35 36 37 38 39 51 31 32 33 34 35 36 37 38 39 52 31 32 33 34 35 36 37 38 39 53 31 32 33 34 35 36 37 38 39 54 31 32 33 34 35 36 37 38 39 55 31 32 33 34 35 36 37 38 39 56 31 32 33 34 35 36 37 38 39 57 31 32 33 34 35 36 37 38 39 58 31 32 33 34 35 36 37 38 39 59 5a 31 32 33 34')
   length = len(payload_byte_array)
   length_bytes = struct.pack('B',length)  
   print "Payload:  ", length, " bytes out of a maximum 255\r\n"
@@ -207,6 +255,13 @@ def toHex(s):
       hv = '0'+hv	   
     lst.append(hv)
   return reduce(lambda x,y:x+y, lst)
+
+def decToHex(n):
+  if n < 16:
+    return toHex(n)
+  mod = n % 16
+  n /= 16
+  return DectoHex(n) + str(toHex(mod))
 
 def toStr(s):
   return s and chr(atoi(s[:2], base=16)) + toStr(s[2:]) or ''

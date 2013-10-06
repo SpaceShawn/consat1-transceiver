@@ -21,7 +21,6 @@
 
 int main(int argc, char** argv) 
 {
-    unsigned char c='D'; // execution status
     int fd = 0; // serial_device instance
    
     unsigned char bytes[10] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43,0x00,0x00};
@@ -35,10 +34,10 @@ int main(int argc, char** argv)
         fprintf(stdout, "\r\nCurrent status of device: %d",fd);
 
         // Write noop
-        SC_write(fd, bytes);
+        //SC_write(fd, bytes);
 
         // Write Hello
-        SC_write(fd, hello);
+        SC_write(fd, hello, sizeof(hello));
 
         // Read continuously from serial device
         SC_read(fd);

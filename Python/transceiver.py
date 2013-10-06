@@ -2,6 +2,7 @@ from array import *
 import time, sys, serial
 from transclib import *
 import ConfigParser
+import signal # for interrupt handler
 
 config = ConfigParser.ConfigParser()
 config.read('transceiver.ini')
@@ -40,6 +41,12 @@ ser = serial.Serial(
   writeTimeout=3
   )
 
+def signal_handler(signal, frame):
+  print '\r\nYou pressed Cntl+C! Exiting Cleanly...'
+  ser.close()
+  sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
+
 def SC_writeCallback(input):
   ser.write(input)
   out = ''	
@@ -52,7 +59,7 @@ def SC_writeCallback(input):
     print 'Response:'    
     response = toHex(out)
     print response
-    if ((response == '486520060a0a3ab0') | (response == '486520010a0a35a1') | (response == '486520030a0a37a7')):
+    if ((response == '486520060a0a3ab0') | (response == '486520010a0a35a1') | (response == '486520030a0a37a7') | (response == '486520200a0a54fe')):
       print 'Acknowledge'
     elif (response == '48652001ffff1f80'):
       print 'Not-Acknowledge'
@@ -67,7 +74,7 @@ def SC_printMenu():
   print 'noop - np - send no-op sequence\r'
   print 'listen - l - listen for incoming communication\r'
   print 'getconfig- gc - send getConfig\r'
-  print 'setconfig - sc - send setconfig to project defaults\r'
+  print 'looptransmit - lt\r'
   print 'transmit - t - transmit given data\r'
   print 'testtransmit - tt - transmit hard-coded data\r'
   print 'setbaud - sbaud - set the BAUD from 9600 to 38400\r'
@@ -75,6 +82,7 @@ def SC_printMenu():
   print 'setledpulse - slp - set the LED to pulse every 2.5 seconds\r'
   print 'setledtx - sltx - set the LED to pulse on transmit\r'
   print 'setledrx - slrx - set the LED to pulse on receive\r'
+  print 'setpoweramp - spa - set the power amplification based on input'
   print 'exit - q - and close the serial port\r\n'
 
 #  print "error opening serial port: " + str(e)
@@ -130,10 +138,50 @@ if ser.isOpen():
         SC_writeCallback(SC_beacon(input))
       else:
         print "incorrect input"
+    
+    elif ((input == "setpoweramp") | (input == "spa")):
+      print 'Enter a power amplification level 0-100%'
+      input=raw_input()
 
-    elif ((input == "setconfig") | (input == "sc")):
-      input=SC_setConfig()
-      SC_writeCallback(input)
+      try:
+        pa_level = int(input)
+      except ValueError:
+        print "incorrect input"
+
+      if pa_level <= 100 | pa_level >= 0:
+        print 'Setting power amplification level: ' + str(pa_level) + "%"
+        print 'PA%: ' + str(pa_level)
+        pa_level = int(float(pa_level)/100 * 255)
+        print 'Dec: ' + str(pa_level)
+        print 'Hex: ' + str(hex(pa_level))
+        byte = struct.pack('B',pa_level)
+        SC_writeCallback(SC_prepare(byte, "10 20"))
+      else:
+        print "incorrect input"
+
+    #elif ((input == "setconfig") | (input == "sc")):
+     # input=SC_setConfig()
+     # SC_writeCallback(input)
+   
+    elif ((input == "looptransmit") | (input == "lt")):
+      payload="A123456789B123456789C123456789D123456789E123456789F123456789G123456789H123456789I123456789J123456789K123456789L123456789M123456789N123456789O123456789P123456789Q123456789R123456789S"
+      input=SC_prepare(payload.encode('utf-8'), '10 03')
+      while True:
+        #action = raw_input(": ")
+        SC_writeCallback(input)
+        #if action == 'q':
+         # print "Stopping looping transmit"
+          #break
+        out = ''
+        while ser.inWaiting() > 0:
+          out += ser.read(1)
+        if out != '':
+          print "Got a response"
+
+    elif ((input == "dectohex") | (input == "d2h")):
+      print 'Enter a message to convert'
+      input=raw_input()
+      print hex(int(input))
 
     elif ((input == "setledpulse") | (input == "slp")):
       input=SC_setLEDPulse()

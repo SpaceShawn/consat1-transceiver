@@ -26,8 +26,6 @@
 #include "he100.h" 
 #include "./he100_cfg.h"
 
-//const char *port_address = "/dev/ttyS2"; // lt-stone
-
 int
 SC_openPort(void)
 {
@@ -55,72 +53,9 @@ SC_openPort(void)
     return(fd);
 }
 
-// Responses are 8 bytes ack or no ack 
-// noop_ack 486520010a0a35a1
-// some_ack 486520060a0a3ab0
-// tx_ac    486520030a0a37a7
-// noack    48652001ffff1f80
-int 
-SC_write(int fd, char *bytes) {
-    // Write noop
-    fprintf(stdout, "\r\nWriting to device: %s\r", bytes);
-    int w = write (fd, bytes, 10); // write given 10 bytes to fd 
-    fprintf(stdout, "\r\nWrite size: %d",w);
-
-    // Read response
-    unsigned char buffer[8]; 
-    int chars_read = read(fd, &buffer, sizeof(buffer));
-    //buffer[chars_read] = '\0';
-
-    // if response == transmission, He100 device is off!
-    // int result = memcmp( bytes, chars_read, 8 );
-
-    // Print    
-    fprintf(stdout, "\nResponse:  %s", buffer);
-    //printf("%hhX", buffer, "\n\r");
-
-    fprintf(stdout, "\r\nResponse Size: %d", sizeof(buffer));
-    int i=0;
-
-    printf("\r\nMessage:\n");
-    //fprintf(stdout, "%d", chars_read, "\n\r");  
-
-    for (i=0; i<chars_read; i++) 
-    {
-        printf("%02X ",buffer[i]);
-    }
-
-    if (sizeof(buffer)>0) {
-        return 1;
-    } 
-}
-
-void
-SC_read(int fd) {
-    // Read until receiving the 'q' input character from user!
-    while (c!='q')
-    {
-        char buffer[255];
-        response = read(fd,buffer,255);
-        buffer[response]=0;
-        printf(":%s:%d\n", buffer, response);       
-    }
-/*
-         // Looping read
-        fprintf(stdout, "\r\nStarting looping read...");
-        while (c!='q')
-        {
-            if (read(fd,&c,1)>0)
-                write(STDOUT_FILENO,&c,1);
-            if (read(STDIN_FILENO,&c,1)>0)
-                write(STDOUT_FILENO,"\nSending Transmission:",1);
-                write(STDOUT_FILENO,bytes,1);
-                write(STDOUT_FILENO,"\nResponse:",1);
-                write(fd,bytes,1);
-        }
-*/
-}
-
+/**
+ * Function to configure interface
+ */
 void
 SC_configureInterface (int fd)
 { 
@@ -181,7 +116,8 @@ SC_configureInterface (int fd)
 */
 
     // Line processing flags
-    // settings.c_lflag = 0; // disable line processing 
+/*  
+    settings.c_lflag = 0; // disable line processing 
     settings.c_lflag &= ~(
           ECHO   // echo off
         | ECHONL // echo newline off
@@ -189,7 +125,7 @@ SC_configureInterface (int fd)
         | IEXTEN // extended input processing off
         | ISIG   // signal chars off
     );
-    
+*/
     // Character processing flags
     settings.c_cflag &= ~(
           PARENB  // no parity bit  
@@ -209,7 +145,7 @@ SC_configureInterface (int fd)
 
     // Read control behaviour 
     settings.c_cc[VMIN]  = 1;     // 1 byte is enough to return read
-    settings.c_cc[VTIME] = 30;     // read timeout in 1/10 seconds 
+    settings.c_cc[VTIME] = 100;     // read timeout in 1/10 seconds 
     
     // Special input characters
     // only if ICANON is set:
@@ -237,6 +173,91 @@ SC_configureInterface (int fd)
     fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings");
 }
 
+// Responses are 8 bytes ack or no ack 
+// noop_ack 486520010a0a35a1
+// some_ack 486520060a0a3ab0
+// tx_ac    486520030a0a37a7
+// noack    48652001ffff1f80
+int 
+SC_write(int fd, char *bytes, size_t size) 
+{
+    // Output outgoing transmission
+    //fprintf(stdout, "\r\nWriting to device: %s\r", bytes);
+    fprintf(stdout, "\r\nWriting to device: ");
+
+    // Write byte array
+    int w = write (fd, bytes, size); // write given 10 bytes to fd 
+    int j=0;
+    for (j=0; j<size; j++) 
+    {
+        printf("%02X ",bytes[j]);
+    }    
+    fprintf(stdout, "\r\nWrite size: %d",w);
+
+    // Read response
+    unsigned char buffer[8]; 
+    int chars_read = read(fd, &buffer, 8);
+    //buffer[chars_read] = '\0';
+
+    if (w>0) {
+        return 1;
+    } 
+}
+
+void
+SC_read(int fd) 
+{
+    // Read until receiving the 'q' input character from user!
+    unsigned char c='D'; // execution status
+    // Read response
+    unsigned char buffer[256];
+    unsigned char message[256];
+    int chars_read;
+    while (c!='q') 
+    {
+        //buffer[chars_read] = '\0';
+        chars_read = read(fd, &buffer, sizeof(buffer));
+        // int result = memcmp( bytes, chars_read, 8 );
+        if (chars_read>0) 
+        {
+            printf("\n ");
+            int i=0; 
+            char* value; 
+            unsigned char message[255];          
+/*          
+            // if response == transmission, He100 device is off!   
+            if ((int)buffer[2]==16) {
+                fprintf(stderr,"SC_read: He100 is off!");
+                break;
+            }
+*/
+            for (i=0; i<chars_read; i++) 
+            {
+                message[0] = buffer[0];
+                printf("0x%02X : %d ",buffer[i], buffer[i]);
+                // instead of this, build array from struct and lookup based on position and value
+                // log failed transmissions with shakespeare
+                switch ((int)buffer[i])
+                {
+                    case 72  : 
+                        value = (i==0) ? "Sync H" : "data"; break;
+                    case 101 : 
+                        value = (i==1) ? "Sync e" : "data"; break;
+                    case 32  : 
+                        value = (i==2) ? "Response" : "data"; break;
+                    case 3   : 
+                        value = (i==3) ? "Transmission" : "data"; break;
+                    case 10  : 
+                        value = (i==4) ? "Acknowledge" : "data"; break;
+                    default     : value = "Data/Checksum"; break;
+                }
+                printf(": %s",value);
+            }
+        }
+    }
+}
+
+
 /**
  * struct to hold values of fletcher checksum
  */
@@ -252,6 +273,7 @@ struct Tuple
  * @param bytes - size_t - number of bytes to process
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
+/*  
 struct Tuple
 SC_fletcher16( char *data, size_t bytes)
 {
@@ -280,7 +302,7 @@ SC_fletcher16( char *data, size_t bytes)
     Tuple r = { sum2, sum1 };
     return r;
 }
-
+*/
 /**
  * Function to prepare data for transmission
  * @param char payload - data to be transmitted
