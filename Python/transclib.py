@@ -92,15 +92,6 @@ def SC_beacon(instance):
     '3' : bytearray.fromhex('48 65 10 11 00 01 22 74 03 BB 2B'),
   }.get(instance, 0)
 
-def SC_powerAmplify(instance):
-  return {
-    '0'    :  bytearray.fromhex("00"), #bytearray.fromhex('48 65 10 06 00 22 38 74 00 03 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 43 00 00 00 36 DB'), # 0%
-    '1'    :  bytearray.fromhex(decToHex(64)),  #bytearray.fromhex('48 65 10 20 00 01 40 00 00'), # 25%
-    '2'    :  bytearray.fromhex("80"),  #bytearray.fromhex('48 65 10 06 00 22 38 74 80 03 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 43 00 00 00 36 DB'), # 50%
-    '3'    :  bytearray.fromhex("BF"),  #bytearray.fromhex('48 65 10 06 00 22 38 74 BF 03 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 43 00 00 00 36 DB'), # 75%
-    '4'   :   bytearray.fromhex("F1"),  #bytearray.fromhex('48 65 10 06 00 22 38 74 FF 03 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 43 00 00 00 36 DB'), # 100%
-  }.get(instance, 0)
-
 def SC_listen(ser):
   while True:
     action = raw_input(": ")

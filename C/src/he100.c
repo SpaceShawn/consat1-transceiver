@@ -17,9 +17,11 @@
  */
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include "./SC_transceiverLib.h"
 
-int main(int argc, char** argv) 
+int 
+main (int argc, char** argv) 
 {
     int fd = 0; // serial_device instance
    
@@ -39,17 +41,16 @@ int main(int argc, char** argv)
         // Write Hello
         SC_write(fd, hello, sizeof(hello));
 
-        // Read continuously from serial device
-        SC_read(fd);
+        char* message = "hello";
+        unsigned char command[2] = {0x10,0x03};
+        SC_write(fd, SC_prepareTransmission(message, 5, command), 15);
         
-        if (close(fd == -1)) 
-        {
-            fprintf(
-                stderr, 
-                "close: Unable to close the serial device connection!"
-            );
-        }
-        fprintf(stdout, "Closed device %s successfully!\r\n",port_address);
+        // read continuously until SIGINT
+        SC_read(fd);
+
+        // close he100 device
+        SC_closePort(fd);
+
         return EXIT_SUCCESS;    
     }
 }

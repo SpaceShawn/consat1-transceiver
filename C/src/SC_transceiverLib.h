@@ -53,6 +53,20 @@ SC_openPort(void)
     return(fd);
 }
 
+SC_closePort(int fd)
+{
+    if (close(fd) == -1) 
+    {
+        fprintf(
+            stderr, 
+                "\r\nSC_closePort: Unable to close the serial device connection!"
+        );
+        return -1;
+    }
+    fprintf(stdout, "\r\nSC_closePort: Closed device %s successfully!\r\n",port_address);
+    return 1;
+}
+
 /**
  * Function to configure interface
  */
@@ -98,8 +112,7 @@ SC_configureInterface (int fd)
         | INPCK  // no input parity check
         | ISTRIP // don't strip high bit off
         | IXON   // no XON/XOFF software flow control
-    );
-    
+    ); 
     // Output flags
     settings.c_oflag = 0; // disable output processing
 /*    
@@ -164,12 +177,14 @@ SC_configureInterface (int fd)
     fcntl(STDIN_FILENO, F_SETFL); // non-blocking reads
     
     tcflush( fd, TCIFLUSH); // flush port before persisting changes 
+    
     int apply_settings = -1;
     if ( apply_settings = tcsetattr(fd, TCSANOW, &settings) < 0 ) // apply attributes
     {
         fprintf(stderr, "\r\nSC_configureInterface: failed to set config: %d, %s\n", fd, strerror(errno));
         exit(EXIT_FAILURE);           
     }
+
     fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings");
 }
 
@@ -204,18 +219,24 @@ SC_write(int fd, char *bytes, size_t size)
     } 
 }
 
+/** Provide signal handling for SC_read **/
+volatile sig_atomic_t stop;
+void inthand (int signum) { stop = 1; }
+
 void
 SC_read(int fd) 
 {
-    // Read until receiving the 'q' input character from user!
-    unsigned char c='D'; // execution status
     // Read response
     unsigned char buffer[256];
     unsigned char message[256];
     int chars_read;
-    while (c!='q') 
+    //buffer[chars_read] = '\0';
+    
+    // Read continuously from serial device
+    signal(SIGINT, inthand);
+
+    while (!stop)
     {
-        //buffer[chars_read] = '\0';
         chars_read = read(fd, &buffer, sizeof(buffer));
         // int result = memcmp( bytes, chars_read, 8 );
         if (chars_read>0) 
@@ -224,13 +245,13 @@ SC_read(int fd)
             int i=0; 
             char* value; 
             unsigned char message[255];          
-/*          
+    /*          
             // if response == transmission, He100 device is off!   
             if ((int)buffer[2]==16) {
                 fprintf(stderr,"SC_read: He100 is off!");
                 break;
             }
-*/
+    */
             for (i=0; i<chars_read; i++) 
             {
                 message[0] = buffer[0];
@@ -248,7 +269,7 @@ SC_read(int fd)
                     case 3   : 
                         value = (i==3) ? "Transmission" : "data"; break;
                     case 10  : 
-                        value = (i==4) ? "Acknowledge" : "data"; break;
+                        value = (i==4||i==5) ? "Acknowledge" : "data"; break;
                     default     : value = "Data/Checksum"; break;
                 }
                 printf(": %s",value);
@@ -261,11 +282,11 @@ SC_read(int fd)
 /**
  * struct to hold values of fletcher checksum
  */
-struct Tuple 
+typedef struct SC_checksum
 {
     uint16_t sum1;
     uint16_t sum2;
-};
+} SC_checksum;
 
 /** 
  * 8-bit implementation of the Fletcher Checksum
@@ -273,8 +294,8 @@ struct Tuple
  * @param bytes - size_t - number of bytes to process
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
-/*  
-struct Tuple
+  
+struct SC_checksum 
 SC_fletcher16( char *data, size_t bytes)
 {
     uint16_t sum1 = 0xff, sum2 = 0xff;
@@ -299,25 +320,76 @@ SC_fletcher16( char *data, size_t bytes)
 
     // prepare and return checksum values 
     //SC_fletcher_tuple r = { sum2 << 8 , sum1 };
-    Tuple r = { sum2, sum1 };
+    SC_checksum r;
+    r.sum1 = sum1 << 8;
+    r.sum2 = sum2;
     return r;
 }
-*/
+
 /**
  * Function to prepare data for transmission
  * @param char payload - data to be transmitted
  * @param size_t length - length of data stream
  */
-unsigned char 
-SC_prepareTransmission(char payload, size_t length)
+unsigned char* 
+SC_prepareTransmission(char *payload, size_t length, char *command)
 {
-    //!- payload should be in bytes
+    unsigned char *transmission = (char *) malloc(length+10);
     
-    
+    // attach sync bytes
+    transmission[0] = 0x48;
+    transmission[1] = 0x65;
+
+    // attach command bytes
+    transmission[2] = command[0];
+    transmission[3] = command[1];
+
+    // attach length bytes
+    transmission[4] = 0x00;
+    transmission[5] = (char) length & 0xff; 
+
+    // generate and attach header checksum
+    SC_checksum header_checksum = SC_fletcher16(transmission,10); 
+    transmission[6] = (char) header_checksum.sum1 & 0xff;
+    transmission[7] = (char) header_checksum.sum2 & 0xff;
+
+    // attach payload and return transmission
+    int i;
+    for (i=0;i<length;i++)
+    {
+        transmission[8+i] = payload[i];
+        //use strncpy to avoid buffer problems
+    }
+    // generate and attach payload checksum
+    SC_checksum payload_checksum = SC_fletcher16(payload,length); 
+    transmission[10+length] = payload_checksum.sum1;
+    transmission[10+length+1] = payload_checksum.sum2; 
+
+    return (char*) transmission;
+}
+
+//Hex value of decimal is 2 * 4-bit bytes
+char*
+SC_dec2Hex(int decimal)
+{
+    if (decimal > 255) { // only dealing with 1 byte size
+        fprintf(
+            stderr, 
+            "Decimal value must be less than 255, given: %d",
+            decimal
+        );
+        return 0;
+    }
+    char *hex = (char *) malloc(sizeof(char) * 4);
+    int i=0;
+    while (decimal) {
+        hex[i++] = decimal % 16 + '0';
+        decimal /= 16;
+    }
+    return hex;
 }
 
 /* TODO
-
 unsigned char 
 SC_hex2Binary(char *src)
 {
