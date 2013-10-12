@@ -23,33 +23,40 @@
 int 
 main (int argc, char** argv) 
 {
-    int fd = 0; // serial_device instance
+    int fdin = 0; // serial_device instance
    
     unsigned char bytes[10] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43,0x00,0x00};
     unsigned char hello[15] = {0x48,0x65,0x10,0x03,0x00,0x05,0x18,0x4e,0x68,0x65,0x6c,0x6c,0x6f,0x16,0x2d};
 
-    if (fd = SC_openPort()) 
+    if (fdin = SC_openPort()) // Input stream
     { 
+        // open output file for appending
+        FILE *fdout; 
+        fdout = fopen("/var/log/space/he100","a");
+                 
         fprintf(stderr, "\r\nSuccessfully opened port: %s",port_address);
-        SC_configureInterface(fd);
+        SC_configureInterface(fdin);
         
-        fprintf(stdout, "\r\nCurrent status of device: %d",fd);
+        fprintf(stdout, "\r\nCurrent status of device: %d",fdin);
 
         // Write noop
-        //SC_write(fd, bytes);
+        //SC_write(fdin, bytes);
 
         // Write Hello
-        SC_write(fd, hello, sizeof(hello));
+        SC_write(fdin, hello, sizeof(hello));
 
         char* message = "hello";
         unsigned char command[2] = {0x10,0x03};
-        SC_write(fd, SC_prepareTransmission(message, 5, command), 15);
+        //SC_write(fdin, SC_prepareTransmission(message, 5, command), 15);
         
         // read continuously until SIGINT
-        SC_read(fd);
+        SC_read(fdin);
 
         // close he100 device
-        SC_closePort(fd);
+        SC_closePort(fdin);
+        
+        // close output file
+        fclose(fdout);
 
         return EXIT_SUCCESS;    
     }
