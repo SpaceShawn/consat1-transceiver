@@ -46,8 +46,9 @@ main (int argc, char** argv)
         SC_write(fdin, hello, sizeof(hello));
 
         char* message = "hello";
-        unsigned char command[2] = {0x10,0x03};
-        //SC_write(fdin, SC_prepareTransmission(message, 5, command), 15);
+        //unsigned char command[2] = {0x10,0x03};
+        unsigned char command[2] = {CMD_TRANSMIT,CMD_TRANSMIT_DATA};
+        SC_write(fdin, SC_prepareTransmission(message, 5, command), 15);
         
         // read continuously until SIGINT
         SC_read(fdin);

@@ -252,7 +252,7 @@ SC_read (int fdin)
         {
             if (buffer[0] != '\r' && buffer[0] != '\n') {
                 response[i]=buffer[0];
-//                printf("\n i:%d buf:0x%02X msg:0x%02X",i,buffer[0],response[i]);
+                //printf("\n i:%d buf:0x%02X msg:0x%02X",i,buffer[0],response[i]);
                 i++;
             }
             else {
@@ -262,7 +262,7 @@ SC_read (int fdin)
                 SC_interpretResponse(response, i+1);
                 buffer[0] = '\0';
                 i=0;
-                // SC_parseResponse(response);
+                //SC_validateResponse(response);
             }
         }
     }
@@ -323,47 +323,52 @@ unsigned char*
 SC_prepareTransmission(char *payload, size_t length, char *command)
 {
     unsigned char *transmission = (char *) malloc(length+10);
+    unsigned char *payloadbytes = (char *) malloc(length+8);
     
-    // attach sync bytes
-    transmission[0] = 0x48;
-    transmission[1] = 0x65;
+    // attach sync bytes to final transmission byte array
+    transmission[0] = SYNC1; //0x48;
+    transmission[1] = SYNC2; //0x65;
 
-    // attach command bytes
-    transmission[2] = command[0];
-    transmission[3] = command[1];
+    // attach command bytes to intermediary payload byte array
+    payloadbytes[0] = command[0];
+    payloadbytes[1] = command[1];
 
     // attach length bytes
-    transmission[4] = 0x00;
-    transmission[5] = (char) length & 0xff; 
+    payloadbytes[2] = 0x00;
+    payloadbytes[3] = (char) length & 0xff; 
 
     // generate and attach header checksum
-    SC_checksum header_checksum = SC_fletcher16(transmission,10); 
-    transmission[6] = (char) header_checksum.sum1 & 0xff;
-    transmission[7] = (char) header_checksum.sum2 & 0xff;
+    SC_checksum header_checksum = SC_fletcher16(payloadbytes,10); 
+    payloadbytes[4] = (char) header_checksum.sum1 & 0xff;
+    payloadbytes[5] = (char) header_checksum.sum2 & 0xff;
     
     // generate and attach payload checksum
-    SC_checksum payload_checksum = SC_fletcher16(transmission,length); 
-    transmission[8+length] = payload_checksum.sum1;
-    transmission[8+length+1] = payload_checksum.sum2; 
+    SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length); 
+    payloadbytes[6+length] = payload_checksum.sum1 & 0xff;
+    payloadbytes[6+length+1] = payload_checksum.sum2 & 0xff;
 
-    // attach payload and return transmission
+    // attach data to payload 
     int i;
     for (i=0;i<length;i++)
-    {
-        transmission[8+i] = payload[i];
-        //use strncpy to avoid buffer problems
+        payloadbytes[6+i] = payload[i];
+    int j=0;
+
+    // attach payload and return final transmission
+    for (i=2;i<length+10;i++) {
+        transmission[i] = payloadbytes[j];
+        j++;
     }
 
     return (char*) transmission;
 }
 
 /**
- * Function to parse a given frame, verify it, and mine its data
- * @param response - the frame data to be parsed
+ * Function to parse a given frame, validate it, and return its data
+ * @param response - the frame data to be validated 
  * @param length - the entire length of the frame in bytes
  */
 unsigned char*
-SC_parseResponse (char *response, size_t length) 
+SC_validateResponse (char *response, size_t length) 
 {
     unsigned char *data = (char *) malloc(length);
 
@@ -407,7 +412,7 @@ SC_parseResponse (char *response, size_t length)
 int
 SC_interpretResponse (char *response, size_t length) 
 {
-    printf("Reponse length: %d\n", length);
+    printf("Response length: %d\n", (int)length);
 
     // if response == transmission, He100 device is off!   
     if ((int)response[2]==16) {

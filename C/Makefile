@@ -5,13 +5,15 @@ MICROCFLAGS=-mcpu=v8.10.a -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-comp
 DEBUGFLAGS=-ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provides macro info to gdb
 MICROINCPATH=-I./inc/Q6/
 INCPATH=-I./inc/PC/
-LIBPATH=-L./lib/
+LIBPATH=-L./lib
 
 buildBin:
 #	 $(CC) $(CFLAGS) $(INCPATH) $(LIBPATH) src/he100.c -o bin/he100.x
-	$(CC) $(INCPATH) $(LIBPATH) -lshakespeare src/he100.c -o bin/he100.x
+#	 $(CC) $(INCPATH) $(LIBPATH) -lshakespeare src/he100.c -o bin/he100.x
+	$(CC) $(INCPATH) $(LIBPATH) src/he100.c -o bin/he100.x
 buildQ6:
-	$(MICROCC) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) -lshakespeare-mbcc src/he100.c -o bin/he100Q6.x 
+#	$(MICROCC) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) -lshakespeare-mbcc src/he100.c -o bin/he100Q6.x 
+	$(MICROCC) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) src/he100.c -o bin/he100Q6.x 
 
 #buildAllTests: buildUnitTests
 #buildUnitTests:
