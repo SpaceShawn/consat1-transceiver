@@ -36,6 +36,7 @@ SC_openPort(void)
           O_RDWR // O_RDWR read and write (CREAD, )
         | O_NOCTTY // port never becomes the controlling terminal 
         | O_NDELAY // use non-blocking I/O
+        | O_NONBLOCK
         // CLOCAL don't allow control of the port to be changed
     );
 
@@ -70,12 +71,13 @@ SC_closePort(int fdin)
 
 /**
  * Function to configure interface
+ * @param fdin - the file descriptor representing the serial device
+ * REF: http://man7.org/linux/man-pages/man3/termios.3.html
+ * REF: http://www.unixguide.net/unix/programming/3.6.2.shtml
  */
 void
 SC_configureInterface (int fdin)
 { 
-    // http://man7.org/linux/man-pages/man3/termios.3.html
-    // http://www.unixguide.net/unix/programming/3.6.2.shtml
     struct termios settings;
    
     // get current settings
@@ -91,7 +93,8 @@ SC_configureInterface (int fdin)
         exit(EXIT_FAILURE);
     }
     fprintf(stdout, "\r\nSC_configureInterface: successfully acquired old settings");
-    cfmakeraw(&settings); // raw mode: 
+    
+    //cfmakeraw(&settings); // raw mode: 
     //Input is not assembled into lines and special characters are not processed.
 
     // attempt to set input and output baud rate to 9600
@@ -103,7 +106,7 @@ SC_configureInterface (int fdin)
     fprintf(stdout, "\r\nSC_configureInterface: successfully set new baud rate");
 
     // Input flags 
-    settings.c_iflag = 0; // disable input processing
+    //settings.c_iflag = 0; // disable input processing
     settings.c_iflag &= ~(  
           IGNBRK // disable: ignore BREAK condition on input 
         | BRKINT // convert break to null byte
@@ -112,11 +115,17 @@ SC_configureInterface (int fdin)
         | PARMRK // don't mark parity errors or breaks
         | INPCK  // no input parity check
         | ISTRIP // don't strip high bit off
-        | IXON   // no XON/XOFF software flow control
+    //    | IXON   // no XON/XOFF software flow control
     ); 
+    settings.c_iflag |= (
+          IXON
+        | IXOFF
+        | IGNPAR // ignore bytes with parity errors
+        | ICRNL  // map CR to NL (otherwise CR input on other computer will not terminate input)
+        );
     
     // Output flags
-    settings.c_oflag = 0; // disable output processing
+    settings.c_oflag = 0; // disable output processing, raw output
 /*    
     settings.c_oflag &= ~(
           OCRNL  // turn off output processing
@@ -132,6 +141,8 @@ SC_configureInterface (int fdin)
 
     // Line processing flags
     settings.c_lflag = 0; // disable line processing 
+    //settings.c_lflag = ICANON; // enable canonical input
+    settings.c_lflag = ECHONL; 
 /*  
     settings.c_lflag &= ~(
           ECHO   // echo off
@@ -141,17 +152,16 @@ SC_configureInterface (int fdin)
         | ISIG   // signal chars off
     );
 */
-    //settings.c_lflag |= (ECHONL | ICANON);
 
     // Control flags
-    settings.c_cflag &= ~(
+    settings.c_cflag &= ~( // disable stuff
           PARENB  // no parity bit  
-        | CSIZE   // current char size mask
+        | CSIZE   // mask the character size bits 
         | CSTOPB  // stop bits: 1 stop bit
         | CRTSCTS // disable hardware flow control
         //| ~PARODD; // even parity
     );
-    settings.c_cflag |= (
+    settings.c_cflag |= ( // enable stuff
           B9600    // set BAUD to 9600
         | CS8      // byte size: 8 data bits
         | CREAD   // enable receiver
@@ -162,7 +172,9 @@ SC_configureInterface (int fdin)
 
     // Read control behaviour 
     settings.c_cc[VMIN]  = 1;     // min bytes to return read
-    settings.c_cc[VTIME] = 100;     // read timeout in 1/10 seconds 
+    settings.c_cc[VTIME] = 30;    // read timeout in 1/10 seconds 
+    settings.c_cc[VEOL]  = 0;  // end of line character '\0' 
+    settings.c_cc[VEOL2] = 0;  // end of line character '\0'
     
     // Special input characters
     // only if ICANON is set:
@@ -180,9 +192,9 @@ SC_configureInterface (int fdin)
     //tcsetattr(STDOUT_FILENO,TCSAFLUSH,&stdio);
     fcntl(
         fdin, 
-        F_SETFL, // return 0 if no chars available on port 
-        FNDELAY
-    ); // non-blocking, immediate reads
+        F_SETFL,  
+        FNDELAY // return 0 if no chars available on port (non-blocking)
+    ); // immediate reads
     
     tcflush( fdin, TCIFLUSH); // flush port before persisting changes 
     
@@ -196,11 +208,12 @@ SC_configureInterface (int fdin)
     fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings");
 }
 
-// Responses are 8 bytes ack or no ack 
-// noop_ack 486520010a0a35a1
-// some_ack 486520060a0a3ab0
-// tx_ac    486520030a0a37a7
-// noack    48652001ffff1f80
+/** 
+ * Function to write a given byte sequence to the serial device
+ * @param fdin - the file descriptor representing the serial device
+ * @param bytes - the char array containing the byte sequence to write
+ * @param size - the length of the array in bytes
+ */
 int 
 SC_write(int fdin, char *bytes, size_t size) 
 {
@@ -216,56 +229,11 @@ SC_write(int fdin, char *bytes, size_t size)
     }    
     fprintf(stdout, "\r\nWrite size: %d",w);
 
-    // Read response
-    unsigned char buffer[8]; 
-    int chars_read = read(fdin, &buffer, 8);
-    //buffer[chars_read] = '\0';
-
-    //usleep(100000);
+    usleep(1000);
 
     if (w>0) {
         return 1;
     } 
-}
-
-/** Provide signal handling for SC_read **/
-volatile sig_atomic_t stop;
-void inthand (int signum) { stop = 1; }
-
-void
-SC_read (int fdin) 
-{
-    // Read response
-    unsigned char buffer[1];
-    unsigned char response[255];
-    int chars_read;    
-    int i=0;
-    //buffer[chars_read] = '\0';
-    
-    // Read continuously from serial device
-    signal(SIGINT, inthand);
-  
-    while (!stop)
-    {
-        // int result = memcmp( bytes, chars_read, 8 );
-        if (read(fdin, &buffer, 1) > 0)
-        {
-            if (buffer[0] != '\r' && buffer[0] != '\n') {
-                response[i]=buffer[0];
-                //printf("\n i:%d buf:0x%02X msg:0x%02X",i,buffer[0],response[i]);
-                i++;
-            }
-            else {
-                // done gathering response!
-                response[i] = '\0';
-                fprintf(stdout,"\nTotal response hex: %s\n",response);
-                SC_interpretResponse(response, i+1);
-                buffer[0] = '\0';
-                i=0;
-                //SC_validateResponse(response);
-            }
-        }
-    }
 }
 
 /**
@@ -310,56 +278,8 @@ SC_fletcher16 (char *data, size_t bytes)
     //SC_fletcher_tuple r = { sum2 << 8 , sum1 };
     SC_checksum r;
     r.sum1 = (sum1 & 0xf);
-    r.sum2 = sum2;
+    r.sum2 = (sum2 & 0xf);
     return r;
-}
-
-/**
- * Function to prepare data for transmission
- * @param char payload - data to be transmitted
- * @param size_t length - length of data stream
- */
-unsigned char* 
-SC_prepareTransmission(char *payload, size_t length, char *command)
-{
-    unsigned char *transmission = (char *) malloc(length+10);
-    unsigned char *payloadbytes = (char *) malloc(length+8);
-    
-    // attach sync bytes to final transmission byte array
-    transmission[0] = SYNC1; //0x48;
-    transmission[1] = SYNC2; //0x65;
-
-    // attach command bytes to intermediary payload byte array
-    payloadbytes[0] = command[0];
-    payloadbytes[1] = command[1];
-
-    // attach length bytes
-    payloadbytes[2] = 0x00;
-    payloadbytes[3] = (char) length & 0xff; 
-
-    // generate and attach header checksum
-    SC_checksum header_checksum = SC_fletcher16(payloadbytes,10); 
-    payloadbytes[4] = (char) header_checksum.sum1 & 0xff;
-    payloadbytes[5] = (char) header_checksum.sum2 & 0xff;
-    
-    // generate and attach payload checksum
-    SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length); 
-    payloadbytes[6+length] = payload_checksum.sum1 & 0xff;
-    payloadbytes[6+length+1] = payload_checksum.sum2 & 0xff;
-
-    // attach data to payload 
-    int i;
-    for (i=0;i<length;i++)
-        payloadbytes[6+i] = payload[i];
-    int j=0;
-
-    // attach payload and return final transmission
-    for (i=2;i<length+10;i++) {
-        transmission[i] = payloadbytes[j];
-        j++;
-    }
-
-    return (char*) transmission;
 }
 
 /**
@@ -409,6 +329,152 @@ SC_validateResponse (char *response, size_t length)
     return (char*) msg; 
 }
 
+/** Provide signal handling for SC_read **/
+volatile sig_atomic_t stop;
+void inthand (int signum) { stop = 1; }
+
+/**
+ * Function to read bytes in single-file from the serial device and 
+ * append them to and return a response array
+ * @param fdin - the file descriptor representing the serial device
+ */
+void
+SC_read (int fdin) 
+{
+    FILE *fdout; 
+    fdout = fopen("/var/log/space/he100.log","a");
+
+    // Read response
+    unsigned char buffer[1];
+    unsigned char response[255];
+    int chars_read;    
+    int i=0;
+    //buffer[chars_read] = '\0';
+    
+    // Read continuously from serial device
+    signal(SIGINT, inthand);
+  
+    while (!stop)
+    {
+        // int result = memcmp( bytes, chars_read, 8 );
+        if ( chars_read = read(fdin, &buffer, 1) > 0 )
+        { 
+           // && buffer[0] != '\n' doesn't work as expected, this is 0a 
+           // 
+/*  
+           if (buffer[0] == 72 && i=0) { // this would be SYNC1
+                // start new transmission line
+                //response[0] = '\0';
+                //buffer[0] = '\0';
+                fprintf(fdout,"\n");
+           }
+*/
+           // determine where each response begins and ends
+           // build response buffer
+           if ( (buffer[0] != '\r') && (buffer[0] != '\0') ) {  
+                response[i]=buffer[0];
+                buffer[0] = 0;
+
+/* reference and validate position of SYNC/header bytes? 
+                if (i<=2)
+                    if (SC_referencePosition(buffer[0],i)<0)
+*/
+                fprintf(fdout, "0x%02X ", response[i]);
+                printf("\n i:%d chars_read:%d hex:0x%02X",i,chars_read,response[i]);
+                i++;
+           }
+           else // done gathering response, terminate the array, validate 
+           {  
+                // Log with shakespeare: YYYY-MM-DD - transmission
+                fprintf(stdout,"\n\nTotal response hex: %s\n",response);
+                SC_interpretResponse(response, i+1);
+                //SC_validateResponse(response, i+1);
+
+                // reset response index and charbuffer, break line in log
+                i=0;
+                response[0] = '\0';
+                fprintf(fdout,"\n");
+            }
+        }
+    }
+}
+
+/**
+ * Function to prepare data for transmission
+ * @param char payload - data to be transmitted
+ * @param size_t length - length of data stream
+ */
+unsigned char* 
+SC_prepareTransmission(char *payload, size_t length, char *command)
+{
+    unsigned char *transmission = (char *) malloc(length+10);
+    unsigned char *payloadbytes = (char *) malloc(length+8);
+    
+    // attach sync bytes to final transmission byte array
+    transmission[0] = SYNC1; //0x48;
+    transmission[1] = SYNC2; //0x65;
+
+    // attach command bytes to intermediary payload byte array
+    payloadbytes[0] = command[0];
+    payloadbytes[1] = command[1];
+
+    // attach length bytes
+    payloadbytes[2] = 0x00;
+    payloadbytes[3] = (char) length & 0xff; 
+
+    // generate and attach header checksum
+    SC_checksum header_checksum = SC_fletcher16(payloadbytes,10); 
+    payloadbytes[4] = (char) header_checksum.sum1 & 0xf;
+    payloadbytes[5] = (char) header_checksum.sum2 & 0xff;
+    
+    // generate and attach payload checksum
+    SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length); 
+    payloadbytes[6+length] = payload_checksum.sum1 & 0xf;
+    payloadbytes[6+length+1] = payload_checksum.sum2 & 0xf;
+
+    // attach data to payload 
+    int i;
+    for (i=0;i<length;i++)
+        payloadbytes[6+i] = payload[i];
+    int j=0;
+
+    // attach payload and return final transmission
+    for (i=2;i<length+10;i++) {
+        transmission[i] = payloadbytes[j];
+        j++;
+    }
+
+    return (char*) transmission;
+}
+
+int
+SC_referenceCommunication(char *response, size_t position)
+{
+    switch ((int)position)
+    {
+        case 0   : // first position should be 0x48 : 72
+                if ((int)response==72) return 1;
+        case 1   : // second position should be 0x65 : 101 
+                if ((int)response==101) return 1;
+        case 2   : // response command could be   
+                if ((int)response==32) return 1; // CMD_RECEIVE  0x20
+        default  : return 1; 
+
+        return -1; // something went wrong
+    }
+}
+
+/** 
+ * Function to decode validated and extracted data from response
+ * @param response - the response data to interpret
+ * @param length - the length of the data in bytes
+ *
+ * Most responses are 8 bytes ack or no ack 
+ * noop_ack         486520010a0a35a1
+ * noop_noack       48652001ffff1f80
+ * setconfig_ack    486520060a0a3ab0
+ * tx_ac            486520030a0a37a7
+ */
 int
 SC_interpretResponse (char *response, size_t length) 
 {
@@ -439,7 +505,8 @@ SC_interpretResponse (char *response, size_t length)
                 value = (i==3) ? "Transmission" : "data"; break;
             case 10  : 
                 value = (i==4||i==5) ? "Acknowledge" : "data"; break;
-            default     : value = "Data/Checksum"; break;
+            default  : 
+                value = (i==length||i==length-1) ?"chksum" :"data"; break;
 
         }
         printf(": %s,\n",value);
