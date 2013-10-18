@@ -43,10 +43,15 @@ main (int argc, char** argv)
         //SC_write(fdin, bytes);
 
         // Write Hello
-        SC_write(fdin, hello, sizeof(hello));
-        char* message = "hello";
-        unsigned char command[2] = {CMD_TRANSMIT,CMD_TRANSMIT_DATA}; //{0x10,0x03};
-        //SC_write(fdin, SC_prepareTransmission(message, 5, command), 15);
+        size_t msg_len = 17; // don't forget to change this
+        size_t pay_len = msg_len + 10; // payload is msg_len + 10 he100 wrapper bytes
+        unsigned char *message = "Hello from the Q6";
+        unsigned char command[2] = {CMD_TRANSMIT,CMD_TRANSMIT_DATA}; // {0x10,0x03}
+
+        if ( SC_write(fdin, SC_prepareTransmission(message, msg_len, command), pay_len) > 0 )
+            printf("\r\n Message written successfully!");
+        else  
+            printf("\r\n Problems writing to serial device"); 
         
         // read continuously until SIGINT
         SC_read(fdin);

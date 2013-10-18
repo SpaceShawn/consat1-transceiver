@@ -43,7 +43,6 @@ SC_openPort(void)
     if (fdin == -1) {
         // Could not open port
         fprintf(stderr, "\r\nSC_openPort: Unable to open port: ", port_address, "%s\n", strerror(errno));
-        fprintf(stderr, "\r\nSC_openPort: Unable to open port: ", port_address, "%s\n", strerror(errno));
         return -1;
     }
     
@@ -172,9 +171,9 @@ SC_configureInterface (int fdin)
 
     // Read control behaviour 
     settings.c_cc[VMIN]  = 1;     // min bytes to return read
-    settings.c_cc[VTIME] = 30;    // read timeout in 1/10 seconds 
-    settings.c_cc[VEOL]  = 0;  // end of line character '\0' 
-    settings.c_cc[VEOL2] = 0;  // end of line character '\0'
+    settings.c_cc[VTIME] = 0;    // read timeout in 1/10 seconds 
+    // only canonical mode settings.c_cc[VEOL]  = 0;  // end of line character '\0' 
+    // only canonical mode settings.c_cc[VEOL2] = 0;  // end of line character '\0'
     
     // Special input characters
     // only if ICANON is set:
@@ -215,7 +214,7 @@ SC_configureInterface (int fdin)
  * @param size - the length of the array in bytes
  */
 int 
-SC_write(int fdin, char *bytes, size_t size) 
+SC_write(int fdin, unsigned char *bytes, size_t size) 
 {
     // Output outgoing transmission
     fprintf(stdout, "\r\nWriting to device: ");
@@ -229,7 +228,7 @@ SC_write(int fdin, char *bytes, size_t size)
     }    
     fprintf(stdout, "\r\nWrite size: %d",w);
 
-    usleep(1000);
+    //fflush(fdin);
 
     if (w>0) {
         return 1;
@@ -240,8 +239,8 @@ SC_write(int fdin, char *bytes, size_t size)
  * struct to hold values of fletcher checksum
  */
 typedef struct SC_checksum {
-    uint16_t sum1;
-    uint16_t sum2;
+    uint8_t sum1;
+    uint8_t sum2;
 } SC_checksum;
 
 /** 
@@ -252,6 +251,30 @@ typedef struct SC_checksum {
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
 struct SC_checksum 
+SC_fletcher16unef (char *data, size_t bytes)
+{
+    uint8_t sum1=0, sum2=0;
+    int i=0;
+
+    for (i=0; i<bytes; i++) {
+        // calculate sums
+        sum1 = (sum1 + (data[i] % 255));
+        sum2 += sum1;
+        // Reduce to 8-bit
+        //printf ("\r\ni:%d d:%d 1:%d 2:%d ",i,(char)data[i],sum1,sum2);
+    }
+
+    // prepare and return checksum values 
+    SC_checksum r;
+    r.sum1 = (sum1 % 255);
+    r.sum2 = (sum2 % 255);
+    return r;
+}
+
+/**
+ * Optimized Fletcher Checksum
+ */
+struct SC_checksum
 SC_fletcher16 (char *data, size_t bytes)
 {
     uint16_t sum1 = 0xff, sum2 = 0xff;
@@ -263,6 +286,7 @@ SC_fletcher16 (char *data, size_t bytes)
         do
         {
             sum2 += sum1 += *data++;
+            //printf ("\r\ni:%d d:%d 1:%d 2:%d ",bytes,*data,sum1,sum2);
         }
         while (--tlen);
 
@@ -270,15 +294,12 @@ SC_fletcher16 (char *data, size_t bytes)
         sum1 = (sum1 & 0xff) + (sum1 >> 8);
         sum2 = (sum2 & 0xff) + (sum2 >> 8);
     }
-    // final reduction to 8 bits
-    sum1 = (sum1 & 0xff) + (sum1 >> 8);
-    sum2 = (sum2 & 0xff) + (sum2 >> 8);
-
     // prepare and return checksum values 
-    //SC_fletcher_tuple r = { sum2 << 8 , sum1 };
     SC_checksum r;
-    r.sum1 = (sum1 & 0xf);
-    r.sum2 = (sum2 & 0xf);
+    // final reduction to 8 bits
+    r.sum1 = (sum1 & 0xff) + (sum1 >> 8);
+    r.sum2 = (sum2 & 0xff) + (sum2 >> 8);
+    
     return r;
 }
 
@@ -336,6 +357,12 @@ void inthand (int signum) { stop = 1; }
 /**
  * Function to read bytes in single-file from the serial device and 
  * append them to and return a response array
+ *
+ * !! Serial port is not sending any CR, LF, or other E-O-L or E-O-F bytes
+ * !! Must check for Sync bytes and verify they are not in pay load, e.g. 'He'llo
+ * 
+ * 1 - findstart building message frame, checking if each byte makes sense, else discard and look for 48 65
+ *
  * @param fdin - the file descriptor representing the serial device
  */
 void
@@ -349,7 +376,6 @@ SC_read (int fdin)
     unsigned char response[255];
     int chars_read;    
     int i=0;
-    //buffer[chars_read] = '\0';
     
     // Read continuously from serial device
     signal(SIGINT, inthand);
@@ -359,9 +385,7 @@ SC_read (int fdin)
         // int result = memcmp( bytes, chars_read, 8 );
         if ( chars_read = read(fdin, &buffer, 1) > 0 )
         { 
-           // && buffer[0] != '\n' doesn't work as expected, this is 0a 
-           // 
-/*  
+/*      
            if (buffer[0] == 72 && i=0) { // this would be SYNC1
                 // start new transmission line
                 //response[0] = '\0';
@@ -369,11 +393,12 @@ SC_read (int fdin)
                 fprintf(fdout,"\n");
            }
 */
-           // determine where each response begins and ends
-           // build response buffer
-           if ( (buffer[0] != '\r') && (buffer[0] != '\0') ) {  
+            // determine where each response begins and ends
+            // build response buffer
+            if ( (buffer[0] != '\r') && (buffer[0] != '\0') ) 
+            {   // we have data we want to add to message buffer
                 response[i]=buffer[0];
-                buffer[0] = 0;
+                buffer[0] = '\0';
 
 /* reference and validate position of SYNC/header bytes? 
                 if (i<=2)
@@ -382,9 +407,9 @@ SC_read (int fdin)
                 fprintf(fdout, "0x%02X ", response[i]);
                 printf("\n i:%d chars_read:%d hex:0x%02X",i,chars_read,response[i]);
                 i++;
-           }
-           else // done gathering response, terminate the array, validate 
-           {  
+            }
+            else            
+            {   
                 // Log with shakespeare: YYYY-MM-DD - transmission
                 fprintf(stdout,"\n\nTotal response hex: %s\n",response);
                 SC_interpretResponse(response, i+1);
@@ -405,7 +430,10 @@ SC_read (int fdin)
  * @param size_t length - length of data stream
  */
 unsigned char* 
-SC_prepareTransmission(char *payload, size_t length, char *command)
+SC_prepareTransmission(
+    unsigned char *payload, 
+    size_t length, 
+    unsigned char *command)
 {
     unsigned char *transmission = (char *) malloc(length+10);
     unsigned char *payloadbytes = (char *) malloc(length+8);
@@ -415,22 +443,28 @@ SC_prepareTransmission(char *payload, size_t length, char *command)
     transmission[1] = SYNC2; //0x65;
 
     // attach command bytes to intermediary payload byte array
-    payloadbytes[0] = command[0];
-    payloadbytes[1] = command[1];
+    payloadbytes[0] = (unsigned char) command[0];
+    payloadbytes[1] = (unsigned char) command[1];
 
     // attach length bytes
     payloadbytes[2] = 0x00;
-    payloadbytes[3] = (char) length & 0xff; 
+    payloadbytes[3] = (unsigned char) length & 0xff; 
 
     // generate and attach header checksum
-    SC_checksum header_checksum = SC_fletcher16(payloadbytes,10); 
-    payloadbytes[4] = (char) header_checksum.sum1 & 0xf;
-    payloadbytes[5] = (char) header_checksum.sum2 & 0xff;
+    SC_checksum header_checksum = SC_fletcher16(payloadbytes,4); 
+    payloadbytes[4] = (unsigned char) header_checksum.sum1 & 0xff;
+    payloadbytes[5] = (unsigned char) header_checksum.sum2 & 0xff;
+    printf ("\r\nheader_checksum: [%d,%d], [%d,%d]",
+        header_checksum.sum1, header_checksum.sum2,
+        payloadbytes[4], payloadbytes[5]);
     
     // generate and attach payload checksum
-    SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length); 
-    payloadbytes[6+length] = payload_checksum.sum1 & 0xf;
-    payloadbytes[6+length+1] = payload_checksum.sum2 & 0xf;
+    SC_checksum payload_checksum = SC_fletcher16(payload,length); 
+    payloadbytes[6+length] = payload_checksum.sum1;
+    payloadbytes[6+length+1] = payload_checksum.sum2;
+    printf ("\r\npayload_checksum: [%d,%d], [%d,%d]",
+        payload_checksum.sum1, payload_checksum.sum2,
+        payloadbytes[6+length], payloadbytes[6+length+1]);
 
     // attach data to payload 
     int i;
