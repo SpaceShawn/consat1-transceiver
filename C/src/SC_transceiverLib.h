@@ -36,7 +36,7 @@ SC_openPort(void)
           O_RDWR // O_RDWR read and write (CREAD, )
         | O_NOCTTY // port never becomes the controlling terminal 
         | O_NDELAY // use non-blocking I/O
-        | O_NONBLOCK
+        // | O_NONBLOCK
         // CLOCAL don't allow control of the port to be changed
     );
 
@@ -308,7 +308,8 @@ SC_fletcher16 (char *data, size_t bytes)
  * @param response - the frame data to be validated 
  * @param length - the entire length of the frame in bytes
  */
-unsigned char*
+//unsigned char*
+int
 SC_validateResponse (char *response, size_t length) 
 {
     unsigned char *data = (char *) malloc(length);
@@ -337,17 +338,38 @@ SC_validateResponse (char *response, size_t length)
     int p_s2_chk = memcmp(&response[length-1], &p_chksum.sum2, 1);
     int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
     
-    if (h_chk != 0)
+    if (h_chk != 0) {
         printf("Invalid header checksum");
+        return 0;
+    }
 
-    if (p_chk != 0)
+    if (p_chk != 0) {
         printf("Invalid payload checksum");
+        return 0;
+    }
 
+/* just return 1 or zero for now 
     j=0;
     for (i=10;i<data_length;i++)
         msg[j] = response[i];
     
     return (char*) msg; 
+*/
+    return 1;
+}
+
+int
+SC_dumpBytes(unsigned char *bytes, size_t size) 
+{
+    // Output outgoing transmission
+    fprintf(stdout, "\r\nBytes: ");
+    int j=0;
+    for (j=0; j<size; j++) 
+    {
+        printf("%02X ",bytes[j]);
+    }    
+    fprintf(stdout, "\r\nTotal bytes: %d",(unsigned int)size);
+    return 1;
 }
 
 /** Provide signal handling for SC_read **/
@@ -359,7 +381,7 @@ void inthand (int signum) { stop = 1; }
  * append them to and return a response array
  *
  * !! Serial port is not sending any CR, LF, or other E-O-L or E-O-F bytes
- * !! Must check for Sync bytes and verify they are not in pay load, e.g. 'He'llo
+ * !! Must check for Sync bytes and verify they are not in payload, e.g. 'He'llo
  * 
  * 1 - findstart building message frame, checking if each byte makes sense, else discard and look for 48 65
  *
@@ -385,25 +407,28 @@ SC_read (int fdin)
         // int result = memcmp( bytes, chars_read, 8 );
         if ( chars_read = read(fdin, &buffer, 1) > 0 )
         { 
-/*      
-           if (buffer[0] == 72 && i=0) { // this would be SYNC1
-                // start new transmission line
-                //response[0] = '\0';
-                //buffer[0] = '\0';
+            if ( buffer[0] == '\0' ) // E-O-L try NULL
+            { // hit break condition
+                if (i>0) // we have a message to validate 
+                {
+                    if ( SC_validateResponse(response, i+1) > 0 )
+                        fprintf(stdout, "VALID MESSAGE!");
+                        // SC_storeData(response, i+1);
+                    else {
+                        fprintf(stderr, "Invalid data!");
+                        SC_dumpBytes(response, i+1);
+                    }
+                }
+                i=0; // restart message index
+                response[0] = '\0';
                 fprintf(fdout,"\n");
-           }
-*/
-            // determine where each response begins and ends
-            // build response buffer
-            if ( (buffer[0] != '\r') && (buffer[0] != '\0') ) 
-            {   // we have data we want to add to message buffer
+            }
+            //if (buffer[0] == 72 && i==0 ) // first SYNC byte 0x48
+            else if ( SC_referenceCommunication(buffer[0],i) < 0 ) // or SC_interpret 
+            {   // we have relevant data 
                 response[i]=buffer[0];
                 buffer[0] = '\0';
 
-/* reference and validate position of SYNC/header bytes? 
-                if (i<=2)
-                    if (SC_referencePosition(buffer[0],i)<0)
-*/
                 fprintf(fdout, "0x%02X ", response[i]);
                 printf("\n i:%d chars_read:%d hex:0x%02X",i,chars_read,response[i]);
                 i++;
@@ -411,15 +436,10 @@ SC_read (int fdin)
             else            
             {   
                 // Log with shakespeare: YYYY-MM-DD - transmission
-                fprintf(stdout,"\n\nTotal response hex: %s\n",response);
-                SC_interpretResponse(response, i+1);
-                //SC_validateResponse(response, i+1);
-
-                // reset response index and charbuffer, break line in log
-                i=0;
-                response[0] = '\0';
-                fprintf(fdout,"\n");
+                fprintf(stderr, "SC_read: byte reference error!");
+                SC_dumpBytes(response, i+1);
             }
+            buffer[0] = '\0'; // wipe buffer each time
         }
     }
 }
@@ -487,11 +507,23 @@ SC_referenceCommunication(char *response, size_t position)
     switch ((int)position)
     {
         case 0   : // first position should be 0x48 : 72
-                if ((int)response==72) return 1;
+                if ((int)*response==72) return 1;
+                break;
         case 1   : // second position should be 0x65 : 101 
-                if ((int)response==101) return 1;
-        case 2   : // response command could be   
-                if ((int)response==32) return 1; // CMD_RECEIVE  0x20
+                if ((int)*response==101) return 1;
+                break;
+        case 2   : // response tx/rx command should be 0x20
+                if ((int)*response==32) return 1; // CMD_RECEIVE  0x20
+                break;
+        case 3   : // response command could be between 1-20
+                if (*response > 0x00 && *response < 0x20) return (int)*response; 
+                break;
+        case 4   : // first length byte
+                break;
+        case 5   : // real length byte
+                if ((int)*response<MAX_FRAME_LENGTH) return (int)*response; 
+                // would like to thread and start checksum 
+                break;
         default  : return 1; 
 
         return -1; // something went wrong

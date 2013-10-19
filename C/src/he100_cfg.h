@@ -16,6 +16,7 @@ struct he100_settings {
 };
 
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
+#define MAX_FRAME_LENGTH 255
 #define BAUDRATE B9600
 #define TTYDEVICE "/dev/ttyS2"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
