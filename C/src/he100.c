@@ -41,10 +41,10 @@ main (int argc, char** argv)
         // Write noop
         //SC_write(fdin, bytes);
 
-        // Write Hello
-        size_t msg_len = 17; // don't forget to change this
+        // Write a payload 
+        unsigned char *message = "Hello";
+        size_t msg_len = 5; // don't forget to change this
         size_t pay_len = msg_len + 10; // payload is msg_len + 10 he100 wrapper bytes
-        unsigned char *message = "Hello from the Q6";
         unsigned char command[2] = {CMD_TRANSMIT,CMD_TRANSMIT_DATA}; // {0x10,0x03}
 
         if ( SC_write(fdin, SC_prepareTransmission(message, msg_len, command), pay_len) > 0 )

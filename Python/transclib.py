@@ -9,7 +9,7 @@ def SC_computeFletcher(data, size, modulo, limit=None):
 	#valA, valB = 0xf, 0xf
 	#valA, valB = 0xf, 0xf
 	valA, valB = 0, 0
-
+    
 	length = len(data)	
 	if isinstance(data, str):
 		if limit is not None and length > limit:

@@ -36,7 +36,7 @@ SC_openPort(void)
           O_RDWR // O_RDWR read and write (CREAD, )
         | O_NOCTTY // port never becomes the controlling terminal 
         | O_NDELAY // use non-blocking I/O
-        // | O_NONBLOCK
+        | O_NONBLOCK
         // CLOCAL don't allow control of the port to be changed
     );
 
@@ -93,8 +93,7 @@ SC_configureInterface (int fdin)
     }
     fprintf(stdout, "\r\nSC_configureInterface: successfully acquired old settings");
     
-    //cfmakeraw(&settings); // raw mode: 
-    //Input is not assembled into lines and special characters are not processed.
+    
 
     // attempt to set input and output baud rate to 9600
     if (cfsetispeed(&settings, B9600) < 0 || cfsetospeed(&settings, B9600) < 0) 
@@ -105,10 +104,10 @@ SC_configureInterface (int fdin)
     fprintf(stdout, "\r\nSC_configureInterface: successfully set new baud rate");
 
     // Input flags 
-    //settings.c_iflag = 0; // disable input processing
+    // settings.c_iflag = 0; // disable input processing
     settings.c_iflag &= ~(  
           IGNBRK // disable: ignore BREAK condition on input 
-        | BRKINT // convert break to null byte
+    //    | BRKINT // convert break to null byte
         | ICRNL  // no CR to NL translation
         | INLCR  // no NL to CR translation
         | PARMRK // don't mark parity errors or breaks
@@ -120,7 +119,8 @@ SC_configureInterface (int fdin)
           IXON
         | IXOFF
         | IGNPAR // ignore bytes with parity errors
-        | ICRNL  // map CR to NL (otherwise CR input on other computer will not terminate input)
+    //    | ICRNL  // map CR to NL (otherwise CR input on other computer will not terminate input)
+    //    | INLCR  // map NL to CR (otherwise CR input on other computer will not terminate input)
         );
     
     // Output flags
@@ -140,7 +140,10 @@ SC_configureInterface (int fdin)
 
     // Line processing flags
     settings.c_lflag = 0; // disable line processing 
-    //settings.c_lflag = ICANON; // enable canonical input
+    
+    // settings.c_lflag = ICANON; // enable canonical input
+    cfmakeraw(&settings); // raw mode Input is not assembled into lines and special characters are not processed.
+    
     settings.c_lflag = ECHONL; 
 /*  
     settings.c_lflag &= ~(
@@ -169,21 +172,38 @@ SC_configureInterface (int fdin)
         //| CLOCAL  // set local mode
     );
 
-    // Read control behaviour 
+    // ONLY non-canonical read control behaviour 
     settings.c_cc[VMIN]  = 1;     // min bytes to return read
-    settings.c_cc[VTIME] = 0;    // read timeout in 1/10 seconds 
-    // only canonical mode settings.c_cc[VEOL]  = 0;  // end of line character '\0' 
-    // only canonical mode settings.c_cc[VEOL2] = 0;  // end of line character '\0'
-    
-    // Special input characters
-    // only if ICANON is set:
+    settings.c_cc[VTIME] = 10;    // read timeout in 1/10 seconds 
+
     //   VEOF, VEOL, VERASE, VKILL (and also 
     //   VEOL2, VSTATUS and VWERASE if defined and IEXTEN is set) 
-    // only if ICANON is NOT set:
-    //   VMIN, VTIME 
+    
+/* 
+    // ONLY canonical mode parameters
+    settings.c_cc[VINTR]    = 0;     //  Ctrl-c  
+    settings.c_cc[VQUIT]    = 0;     //  Ctrl-\
+    settings.c_cc[VERASE]   = 0;     //  del 
+    settings.c_cc[VKILL]    = 0;     //  @ 
+    settings.c_cc[VEOF]     = 4;     //  Ctrl-d 
+    settings.c_cc[VTIME]    = 0;     //  inter-character timer unused 
+    settings.c_cc[VMIN]     = 1;     //  blocking read until 1 character arrives 
+    settings.c_cc[VSWTC]    = 0;     //  '\0' 
+    settings.c_cc[VSTART]   = 0;     //  Ctrl-q 
+    settings.c_cc[VSTOP]    = 0;     //  Ctrl-s 
+    settings.c_cc[VSUSP]    = 0;     //  Ctrl-z 
+    settings.c_cc[VREPRINT] = 0;     //  Ctrl-r 
+    settings.c_cc[VDISCARD] = 0;     //  Ctrl-u 
+    settings.c_cc[VWERASE]  = 0;     //  Ctrl-w 
+    settings.c_cc[VLNEXT]   = 0;     //  Ctrl-v 
+    settings.c_cc[VEOL]     = 0;     //  end-of-line '\0' 
+    settings.c_cc[VEOL2]    = 0;     //  end-of-line '\0' 
+*/
+
     // only if ISIG is set:
     //   VINTR, VQUIT, VSUSP (and also VDSUSP if 
     //   defined and IEXTEN is set) 
+    
     // only if IXON or IXOFF is set:
     //   VSTOP, VSTART 
    
@@ -203,8 +223,14 @@ SC_configureInterface (int fdin)
         fprintf(stderr, "\r\nSC_configureInterface: failed to set config: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);           
     }
+    int flush_device = -1;
+    if ( flush_device = tcsetattr(fdin, TCSAFLUSH, &settings) < 0 ) // apply attributes
+    {
+        fprintf(stderr, "\r\nSC_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
+        exit(EXIT_FAILURE);           
+    }
 
-    fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings");
+    fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings and flush device");
 }
 
 /** 
@@ -313,6 +339,7 @@ int
 SC_validateResponse (char *response, size_t length) 
 {
     unsigned char *data = (char *) malloc(length);
+    int r=1;
 
     // prepare container for decoded data
     int data_length = length - 14; // response - header - 4 checksum bytes
@@ -338,24 +365,32 @@ SC_validateResponse (char *response, size_t length)
     int p_s2_chk = memcmp(&response[length-1], &p_chksum.sum2, 1);
     int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
     
-    if (h_chk != 0) {
-        printf("Invalid header checksum");
-        return 0;
+    if (response[4] == 10 && response[4] == 10) {
+        fprintf(stdout,"\r\n  HE100: Acknowledge");
+    } else if (response[4] == 10 && response[5] == 10) {
+        printf("\r\n  HE100: No-Acknowledge");
+    } 
+    else 
+    {
+        if (h_chk != 0) {
+            fprintf(stdout,"\r\nInvalid header checksum");
+            r=-1;
+        }
+        if (p_chk != 0) {
+            fprintf(stdout,"\r\nInvalid payload checksum");
+            r=-1;
+        }
+        
+        printf("\r\nMessage: ");
+        //j=0;
+        for (i=10;i<data_length;i++)
+            fprintf(stdout,"%s",(char*)&response[i]);
+            //msg[j] = response[i];
+        
+        //return (char*) msg; 
     }
 
-    if (p_chk != 0) {
-        printf("Invalid payload checksum");
-        return 0;
-    }
-
-/* just return 1 or zero for now 
-    j=0;
-    for (i=10;i<data_length;i++)
-        msg[j] = response[i];
-    
-    return (char*) msg; 
-*/
-    return 1;
+    return r;
 }
 
 int
@@ -396,24 +431,68 @@ SC_read (int fdin)
     // Read response
     unsigned char buffer[1];
     unsigned char response[255];
-    int chars_read;    
+    int chars_read;
     int i=0;
+    int action=0;
+    int breakcond=255;
     
     // Read continuously from serial device
     signal(SIGINT, inthand);
   
     while (!stop)
     {
-        // int result = memcmp( bytes, chars_read, 8 );
-        if ( chars_read = read(fdin, &buffer, 1) > 0 )
+        if ( chars_read = read(fdin, &buffer, 1) > 0 )// if a byte is read
         { 
-            if ( buffer[0] == '\0' ) // E-O-L try NULL
-            { // hit break condition
+            printf("\r\n SC_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
+
+            // set break condition based on incoming byte pattern
+            if ( i==4 && buffer[0]==10 ) // getting an ack
+                breakcond=8; // ack is 8 bytes
+            else if ( i==5 && breakcond==255 ) 
+                breakcond = buffer[0] + 10;
+            
+            response[i]=buffer[0];
+            buffer[0] = '\0';
+            fprintf(fdout, "0x%02X ", response[i]);
+            fprintf(stdout,"\n  i:%d chars_read:%d hex:0x%02X bc:%d",
+                    i,chars_read,response[i],breakcond
+            );
+            i++;
+
+            if (i==breakcond) {
+            // if (buffer[0] = 255) { // EOL?? dumb if true
+                fprintf(stdout,"\n  SC_read: hit break condition!");
                 if (i>0) // we have a message to validate 
                 {
-                    if ( SC_validateResponse(response, i+1) > 0 )
+                    if ( SC_validateResponse(response, breakcond) > 0 ) {
+                        fprintf(stdout, "\r\n VALID MESSAGE!");
+                        // SC_storeData(response, i+1);
+                    }
+                    else {
+                        fprintf(stderr, "\r\n Invalid data!");
+                        SC_dumpBytes(response, i+1);
+                    }
+                }
+
+                i=0; // restart message index
+                response[0] = '\0';
+                breakcond=255;
+                fprintf(fdout,"\n");
+            }
+            buffer[0] = '\0'; // wipe buffer each time
+        }
+/*  
+        else
+        {
+            if ( i>0 ) // BAD
+            {
+                printf("\n SC_read: hit break condition!");
+                if (i>0) // we have a message to validate 
+                {
+                    if ( SC_validateResponse(response, i+1) > 0 ) {
                         fprintf(stdout, "VALID MESSAGE!");
                         // SC_storeData(response, i+1);
+                    }
                     else {
                         fprintf(stderr, "Invalid data!");
                         SC_dumpBytes(response, i+1);
@@ -423,24 +502,8 @@ SC_read (int fdin)
                 response[0] = '\0';
                 fprintf(fdout,"\n");
             }
-            //if (buffer[0] == 72 && i==0 ) // first SYNC byte 0x48
-            else if ( SC_referenceCommunication(buffer[0],i) < 0 ) // or SC_interpret 
-            {   // we have relevant data 
-                response[i]=buffer[0];
-                buffer[0] = '\0';
-
-                fprintf(fdout, "0x%02X ", response[i]);
-                printf("\n i:%d chars_read:%d hex:0x%02X",i,chars_read,response[i]);
-                i++;
-            }
-            else            
-            {   
-                // Log with shakespeare: YYYY-MM-DD - transmission
-                fprintf(stderr, "SC_read: byte reference error!");
-                SC_dumpBytes(response, i+1);
-            }
-            buffer[0] = '\0'; // wipe buffer each time
         }
+*/
     }
 }
 
@@ -502,32 +565,35 @@ SC_prepareTransmission(
 }
 
 int
-SC_referenceCommunication(char *response, size_t position)
+SC_referenceCommunication(unsigned char *response, size_t position)
 {
+    fprintf(stdout,"\r\n hit SC_referenceCommunication");
+    printf("\r\nSC_referenceCommunication(0x%02X,%d)",*response,(int)position);
+    int r = -1;
     switch ((int)position)
     {
         case 0   : // first position should be 0x48 : 72
-                if ((int)*response==72) return 1;
+                if ((int)*response==72) r=1;
+                //else if ((*response)==NULL) return -1;
                 break;
         case 1   : // second position should be 0x65 : 101 
-                if ((int)*response==101) return 1;
+                if ((int)*response==101) r=1;
                 break;
         case 2   : // response tx/rx command should be 0x20
-                if ((int)*response==32) return 1; // CMD_RECEIVE  0x20
+                if ((int)*response==32) r=1; // CMD_RECEIVE  0x20
                 break;
         case 3   : // response command could be between 1-20
-                if (*response > 0x00 && *response < 0x20) return (int)*response; 
+                if (*response > 0x00 && *response < 0x20) r=(int)*response; 
                 break;
         case 4   : // first length byte
                 break;
         case 5   : // real length byte
-                if ((int)*response<MAX_FRAME_LENGTH) return (int)*response; 
+                if ((int)*response<MAX_FRAME_LENGTH) r=(int)*response; 
                 // would like to thread and start checksum 
                 break;
-        default  : return 1; 
-
-        return -1; // something went wrong
+        default  : r=1; break;
     }
+    return r; 
 }
 
 /** 
