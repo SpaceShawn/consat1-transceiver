@@ -47,8 +47,12 @@ main (int argc, char** argv)
         size_t pay_len = msg_len + 10; // payload is msg_len + 10 he100 wrapper bytes
         unsigned char command[2] = {CMD_TRANSMIT,CMD_TRANSMIT_DATA}; // {0x10,0x03}
 
+        //unsigned char command[2] = {CMD_TRANSMIT,CMD_RECEIVE_DATA}; // {0x10,0x03}
+        //unsigned char message[27] = {0x86, 0xA2, 0x40, 0x40, 0x40, 0x40, 0x60, 0xAC, 0x8A, 0x64, 0x86, 0xAA, 0x82, 0xE1, 0x03, 0xF0, 0x6B, 0x65, 0x6E, 0x77, 0x6F, 0x6F, 0x64, 0x0D, 0x8D, 0x08, 0x63};
+        //size_t msg_len = 5; // don't forget to change this
+
         if ( SC_write(fdin, SC_prepareTransmission(message, msg_len, command), pay_len) > 0 )
-            printf("\r\n Message written successfully!");
+                    printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
         

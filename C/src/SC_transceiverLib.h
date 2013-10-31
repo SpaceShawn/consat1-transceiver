@@ -303,7 +303,8 @@ SC_fletcher16unef (char *data, size_t bytes)
 struct SC_checksum
 SC_fletcher16 (char *data, size_t bytes)
 {
-    uint16_t sum1 = 0xff, sum2 = 0xff;
+    //uint16_t sum1 = 0xff, sum2 = 0xff;
+    uint8_t sum1 = 0, sum2 = 0;
 
     while (bytes)
     {
@@ -317,14 +318,16 @@ SC_fletcher16 (char *data, size_t bytes)
         while (--tlen);
 
         // Reduce to 8-bit
-        sum1 = (sum1 & 0xff) + (sum1 >> 8);
-        sum2 = (sum2 & 0xff) + (sum2 >> 8);
+        //sum1 = (sum1 & 0xff) + (sum1 >> 8);
+        //sum2 = (sum2 & 0xff) + (sum2 >> 8);
     }
     // prepare and return checksum values 
     SC_checksum r;
     // final reduction to 8 bits
-    r.sum1 = (sum1 & 0xff) + (sum1 >> 8);
-    r.sum2 = (sum2 & 0xff) + (sum2 >> 8);
+    //r.sum1 = (sum1 & 0xff);
+    r.sum1 = sum1;
+    //r.sum2 = (sum2 & 0xff);
+    r.sum2 = (sum2 & 0xff);
     
     return r;
 }
