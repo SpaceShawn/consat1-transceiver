@@ -301,8 +301,7 @@ SC_fletcher16unef (char *data, size_t bytes)
 struct SC_checksum
 SC_fletcher16 (char *data, size_t bytes)
 {
-    //uint16_t sum1 = 0xff, sum2 = 0xff;
-    uint8_t sum1 = 0, sum2 = 0;
+    uint8_t sum1 = 0xff, sum2 = 0xff;
 
     while (bytes)
     {
@@ -325,7 +324,7 @@ SC_fletcher16 (char *data, size_t bytes)
     //r.sum1 = (sum1 & 0xff);
     r.sum1 = sum1;
     //r.sum2 = (sum2 & 0xff);
-    r.sum2 = (sum2 & 0xff);
+    r.sum2 = sum2;
     
     return r;
 }
@@ -553,7 +552,8 @@ SC_prepareTransmission(
         payloadbytes[4], payloadbytes[5]);
     
     // generate and attach payload checksum
-    SC_checksum payload_checksum = SC_fletcher16(payload,length); 
+    //SC_checksum payload_checksum = SC_fletcher16(payload,length); // chksum only payload
+    SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length+8); // chksum everything except 'He'
     payloadbytes[6+length] = payload_checksum.sum1;
     payloadbytes[6+length+1] = payload_checksum.sum2;
     printf ("\r\npayload_checksum: [%d,%d], [%d,%d]",
@@ -657,49 +657,62 @@ SC_interpretResponse (char *response, size_t length)
 }
 
 /**
- * Function to enable beacon on given interval 
+ * Function to return NOOP byte sequence 
+ * no arguments 
+ */
+unsigned char *
+SC_NOOP ()
+{
+   //noop[10] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43,0x00,0x00};
+   unsigned char noop_payload[1] = {0};
+   unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
+   return SC_prepareTransmission(noop_payload, 0, noop_command);
+}
+
+/**
+ * Function returning byte sequence to enable beacon on given interval 
  * int beacon_interval interval in seconds 
  */
 unsigned char *
 SC_setBeaconInterval (int beacon_interval)
 {
-   unsigned char *beacon_interval_payload[1] = {beacon_interval};
-   unsigned char *beacon_interval_command[2] = {CMD_TRANSMIT, CMD_BEACON_CONFIG};
+   unsigned char beacon_interval_payload[1] = {beacon_interval};
+   unsigned char beacon_interval_command[2] = {CMD_TRANSMIT, CMD_BEACON_CONFIG};
    return SC_prepareTransmission(beacon_interval_payload, 1, beacon_interval_command);
 }
 
 /**
- * Function to set the beacon message 
+ * Function returning byte sequence to set the beacon message 
  * unsigned char *beacon_message_payload message to transmit 
  */
 unsigned char *
 SC_setBeaconMessage (unsigned char *beacon_message_payload, size_t beacon_message_len)
 {
-   unsigned char *beacon_message_command[2] = {CMD_TRANSMIT, CMD_BEACON_DATA};
+   unsigned char beacon_message_command[2] = {CMD_TRANSMIT, CMD_BEACON_DATA};
    return SC_prepareTransmission(beacon_message_payload, beacon_message_len, beacon_message_command);
 }
 
 /**
- * Function to return byte sequence to amplify power based
+ * Function returning byte sequence to amplify power based
  * on input int power_level
  * int power_level decimal value from 0-255 (0%-100%)
  */
 unsigned char *
 SC_fastSetPA (int power_level)
 {
-   unsigned char *PA_payload[1] = {power_level};
-   unsigned char *fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
+   unsigned char PA_payload[1] = {power_level};
+   unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
    return SC_prepareTransmission(PA_payload, 1, fast_set_pa_command);
 }
 
 /**
- * Function to soft reset HE100 board and restore flash settings 
+ * Function returning byte sequence to soft reset HE100 board and restore flash settings 
  * no arguments
  */
 unsigned char *
 SC_softReset()
 {
-   unsigned char soft_reset_payload = NULL; // careful NPE!
-   unsigned char *soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
+   unsigned char soft_reset_payload[1] = {0}; // careful NPE!
+   unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
    return SC_prepareTransmission(soft_reset_payload, 0, soft_reset_command);
 }
