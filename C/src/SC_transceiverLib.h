@@ -1,9 +1,9 @@
-/*
+/* RENAME TO SC_transeiverLib.c, .h files should not contain actual code or function bodies
  * =====================================================================================
  *
  *       Filename:  SC_transceiverLib.c
  *
- *    Description:  Connect to a serial device
+ *    Description:  Library to expose He100 functionality. Build as static library. 
  *
  *        Version:  1.0
  *        Created:  13-09-20 08:23:35 PM
@@ -23,8 +23,8 @@
 #include <fcntl.h>   /*  File control definitions */
 #include <errno.h>   /*  Error number definitions */
 #include <termios.h> /*  POSIX terminal control definitions */
-#include "he100.h" 
-#include "./he100_cfg.h"
+#include "he100.h"   /*  Header file that exposes the correct serial device location */
+#include "./he100_cfg.h" /* Header file that stores the He100 config and command structure */
 
 int
 SC_openPort(void)
@@ -92,8 +92,6 @@ SC_configureInterface (int fdin)
         exit(EXIT_FAILURE);
     }
     fprintf(stdout, "\r\nSC_configureInterface: successfully acquired old settings");
-    
-    
 
     // attempt to set input and output baud rate to 9600
     if (cfsetispeed(&settings, B9600) < 0 || cfsetospeed(&settings, B9600) < 0) 
@@ -449,9 +447,18 @@ SC_read (int fdin)
             printf("\r\n SC_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
 
             // set break condition based on incoming byte pattern
+
+            // SC_referenceCommunication should do the following:
+            // if ( i==0 && buffer[0]==72 ) // first byte 0x48, continue
+            // if ( i==1 && buffer[0]==101 ) // second byte 0x65, continue
+            // if ( i==2 && buffer[0]==32 ) // third byte 0x20, continue
+            // if ( i==3 && ( buffer[0] > 0x00 || buffer[0] < 0x20 ) ) // fourth byte valid command, continue
+            // if ( i==4 && buffer[0]==0x00 ) // fifth byte, first length byte, should be zero, continue
+
             if ( i==4 && buffer[0]==10 ) // getting an ack
                 breakcond=8; // ack is 8 bytes
             else if ( i==5 && breakcond==255 ) 
+                // this is the length byte, set break point accordingly
                 breakcond = buffer[0] + 10;
             
             response[i]=buffer[0];
@@ -519,7 +526,8 @@ unsigned char*
 SC_prepareTransmission(
     unsigned char *payload, 
     size_t length, 
-    unsigned char *command)
+    unsigned char *command
+)
 {
     unsigned char *transmission = (char *) malloc(length+10);
     unsigned char *payloadbytes = (char *) malloc(length+8);
@@ -642,70 +650,56 @@ SC_interpretResponse (char *response, size_t length)
                 value = (i==4||i==5) ? "Acknowledge" : "data"; break;
             default  : 
                 value = (i==length||i==length-1) ?"chksum" :"data"; break;
-
         }
         printf(": %s,\n",value);
     }
     return 1;
 }
 
-//Hex value of decimal is 2 * 4-bit bytes
-char*
-SC_dec2Hex(int decimal)
+/**
+ * Function to enable beacon on given interval 
+ * int beacon_interval interval in seconds 
+ */
+unsigned char *
+SC_setBeaconInterval (int beacon_interval)
 {
-    if (decimal > 255) { // only dealing with 1 byte size
-        fprintf(
-            stderr, 
-            "Decimal value must be less than 255, given: %d",
-            decimal
-        );
-        return 0;
-    }
-    char *hex = (char *) malloc(sizeof(char) * 4);
-    int i=0;
-    while (decimal) {
-        hex[i++] = decimal % 16 + '0';
-        decimal /= 16;
-    }
-    return hex;
+   unsigned char *beacon_interval_payload[1] = {beacon_interval};
+   unsigned char *beacon_interval_command[2] = {CMD_TRANSMIT, CMD_BEACON_CONFIG};
+   return SC_prepareTransmission(beacon_interval_payload, 1, beacon_interval_command);
 }
 
-/* TODO
-unsigned char 
-SC_hex2Binary(char *src)
+/**
+ * Function to set the beacon message 
+ * unsigned char *beacon_message_payload message to transmit 
+ */
+unsigned char *
+SC_setBeaconMessage (unsigned char *beacon_message_payload, size_t beacon_message_len)
 {
-    unsigned char *out = malloc(strlen(src)/2);
-    char buf[3] = {0};
-
-    unsigned char *dst = out;
-    while (*src) 
-    {
-        buf[0] = src[0];
-        buf[1] = src[1];
-        *dst = strtol(buf, 0, 16);
-        dst++; src += 2;
-    }
-    return out;
+   unsigned char *beacon_message_command[2] = {CMD_TRANSMIT, CMD_BEACON_DATA};
+   return SC_prepareTransmission(beacon_message_payload, beacon_message_len, beacon_message_command);
 }
-*/
 
-/** 
- * does no bounds checking, won't work with unicode console input, will crash if passed invalid character 
- **
-char
-SC_convertHex2Bytes(char hex)
+/**
+ * Function to return byte sequence to amplify power based
+ * on input int power_level
+ * int power_level decimal value from 0-255 (0%-100%)
+ */
+unsigned char *
+SC_fastSetPA (int power_level)
 {
-    // Create buffer based on input hex string 
-    char * buffer = malloc((strlen(hex) / 2 ) + 1);
-    char *h = hex; // walk through the buffer 
-    char *b = buffer; // point inside buffer 
-
-    // offset into this string is the numeric value 
-    char xlate[] = "0123456789abcdef";
-
-    for ( ; *h; h+=2, ++b )
-        *b = ((strch(xlate, *h) - xlate) * 16) // Multiply leading digit by 16 
-            + ((strchr(xlate, *(h+1))- xlate));
-    return b;
+   unsigned char *PA_payload[1] = {power_level};
+   unsigned char *fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
+   return SC_prepareTransmission(PA_payload, 1, fast_set_pa_command);
 }
-*/
+
+/**
+ * Function to soft reset HE100 board and restore flash settings 
+ * no arguments
+ */
+unsigned char *
+SC_softReset()
+{
+   unsigned char soft_reset_payload = NULL; // careful NPE!
+   unsigned char *soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
+   return SC_prepareTransmission(soft_reset_payload, 0, soft_reset_command);
+}

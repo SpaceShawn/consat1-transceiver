@@ -27,7 +27,7 @@ main (int argc, char** argv)
    
     unsigned char noop[10] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43,0x00,0x00};
 
-    if (fdin = SC_openPort()) // Input stream
+    if ( fdin = SC_openPort() ) // Input stream
     { 
         // open output file for appending
         FILE *fdout; 
@@ -39,23 +39,60 @@ main (int argc, char** argv)
         fprintf(stdout, "\r\nCurrent status of device: %d",fdin);
 
         // Write noop
-        //SC_write(fdin, bytes);
+        //SC_write(fdin, noop, 10);
 
         // Write a payload 
         unsigned char *message = "Hello";
         size_t msg_len = 5; // don't forget to change this
-        size_t pay_len = msg_len + 10; // payload is msg_len + 10 he100 wrapper bytes
+        size_t write_len = msg_len + 10; // payload is msg_len + 10 he100 wrapper bytes
         unsigned char command[2] = {CMD_TRANSMIT,CMD_TRANSMIT_DATA}; // {0x10,0x03}
 
         //unsigned char command[2] = {CMD_TRANSMIT,CMD_RECEIVE_DATA}; // {0x10,0x03}
         //unsigned char message[27] = {0x86, 0xA2, 0x40, 0x40, 0x40, 0x40, 0x60, 0xAC, 0x8A, 0x64, 0x86, 0xAA, 0x82, 0xE1, 0x03, 0xF0, 0x6B, 0x65, 0x6E, 0x77, 0x6F, 0x6F, 0x64, 0x0D, 0x8D, 0x08, 0x63};
         //size_t msg_len = 5; // don't forget to change this
 
-        if ( SC_write(fdin, SC_prepareTransmission(message, msg_len, command), pay_len) > 0 )
-                    printf("\r\n Message written successfully!");
+        if ( SC_write(fdin, SC_prepareTransmission(message, msg_len, command), write_len) > 0 )
+            printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
-        
+
+/*       // test SC_fastSetPA()
+        int fast_set_pa_level = 9;
+        write_len = 1+10; 
+        if ( SC_write(fdin, SC_fastSetPA(50), write_len) > 0 )
+            printf("\r\n Message written successfully!");
+        else  
+            printf("\r\n Problems writing to serial device");       
+*/
+
+/*       // test SC_softReset()
+        write_len = 0+10;
+        if ( SC_write(fdin, SC_softReset(), write_len) > 0 )
+            printf("\r\n Message written successfully!");
+        else  
+            printf("\r\n Problems writing to serial device");
+*/
+
+/*       // test SC_setBeaconInterval()
+        write_len = 1+10;
+        int beacon_interval = 3; // three second interval
+        if ( SC_write(fdin, SC_setBeaconInterval(beacon_interval), write_len) > 0 )
+            printf("\r\n Message written successfully!");
+        else  
+            printf("\r\n Problems writing to serial device");
+*/
+
+/*       // test SC_setBeaconMessage()
+        unsigned char* beacon_data = "this is a beacon";
+        msg_len = 16;
+        write_len = msg_len + 10;
+        int beacon_interval = 3; // three second interval
+        if ( SC_write(fdin, SC_setBeaconMessage(beacon_interval), write_len) > 0 )
+            printf("\r\n Message written successfully!");
+        else  
+            printf("\r\n Problems writing to serial device");
+*/
+
         // read continuously until SIGINT
         SC_read(fdin);
 
