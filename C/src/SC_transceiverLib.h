@@ -42,12 +42,12 @@ SC_openPort(void)
 
     if (fdin == -1) {
         // Could not open port
-        fprintf(stderr, "\r\nSC_openPort: Unable to open port: ", port_address, "%s\n", strerror(errno));
+        fprintf(stderr, "\r\nSC_openPort: Unable to open port: %s", port_address, "%s\r\n", strerror(errno));
         return -1;
     }
     
     if ( !isatty(fdin) ) {
-        fprintf(stderr, "\r\nSC_openPort: Not a serial device!", port_address, "%s\n", strerror(errno));
+        fprintf(stderr, "\r\nSC_openPort: Not a serial device!", port_address, "%s\r\n", strerror(errno));
         return -1;
     }
 
@@ -102,28 +102,29 @@ SC_configureInterface (int fdin)
     fprintf(stdout, "\r\nSC_configureInterface: successfully set new baud rate");
 
     // Input flags 
-    // settings.c_iflag = 0; // disable input processing
+    //settings.c_iflag = 0; // disable input processing
     settings.c_iflag &= ~(  
           IGNBRK // disable: ignore BREAK condition on input 
-    //    | BRKINT // convert break to null byte
+        | BRKINT // convert break to null byte
         | ICRNL  // no CR to NL translation
         | INLCR  // no NL to CR translation
         | PARMRK // don't mark parity errors or breaks
         | INPCK  // no input parity check
         | ISTRIP // don't strip high bit off
-    //    | IXON   // no XON/XOFF software flow control
+        //| IXON   // no XON/XOFF software flow control
     ); 
     settings.c_iflag |= (
-          IXON
+          IGNPAR // ignore bytes with parity errors
+        | IXON
         | IXOFF
-        | IGNPAR // ignore bytes with parity errors
-    //    | ICRNL  // map CR to NL (otherwise CR input on other computer will not terminate input)
+        | ICRNL  // map CR to NL (otherwise CR input on other computer will not terminate input)
     //    | INLCR  // map NL to CR (otherwise CR input on other computer will not terminate input)
         );
     
     // Output flags
     settings.c_oflag = 0; // disable output processing, raw output
-/*    
+    
+/*
     settings.c_oflag &= ~(
           OCRNL  // turn off output processing
         | ONLCR  // no CR to NL translation 
@@ -135,14 +136,13 @@ SC_configureInterface (int fdin)
         | OPOST  // no local output processing
     );
 */
-
     // Line processing flags
     settings.c_lflag = 0; // disable line processing 
-    
-    // settings.c_lflag = ICANON; // enable canonical input
-    cfmakeraw(&settings); // raw mode Input is not assembled into lines and special characters are not processed.
-    
     settings.c_lflag = ECHONL; 
+
+    // settings.c_lflag = ICANON; // enable canonical input
+    //cfmakeraw(&settings); // raw mode Input is not assembled into lines and special characters are not processed.
+    
 /*  
     settings.c_lflag &= ~(
           ECHO   // echo off
@@ -172,7 +172,7 @@ SC_configureInterface (int fdin)
 
     // ONLY non-canonical read control behaviour 
     settings.c_cc[VMIN]  = 1;     // min bytes to return read
-    settings.c_cc[VTIME] = 10;    // read timeout in 1/10 seconds 
+    settings.c_cc[VTIME] = 0;    // read timeout in 1/10 seconds 
 
     //   VEOF, VEOL, VERASE, VKILL (and also 
     //   VEOL2, VSTATUS and VWERASE if defined and IEXTEN is set) 
@@ -212,8 +212,9 @@ SC_configureInterface (int fdin)
         F_SETFL,  
         FNDELAY // return 0 if no chars available on port (non-blocking)
     ); // immediate reads
-    
-    tcflush( fdin, TCIFLUSH); // flush port before persisting changes 
+
+    // flush port before persisting changes 
+    tcflush( fdin, TCIFLUSH ); 
     
     int apply_settings = -1;
     if ( apply_settings = tcsetattr(fdin, TCSANOW, &settings) < 0 ) // apply attributes
@@ -221,14 +222,16 @@ SC_configureInterface (int fdin)
         fprintf(stderr, "\r\nSC_configureInterface: failed to set config: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);           
     }
+
+/*   // flush device
     int flush_device = -1;
     if ( flush_device = tcsetattr(fdin, TCSAFLUSH, &settings) < 0 ) // apply attributes
     {
         fprintf(stderr, "\r\nSC_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);           
     }
-
-    fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings and flush device");
+*/
+    fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings and flushed device");
 }
 
 /** 
@@ -241,16 +244,16 @@ int
 SC_write(int fdin, unsigned char *bytes, size_t size) 
 {
     // Output outgoing transmission
-    fprintf(stdout, "\r\nWriting to device: ");
+    fprintf(stdout, "\r\nSC_write() Writing to device: ");
 
     // Write byte array
-    int w = write (fdin, bytes, size); // write given 10 bytes to fdin 
+    int w = write (fdin, bytes, size); // write given bytes to fdin 
     int j=0;
     for (j=0; j<size; j++) 
     {
         printf("%02X ",bytes[j]);
     }    
-    fprintf(stdout, "\r\nWrite size: %d",w);
+    fprintf(stdout, "\r\nSC_write() Write size: %d",w);
 
     //fflush(fdin);
 
@@ -301,7 +304,8 @@ SC_fletcher16unef (char *data, size_t bytes)
 struct SC_checksum
 SC_fletcher16 (char *data, size_t bytes)
 {
-    uint8_t sum1 = 0xff, sum2 = 0xff;
+    //uint8_t sum1 = 0xff, sum2 = 0xff;
+    uint8_t sum1 = 0, sum2 = 0;
 
     while (bytes)
     {
@@ -453,7 +457,26 @@ SC_read (int fdin)
             // if ( i==2 && buffer[0]==32 ) // third byte 0x20, continue
             // if ( i==3 && ( buffer[0] > 0x00 || buffer[0] < 0x20 ) ) // fourth byte valid command, continue
             // if ( i==4 && buffer[0]==0x00 ) // fifth byte, first length byte, should be zero, continue
-
+/* 
+            if ( SC_referenceCommunication(buffer[0]) > 0 )
+            {
+                response[i]=buffer[0];
+                buffer[0] = '\0';
+                fprintf(fdout, "0x%02X ", response[i]);
+                fprintf(stdout,"\n  i:%d chars_read:%d hex:0x%02X bc:%d",
+                    i,chars_read,response[i],breakcond
+                );
+                i++;
+            }
+            else // not intended or useful to us, discard the frame
+            {   // reset all indicies
+                i=0; 
+                response[0] = '\0';
+                breakcond=255;
+                fprintf(fdout,"\n");
+            }
+            
+*/
             if ( i==4 && buffer[0]==10 ) // getting an ack
                 breakcond=8; // ack is 8 bytes
             else if ( i==5 && breakcond==255 ) 
@@ -490,29 +513,6 @@ SC_read (int fdin)
             }
             buffer[0] = '\0'; // wipe buffer each time
         }
-/*  
-        else
-        {
-            if ( i>0 ) // BAD
-            {
-                printf("\n SC_read: hit break condition!");
-                if (i>0) // we have a message to validate 
-                {
-                    if ( SC_validateResponse(response, i+1) > 0 ) {
-                        fprintf(stdout, "VALID MESSAGE!");
-                        // SC_storeData(response, i+1);
-                    }
-                    else {
-                        fprintf(stderr, "Invalid data!");
-                        SC_dumpBytes(response, i+1);
-                    }
-                }
-                i=0; // restart message index
-                response[0] = '\0';
-                fprintf(fdout,"\n");
-            }
-        }
-*/
     }
 }
 
@@ -552,13 +552,14 @@ SC_prepareTransmission(
         payloadbytes[4], payloadbytes[5]);
     
     // generate and attach payload checksum
-    //SC_checksum payload_checksum = SC_fletcher16(payload,length); // chksum only payload
-    SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length+8); // chksum everything except 'He'
+    SC_checksum payload_checksum = SC_fletcher16(payload,length); // chksum only payload
+    //SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length+8); // chksum everything except 'He'
     payloadbytes[6+length] = payload_checksum.sum1;
     payloadbytes[6+length+1] = payload_checksum.sum2;
     printf ("\r\npayload_checksum: [%d,%d], [%d,%d]",
         payload_checksum.sum1, payload_checksum.sum2,
-        payloadbytes[6+length], payloadbytes[6+length+1]);
+        payloadbytes[6+length], payloadbytes[6+length+1]
+    );
 
     // attach data to payload 
     int i;
@@ -576,7 +577,7 @@ SC_prepareTransmission(
 }
 
 int
-SC_referenceCommunication(unsigned char *response, size_t position)
+SC_referenceCommunication(unsigned char *response, int position)
 {
     fprintf(stdout,"\r\n hit SC_referenceCommunication");
     printf("\r\nSC_referenceCommunication(0x%02X,%d)",*response,(int)position);
@@ -602,7 +603,7 @@ SC_referenceCommunication(unsigned char *response, size_t position)
                 if ((int)*response<MAX_FRAME_LENGTH) r=(int)*response; 
                 // would like to thread and start checksum 
                 break;
-        default  : r=1; break;
+        default  : r=1; break; // if position is greater that 5, data is arbitrary, return 1 (continue)
     }
     return r; 
 }
