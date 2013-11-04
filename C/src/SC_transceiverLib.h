@@ -301,7 +301,8 @@ SC_fletcher16unef (char *data, size_t bytes)
 struct SC_checksum
 SC_fletcher16 (char *data, size_t bytes)
 {
-    uint8_t sum1 = 0xff, sum2 = 0xff;
+    //uint8_t sum1 = 0xff, sum2 = 0xff;
+    uint8_t sum1 = 0, sum2 = 0;
 
     while (bytes)
     {
@@ -552,8 +553,8 @@ SC_prepareTransmission(
         payloadbytes[4], payloadbytes[5]);
     
     // generate and attach payload checksum
-    //SC_checksum payload_checksum = SC_fletcher16(payload,length); // chksum only payload
-    SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length+8); // chksum everything except 'He'
+    SC_checksum payload_checksum = SC_fletcher16(payload,length); // chksum only payload
+    //SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length+8); // chksum everything except 'He'
     payloadbytes[6+length] = payload_checksum.sum1;
     payloadbytes[6+length+1] = payload_checksum.sum2;
     printf ("\r\npayload_checksum: [%d,%d], [%d,%d]",
