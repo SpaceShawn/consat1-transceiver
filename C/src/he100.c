@@ -25,7 +25,7 @@ main (int argc, char** argv)
 {
     int fdin = 0; // serial_device instance
 
-    if ( fdin = SC_openPort() ) // Input stream
+    if ( fdin = SC_openPort() > 0 ) // Input stream
     { 
         // open output file for appending
         FILE *fdout; 
@@ -36,10 +36,7 @@ main (int argc, char** argv)
         
         fprintf(stdout, "\r\nCurrent status of device: %d",fdin);
 
-        // Write noop
-        //SC_write(fdin, noop, 10);
-
-       // Write a payload 
+        // Write a payload 
         unsigned char *message = "Hello";
         size_t msg_len = 5; // don't forget to change this
         size_t write_len = msg_len + 10;
@@ -49,27 +46,26 @@ main (int argc, char** argv)
         else  
             printf("\r\n Problems writing to serial device");
 
-
-/* 
-        // Test checksum calculation for incoming payload
+/*       // Test checksum calculation for incoming payload
         unsigned char command[2] = {CMD_RECEIVE,CMD_RECEIVE_DATA}; // {0x20,0x04}
         unsigned char message[27] = {0x86, 0xA2, 0x40, 0x40, 0x40, 0x40, 0x60, 0xAC, 0x8A, 0x64, 0x86, 0xAA, 0x82, 0xE1, 0x03, 0xF0, 0x6B, 0x65, 0x6E, 0x77, 0x6F, 0x6F, 0x64, 0x0D, 0x8D, 0x08, 0x63};
         size_t msg_len = 27; // don't forget to change this
         
-        size_t write_len = msg_len + 10; // payload is msg_len + 10 he100 wrapper bytes
+        write_len = msg_len + 10; // payload is msg_len + 10 he100 wrapper bytes
         if ( SC_write(fdin, SC_prepareTransmission(message, msg_len, command), write_len) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
 */
 
-/*       // test SC_NOOP()
+/*       // test SC_NOOP() zero ack!
         write_len = 0+10; 
-        if ( SC_write(fdin, SC_SC_NOOP(), write_len) > 0 )
+        if ( SC_write(fdin, SC_NOOP(), write_len) > 0 )
             printf("\r\n NOOP written successfully!");
         else  
             printf("\r\n Problems writing to serial device");       
 */
+
 /*       // test SC_fastSetPA()
         int fast_set_pa_level = 9;
         write_len = 1+10; 
