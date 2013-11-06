@@ -102,10 +102,10 @@ SC_configureInterface (int fdin)
     fprintf(stdout, "\r\nSC_configureInterface: successfully set new baud rate");
 
     // Input flags 
-    // settings.c_iflag = 0; // disable input processing
+    //settings.c_iflag = 0; // disable input processing
     settings.c_iflag &= ~(  
           IGNBRK // disable: ignore BREAK condition on input 
-    //    | BRKINT // convert break to null byte
+        | BRKINT // convert break to null byte
         | ICRNL  // no CR to NL translation
         | INLCR  // no NL to CR translation
         | PARMRK // don't mark parity errors or breaks
@@ -117,7 +117,7 @@ SC_configureInterface (int fdin)
           IXON
         | IXOFF
         | IGNPAR // ignore bytes with parity errors
-    //    | ICRNL  // map CR to NL (otherwise CR input on other computer will not terminate input)
+        | ICRNL  // map CR to NL (otherwise CR input on other computer will not terminate input)
     //    | INLCR  // map NL to CR (otherwise CR input on other computer will not terminate input)
         );
     
@@ -140,7 +140,7 @@ SC_configureInterface (int fdin)
     settings.c_lflag = 0; // disable line processing 
     
     // settings.c_lflag = ICANON; // enable canonical input
-    cfmakeraw(&settings); // raw mode Input is not assembled into lines and special characters are not processed.
+    //cfmakeraw(&settings); // raw mode Input is not assembled into lines and special characters are not processed.
     
     settings.c_lflag = ECHONL; 
 /*  
@@ -172,7 +172,7 @@ SC_configureInterface (int fdin)
 
     // ONLY non-canonical read control behaviour 
     settings.c_cc[VMIN]  = 1;     // min bytes to return read
-    settings.c_cc[VTIME] = 10;    // read timeout in 1/10 seconds 
+    settings.c_cc[VTIME] = 30;    // read timeout in 1/10 seconds 
 
     //   VEOF, VEOL, VERASE, VKILL (and also 
     //   VEOL2, VSTATUS and VWERASE if defined and IEXTEN is set) 
@@ -213,7 +213,7 @@ SC_configureInterface (int fdin)
         FNDELAY // return 0 if no chars available on port (non-blocking)
     ); // immediate reads
     
-    tcflush( fdin, TCIFLUSH); // flush port before persisting changes 
+    tcflush(fdin, TCIFLUSH); // flush port before persisting changes 
     
     int apply_settings = -1;
     if ( apply_settings = tcsetattr(fdin, TCSANOW, &settings) < 0 ) // apply attributes
@@ -221,13 +221,14 @@ SC_configureInterface (int fdin)
         fprintf(stderr, "\r\nSC_configureInterface: failed to set config: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);           
     }
+/*   
     int flush_device = -1;
     if ( flush_device = tcsetattr(fdin, TCSAFLUSH, &settings) < 0 ) // apply attributes
     {
         fprintf(stderr, "\r\nSC_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);           
     }
-
+*/
     fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings and flush device");
 }
 
@@ -301,7 +302,8 @@ SC_fletcher16unef (char *data, size_t bytes)
 struct SC_checksum
 SC_fletcher16 (char *data, size_t bytes)
 {
-    uint8_t sum1 = 0xff, sum2 = 0xff;
+    //uint8_t sum1 = 0xff, sum2 = 0xff;
+    uint8_t sum1 = 0, sum2 = 0;
 
     while (bytes)
     {
@@ -338,6 +340,7 @@ SC_fletcher16 (char *data, size_t bytes)
 int
 SC_validateResponse (char *response, size_t length) 
 {
+    fprintf(stdout,"\r\n  SC_validateResponse: validating %d byte message",length);
     unsigned char *data = (char *) malloc(length);
     int r=1;
 
@@ -365,10 +368,14 @@ SC_validateResponse (char *response, size_t length)
     int p_s2_chk = memcmp(&response[length-1], &p_chksum.sum2, 1);
     int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
     
-    if (response[4] == 10 && response[4] == 10) {
-        fprintf(stdout,"\r\n  HE100: Acknowledge");
-    } else if (response[4] == 10 && response[5] == 10) {
-        printf("\r\n  HE100: No-Acknowledge");
+    if (response[4] == response[5] ) 
+    {
+        if (response[4] == 10)
+            fprintf(stdout,"\r\n  HE100: Acknowledge");
+        else if (response[4] = 255)
+            printf("\r\n  HE100: No-Acknowledge");
+        else    
+            printf("\r\n  HE100: Something strange!");
     } 
     else 
     {
@@ -425,8 +432,8 @@ void inthand (int signum) { stop = 1; }
 void
 SC_read (int fdin) 
 {
-    FILE *fdout; 
-    fdout = fopen("/var/log/space/he100.log","a");
+    //FILE *fdout; 
+    //fdout = fopen("/var/log/space/he100.log","a");
 
     // Read response
     unsigned char buffer[1];
@@ -446,31 +453,40 @@ SC_read (int fdin)
             printf("\r\n SC_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
 
             // set break condition based on incoming byte pattern
-
-            // SC_referenceCommunication should do the following:
-            // if ( i==0 && buffer[0]==72 ) // first byte 0x48, continue
-            // if ( i==1 && buffer[0]==101 ) // second byte 0x65, continue
-            // if ( i==2 && buffer[0]==32 ) // third byte 0x20, continue
-            // if ( i==3 && ( buffer[0] > 0x00 || buffer[0] < 0x20 ) ) // fourth byte valid command, continue
-            // if ( i==4 && buffer[0]==0x00 ) // fifth byte, first length byte, should be zero, continue
-
-            if ( i==4 && buffer[0]==10 ) // getting an ack
+            if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) // getting an ack
+            {
                 breakcond=8; // ack is 8 bytes
-            else if ( i==5 && breakcond==255 ) 
-                // this is the length byte, set break point accordingly
-                breakcond = buffer[0] + 10;
-            
-            response[i]=buffer[0];
-            buffer[0] = '\0';
-            fprintf(fdout, "0x%02X ", response[i]);
-            fprintf(stdout,"\n  i:%d chars_read:%d hex:0x%02X bc:%d",
-                    i,chars_read,response[i],breakcond
-            );
-            i++;
+            }
+            else if ( i==5 && breakcond==255 ) // this is the length byte, set break point accordingly
+            {
 
-            if (i==breakcond) {
-            // if (buffer[0] = 255) { // EOL?? dumb if true
-                fprintf(stdout,"\n  SC_read: hit break condition!");
+                fprintf(stdout,"\r\n SC_read: Got length byte");
+                breakcond = buffer[0] + 10;
+            }
+
+            if ( SC_referenceByteSequence(&buffer,i) > 0 ) 
+            {
+                    fprintf(stdout," >> returned 1");
+                    response[i]=buffer[0];
+                    buffer[0] = '\0';
+                    //fprintf(fdout, "0x%02X ", response[i]);
+                    fprintf(
+                        stdout,
+                        "\n  i:%d breakcondition:%d",
+                        i,breakcond
+                    );
+                    i++;
+            }
+            else {
+                fprintf(stdout," >> returned -1");
+                i=0; // restart message index
+                response[0] = '\0';
+                breakcond=255;
+            }
+
+            if (i==breakcond) 
+            {
+                fprintf(stdout,"\n SC_read: hit break condition!");
                 if (i>0) // we have a message to validate 
                 {
                     if ( SC_validateResponse(response, breakcond) > 0 ) {
@@ -478,7 +494,7 @@ SC_read (int fdin)
                         // SC_storeData(response, i+1);
                     }
                     else {
-                        fprintf(stderr, "\r\n Invalid data!");
+                        fprintf(stderr, "\r\n Invalid data!\r\n");
                         SC_dumpBytes(response, i+1);
                     }
                 }
@@ -486,33 +502,11 @@ SC_read (int fdin)
                 i=0; // restart message index
                 response[0] = '\0';
                 breakcond=255;
-                fprintf(fdout,"\n");
+                //fprintf(fdout,"\n");
             }
+
             buffer[0] = '\0'; // wipe buffer each time
         }
-/*  
-        else
-        {
-            if ( i>0 ) // BAD
-            {
-                printf("\n SC_read: hit break condition!");
-                if (i>0) // we have a message to validate 
-                {
-                    if ( SC_validateResponse(response, i+1) > 0 ) {
-                        fprintf(stdout, "VALID MESSAGE!");
-                        // SC_storeData(response, i+1);
-                    }
-                    else {
-                        fprintf(stderr, "Invalid data!");
-                        SC_dumpBytes(response, i+1);
-                    }
-                }
-                i=0; // restart message index
-                response[0] = '\0';
-                fprintf(fdout,"\n");
-            }
-        }
-*/
     }
 }
 
@@ -576,10 +570,9 @@ SC_prepareTransmission(
 }
 
 int
-SC_referenceCommunication(unsigned char *response, size_t position)
+SC_referenceByteSequence(unsigned char *response, int position)
 {
-    fprintf(stdout,"\r\n hit SC_referenceCommunication");
-    printf("\r\nSC_referenceCommunication(0x%02X,%d)",*response,(int)position);
+    printf("\r\n  SC_referenceByteSequence(0x%02X,%d)",*response,(int)position);
     int r = -1;
     switch ((int)position)
     {
@@ -597,11 +590,15 @@ SC_referenceCommunication(unsigned char *response, size_t position)
                 if (*response > 0x00 && *response < 0x20) r=(int)*response; 
                 break;
         case 4   : // first length byte
+                if ( 
+                       *response == 0x00 // start of length byte
+                    || *response == 0x0A // start of ack, should match 5
+                    || *response == 0xFF // start of noack, should match 5
+                   ) r=1;
                 break;
-        case 5   : // real length byte
-                if ((int)*response<MAX_FRAME_LENGTH) r=(int)*response; 
-                // would like to thread and start checksum 
-                break;
+        //case 5   : // real length byte
+                //if ((int)*response<MAX_FRAME_LENGTH) r=(int)*response; 
+                //break;
         default  : r=1; break;
     }
     return r; 
