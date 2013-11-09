@@ -42,12 +42,18 @@ SC_openPort(void)
 
     if (fdin == -1) {
         // Could not open port
-        fprintf(stderr, "\r\nSC_openPort: Unable to open port: ", port_address, "%s\n", strerror(errno));
+        fprintf(
+            stderr, 
+            "\r\nSC_openPort: Unable to open port: %s", port_address, "%s\n", strerror(errno)
+        );
         return -1;
     }
     
     if ( !isatty(fdin) ) {
-        fprintf(stderr, "\r\nSC_openPort: Not a serial device!", port_address, "%s\n", strerror(errno));
+        fprintf(
+            stderr, 
+            "\r\nSC_openPort: Not a serial device: %s", port_address, "%s\n", strerror(errno)
+        );
         return -1;
     }
 
@@ -60,7 +66,7 @@ SC_closePort(int fdin)
     {
         fprintf(
             stderr, 
-                "\r\nSC_closePort: Unable to close the serial device connection!"
+            "\r\nSC_closePort: Unable to close the serial device connection!"
         );
         return -1;
     }
@@ -205,8 +211,6 @@ SC_configureInterface (int fdin)
     // only if IXON or IXOFF is set:
     //   VSTOP, VSTART 
    
-    //tcsetattr(STDOUT_FILENO,TCSANOW,&stdio);
-    //tcsetattr(STDOUT_FILENO,TCSAFLUSH,&stdio);
     fcntl(
         fdin, 
         F_SETFL,  
@@ -302,7 +306,6 @@ SC_fletcher16unef (char *data, size_t bytes)
 struct SC_checksum
 SC_fletcher16 (char *data, size_t bytes)
 {
-    //uint8_t sum1 = 0xff, sum2 = 0xff;
     uint8_t sum1 = 0, sum2 = 0;
 
     while (bytes)
@@ -312,21 +315,16 @@ SC_fletcher16 (char *data, size_t bytes)
         do
         {
             sum2 += sum1 += *data++;
-            //printf ("\r\ni:%d d:%d 1:%d 2:%d ",bytes,*data,sum1,sum2);
         }
         while (--tlen);
-
-        // Reduce to 8-bit
-        //sum1 = (sum1 & 0xff) + (sum1 >> 8);
-        //sum2 = (sum2 & 0xff) + (sum2 >> 8);
     }
+    
     // prepare and return checksum values 
     SC_checksum r;
+   
     // final reduction to 8 bits
-    //r.sum1 = (sum1 & 0xff);
-    r.sum1 = sum1;
-    //r.sum2 = (sum2 & 0xff);
-    r.sum2 = sum2;
+    r.sum1 = (sum1 & 0xff);
+    r.sum2 = (sum2 & 0xff);
     
     return r;
 }
@@ -340,7 +338,7 @@ SC_fletcher16 (char *data, size_t bytes)
 int
 SC_validateResponse (char *response, size_t length) 
 {
-    fprintf(stdout,"\r\n  SC_validateResponse: validating %d byte message",length);
+    fprintf(stdout,"\r\n  SC_validateResponse: validating %d byte message",(int)length);
     unsigned char *data = (char *) malloc(length);
     int r=1;
 
@@ -368,14 +366,14 @@ SC_validateResponse (char *response, size_t length)
     int p_s2_chk = memcmp(&response[length-1], &p_chksum.sum2, 1);
     int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
     
-    if (response[4] == response[5] ) 
+    if (response[4] == response[5] ) // ACK or NOACK or EMPTY length
     {
         if (response[4] == 10)
             fprintf(stdout,"\r\n  HE100: Acknowledge");
         else if (response[4] = 255)
             printf("\r\n  HE100: No-Acknowledge");
         else    
-            printf("\r\n  HE100: Something strange!");
+            printf("\r\n  HE100: Empty length?");
     } 
     else 
     {
@@ -683,10 +681,10 @@ SC_setBeaconInterval (int beacon_interval)
  * unsigned char *beacon_message_payload message to transmit 
  */
 unsigned char *
-SC_setBeaconMessage (unsigned char *beacon_message_payload, size_t beacon_message_len)
+SC_setBeaconMessage (unsigned char *set_beacon_message_payload, size_t beacon_message_len)
 {
-   unsigned char beacon_message_command[2] = {CMD_TRANSMIT, CMD_BEACON_DATA};
-   return SC_prepareTransmission(beacon_message_payload, beacon_message_len, beacon_message_command);
+   unsigned char set_beacon_message_command[2] = {CMD_TRANSMIT, CMD_BEACON_DATA};
+   return SC_prepareTransmission(set_beacon_message_payload, beacon_message_len, set_beacon_message_command);
 }
 
 /**
@@ -697,9 +695,9 @@ SC_setBeaconMessage (unsigned char *beacon_message_payload, size_t beacon_messag
 unsigned char *
 SC_fastSetPA (int power_level)
 {
-   unsigned char PA_payload[1] = {power_level};
+   unsigned char fast_set_pa_payload[1] = {power_level};
    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
-   return SC_prepareTransmission(PA_payload, 1, fast_set_pa_command);
+   return SC_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command);
 }
 
 /**
@@ -709,7 +707,19 @@ SC_fastSetPA (int power_level)
 unsigned char *
 SC_softReset()
 {
-   unsigned char soft_reset_payload[1] = {0}; // careful NPE!
+   unsigned char soft_reset_payload[1] = {0}; 
    unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
    return SC_prepareTransmission(soft_reset_payload, 0, soft_reset_command);
+}
+
+/**
+ * Function returning byte sequence to return firmware version 
+ * no arguments
+ */
+unsigned char *
+SC_readFirmwareRevision()
+{
+   unsigned char read_firmware_revision_payload[1] = {0}; 
+   unsigned char read_firmware_revision_command[2] = {CMD_TRANSMIT, CMD_READ_FIRMWARE_V};
+   return SC_prepareTransmission(read_firmware_revision_payload, 0, read_firmware_revision_command);
 }

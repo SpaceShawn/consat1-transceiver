@@ -58,14 +58,16 @@ main (int argc, char** argv)
 
 */
 
-/*       // test SC_NOOP()
+/*       
+        // test SC_NOOP()
         write_len = 0+10; 
         if ( SC_write(fdin, SC_SC_NOOP(), write_len) > 0 )
             printf("\r\n NOOP written successfully!");
         else  
             printf("\r\n Problems writing to serial device");       
 */
-/*       // test SC_fastSetPA()
+/*       
+        // test SC_fastSetPA()
         int fast_set_pa_level = 9;
         write_len = 1+10; 
         if ( SC_write(fdin, SC_fastSetPA(50), write_len) > 0 )
@@ -83,7 +85,8 @@ main (int argc, char** argv)
             printf("\r\n Problems writing to serial device");
 */
 
-/*       // test SC_setBeaconInterval()
+/*       
+        // test SC_setBeaconInterval()
         size_t write_len = 1+10;
         int beacon_interval = 3; // three second interval
         if ( SC_write(fdin, SC_setBeaconInterval(beacon_interval), write_len) > 0 )
@@ -92,7 +95,8 @@ main (int argc, char** argv)
             printf("\r\n Problems writing to serial device");
 */
 
-/*       // test SC_setBeaconMessage()
+/*       
+        // test SC_setBeaconMessage()
         unsigned char* beacon_data = "this is a beacon";
         size_t msg_len = 16;
         size_t write_len = msg_len + 10;
@@ -108,8 +112,7 @@ main (int argc, char** argv)
         unsigned char* message = {0};
         size_t msg_len = 0;
         size_t write_len = 10;
-        unsigned char command[2] = {CMD_TRANSMIT,CMD_READ_FIRMWARE_V}; // {0x10,0x03}
-        if ( SC_write(fdin, SC_prepareTransmission(message, msg_len, command), write_len) > 0 )
+        if ( SC_write(fdin, SC_readFirmwareRevision(), write_len) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
