@@ -59,8 +59,8 @@ main (int argc, char** argv)
 */
 
 /*       // test SC_NOOP()
-        write_len = 0+10; 
-        if ( SC_write(fdin, SC_SC_NOOP(), write_len) > 0 )
+        size_t write_len = 0+10; 
+        if ( SC_write(fdin, SC_NOOP(), write_len) > 0 )
             printf("\r\n NOOP written successfully!");
         else  
             printf("\r\n Problems writing to serial device");       

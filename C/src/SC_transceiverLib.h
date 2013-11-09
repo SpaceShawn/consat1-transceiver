@@ -363,7 +363,8 @@ SC_validateResponse (char *response, size_t length)
         data[j] = response[i];
 
     // generate and compare payload checksum
-    SC_checksum p_chksum = SC_fletcher16(data,10); 
+    //SC_checksum p_chksum = SC_fletcher16(data,10); 
+    SC_checksum p_chksum = SC_fletcher16(data,length-2); // chksum everything except 'He'
     int p_s1_chk = memcmp(&response[length-2], &p_chksum.sum1, 1);
     int p_s2_chk = memcmp(&response[length-1], &p_chksum.sum2, 1);
     int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
@@ -393,8 +394,12 @@ SC_validateResponse (char *response, size_t length)
         for (i=10;i<data_length;i++)
             fprintf(stdout,"%s",(char*)&response[i]);
             //msg[j] = response[i];
-        
-        //return (char*) msg; 
+
+        if (r==1) 
+        {
+            //dump contents to pipe
+            //return (char*) msg; 
+        }
     }
 
     return r;
@@ -547,7 +552,7 @@ SC_prepareTransmission(
     
     // generate and attach payload checksum
     //SC_checksum payload_checksum = SC_fletcher16(payload,length); // chksum only payload
-    SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length+8); // chksum everything except 'He'
+    SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length+6); // chksum everything except 'He'
     payloadbytes[6+length] = payload_checksum.sum1;
     payloadbytes[6+length+1] = payload_checksum.sum2;
     printf ("\r\npayload_checksum: [%d,%d], [%d,%d]",
