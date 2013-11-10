@@ -5,3 +5,5 @@ a.out
 q6t
 C/bin/*
 C/he100Q6_compile_transfer.sh
+*.a
+*.x

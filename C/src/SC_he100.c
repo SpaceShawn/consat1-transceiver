@@ -1,7 +1,7 @@
 /* 
  * =====================================================================================
  *
- *       Filename:  SC_transceiverLib.c
+ *       Filename:  SC_he100.c
  *
  *    Description:  Library to expose He100 functionality. Build as static library. 
  *
@@ -16,15 +16,19 @@
  * =====================================================================================
  */
 #include <stdlib.h>
-#include <stdio.h>   /*  Standard input/output definitions */
-#include <stdint.h>  /*  Standard integer types */
-#include <string.h>  /*  String function definitions */
-#include <unistd.h>  /*  UNIX standard function definitions */
-#include <signal.h>  /*  Signal handling */
-#include <fcntl.h>   /*  File control definitions */
-#include <errno.h>   /*  Error number definitions */
-#include <termios.h> /*  POSIX terminal control definitions */
-#include "he100.h"   /*  Header file that exposes the correct serial device location */
+#include <stdio.h>      /*  Standard input/output definitions */
+#include <stdint.h>     /*  Standard integer types */
+#include <string.h>     /*  String function definitions */
+#include <unistd.h>     /*  UNIX standard function definitions */
+#include <signal.h>     /*  Signal handling */
+#include <fcntl.h>      /*  File control definitions */
+#include <errno.h>      /*  Error number definitions */
+#include <termios.h>    /*  POSIX terminal control definitions */
+#include "./SC_he100.h" /*  Header file that exposes the correct serial device location */
+#include "he100.h"      /*  Header file that exposes the correct serial device location */
+
+#define LOG_FILE_PATH "/var/log/he100/he100.log"
+#define DATA_PIPE_PATH "/var/log/he100/data.log"
 
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
 #define MAX_FRAME_LENGTH 255
@@ -288,6 +292,7 @@ SC_openPort(void)
     return(fdin);
 }
 
+/* Function to close serial device connection at given file descriptor */
 SC_closePort(int fdin)
 {
     if (close(fdin) == -1) 
@@ -301,7 +306,6 @@ SC_closePort(int fdin)
     fprintf(stdout, "\r\nSC_closePort: Closed device %s successfully!\r\n",port_address);
     return 1;
 }
-
 
 /** 
  * Function to write a given byte sequence to the serial device
@@ -367,8 +371,12 @@ SC_fletcher16unef (char *data, size_t bytes)
     return r;
 }
 
-/**
- * Optimized Fletcher Checksum
+/** Optimized Fletcher Checksum  
+ * 16-bit implementation of the Fletcher Checksum
+ * returns two 8-bit sums
+ * @param data - uint8_t const - data on which to perform checksum
+ * @param bytes - size_t - number of bytes to process
+ * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
 struct SC_checksum
 SC_fletcher16 (char *data, size_t bytes)
@@ -410,7 +418,7 @@ SC_validateResponse (char *response, size_t length)
     int r=1;
 
     // prepare container for decoded data
-    int data_length = length - 14; // response - header - 4 checksum bytes
+    int data_length = length - 10; // response - header - 4 checksum bytes
     unsigned char *msg = (char *) malloc(data_length);
 
     int i; int j=0;
@@ -436,12 +444,18 @@ SC_validateResponse (char *response, size_t length)
     
     if (response[4] == response[5] ) // ACK or NOACK or EMPTY length
     {
-        if (response[4] == 10)
+        if (response[4] == 10) {
+            // log with shakespeare
             fprintf(stdout,"\r\n  HE100: Acknowledge");
-        else if (response[4] = 255)
+        }
+        else if (response[4] = 255) {
+            // log with shakespeare
             printf("\r\n  HE100: No-Acknowledge");
-        else    
+        }
+        else {
+            // log with shakespeare
             printf("\r\n  HE100: Empty length?");
+        } 
     } 
     else 
     {
@@ -455,14 +469,17 @@ SC_validateResponse (char *response, size_t length)
         }
         
         printf("\r\nMessage: ");
-        //j=0;
+        j=0;
         for (i=10;i<data_length;i++)
             fprintf(stdout,"%s",(char*)&response[i]);
-            //msg[j] = response[i];
+            msg[j] = response[i];
 
         if (r==1) 
         {
-            //dump contents to pipe
+            //dump contents to helium data storage pipe
+            fdata = fopen(DATA_PIPE_PATH,"a");
+            SC_dumpBytes(fdata, msg, data_length);
+            fclose(fdata);
             //return (char*) msg; 
         }
     }
@@ -470,17 +487,16 @@ SC_validateResponse (char *response, size_t length)
     return r;
 }
 
+/* Function to dump a given array to a given file descriptor */
 int
-SC_dumpBytes(unsigned char *bytes, size_t size) 
+SC_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size) 
 {
     // Output outgoing transmission
-    fprintf(stdout, "\r\nBytes: ");
     int j=0;
     for (j=0; j<size; j++) 
     {
-        printf("%02X ",bytes[j]);
+        fprintf(fdout,"%02X ",bytes[j]);
     }    
-    fprintf(stdout, "\r\nTotal bytes: %d",(unsigned int)size);
     return 1;
 }
 
@@ -529,7 +545,6 @@ SC_read (int fdin)
             }
             else if ( i==5 && breakcond==255 ) // this is the length byte, set break point accordingly
             {
-
                 fprintf(stdout,"\r\n SC_read: Got length byte");
                 breakcond = buffer[0] + 10;
             }
@@ -565,7 +580,7 @@ SC_read (int fdin)
                     }
                     else {
                         fprintf(stderr, "\r\n Invalid data!\r\n");
-                        SC_dumpBytes(response, i+1);
+                        SC_dumpBytes(stdout, response, i+1);
                     }
                 }
 
@@ -616,8 +631,8 @@ SC_prepareTransmission(
         payloadbytes[4], payloadbytes[5]);
     
     // generate and attach payload checksum
-    //SC_checksum payload_checksum = SC_fletcher16(payload,length); // chksum only payload
-    SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length+6); // chksum everything except 'He'
+    SC_checksum payload_checksum = SC_fletcher16(payload,length); // chksum only payload
+    //SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length+6); // chksum everything except 'He'
     payloadbytes[6+length] = payload_checksum.sum1;
     payloadbytes[6+length+1] = payload_checksum.sum2;
     printf ("\r\npayload_checksum: [%d,%d], [%d,%d]",
