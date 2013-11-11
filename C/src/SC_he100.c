@@ -330,6 +330,9 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
 
     //fflush(fdin);
 
+    // Issue a read to check for ACK/NOACK
+    HE100_read(fdin, 1);
+
     if (w>0) {
         return 1;
     } 
@@ -444,15 +447,19 @@ HE100_validateResponse (char *response, size_t length)
     
     if (response[4] == response[5] ) // ACK or NOACK or EMPTY length
     {
-        if (response[4] == 10) {
+        if (response[4] == 10) 
+        {
             // log with shakespeare
             fprintf(stdout,"\r\n  HE100: Acknowledge");
         }
-        else if (response[4] = 255) {
+        else if (response[4] = 255) 
+        {
             // log with shakespeare
             printf("\r\n  HE100: No-Acknowledge");
+
         }
-        else {
+        else 
+        {
             // log with shakespeare
             printf("\r\n  HE100: Empty length?");
         } 
@@ -500,17 +507,13 @@ HE100_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size)
     return 1;
 }
 
-/** Provide signal handling for HE100_read **/
-volatile sig_atomic_t stop;
-void inthand (int signum) { stop = 1; }
-
 /**
  * Function to read bytes in single-file from the serial device and 
  * append them to and return a response array
  * 
  * @param fdin - the file descriptor representing the serial device
  */
-void
+int
 HE100_read (int fdin, time_t timeout) 
 {
     //FILE *fdout; 
@@ -544,8 +547,7 @@ HE100_read (int fdin, time_t timeout)
                 breakcond = buffer[0] + 10;
             }
 
-            //if ( HE100_referenceByteSequence(buffer[0],i) > 0 ) 
-            if ( 1 ) 
+            if ( HE100_referenceByteSequence(buffer[0],i) > 0 ) 
             {
                     fprintf(stdout," >> returned 1");
                     response[i]=buffer[0];
@@ -571,13 +573,21 @@ HE100_read (int fdin, time_t timeout)
                 fprintf(stdout,"\n HE100_read: hit break condition!");
                 if (i>0) // we have a message to validate 
                 {
-                    if ( HE100_validateResponse(response, breakcond) > 0 ) {
+                    if ( HE100_validateResponse(response, breakcond) > 0 ) 
+                    {
                         fprintf(stdout, "\r\n VALID MESSAGE!");
-                        // HE100_storeData(response, i+1);
+                        return 1; // we got a frame, time to ack!
                     }
-                    else {
+                    else 
+                    {
                         fprintf(stderr, "\r\n Invalid data!\r\n");
-                        HE100_dumpBytes(stdout, response, i+1);
+                        HE100_dumpBytes(stdout, response, i+1);            
+                        // soft reset the transceiver 
+                        size_t write_len = 8;
+                        if ( HE100_write(fdin, HE100_softReset(), write_len) > 0 )
+                            printf("\r\n Soft Reset written successfully!");
+                        else  
+                            printf("\r\n Problems writing to serial device");
                     }
                 }
 
@@ -589,7 +599,13 @@ HE100_read (int fdin, time_t timeout)
 
             buffer[0] = '\0'; // wipe buffer each time
         }
+        else if (chars_read = -1) 
+        {
+            return chars_read;
+        }
     }
+    // received nothing
+    return 0;
 }
 
 /**

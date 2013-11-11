@@ -82,7 +82,7 @@ int HE100_dumpBytes (FILE *fdout, unsigned char *bytes, size_t size);
  * 
  * @param fdin - the file descriptor representing the serial device
  */
-void HE100_read (int fd, time_t timeout);
+int HE100_read (int fd, time_t timeout);
 
 /**
  * Function to prepare data for transmission

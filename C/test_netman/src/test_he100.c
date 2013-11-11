@@ -46,6 +46,16 @@ main (int argc, char** argv)
             printf("\r\n Problems writing to serial device"); 
 */
 
+///* 
+        // send bogus bytes to get a NOACK 
+        unsigned char bogus[8] = {0x48,0x65,0x10,0x7e,0x00,0x00,0x65,0x65};
+        size_t write_len = 8;
+        if ( HE100_write(fdin, bogus, write_len) > 0 )
+            printf("\r\n Message written successfully!");
+        else  
+            printf("\r\n Problems writing to serial device"); 
+//*/
+
 /*       // test HE100_NOOP()
         size_t write_len = 0+10; 
         if ( HE100_write(fdin, HE100_NOOP(), write_len) > 0 )
@@ -64,14 +74,14 @@ main (int argc, char** argv)
             printf("\r\n Problems writing to serial device");       
 */
 
-///*  
+/*  
         // test HE100_softReset()
         size_t write_len = 0+10;
         if ( HE100_write(fdin, HE100_softReset(), write_len) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device");
-//*/
+*/
 
 /*       
         // test HE100_setBeaconInterval()
@@ -107,7 +117,7 @@ main (int argc, char** argv)
 */
 
         // read continuously until SIGINT
-        HE100_read(fdin, 10);
+        HE100_read(fdin);
 
         // close he100 device
         HE100_closePort(fdin);
