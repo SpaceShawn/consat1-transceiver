@@ -10,7 +10,7 @@
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  YOUR NAME (), 
+ *         Author:  SHAWN BULGER (), 
  *   Organization:  
  *
  * =====================================================================================
@@ -37,21 +37,21 @@ struct he100_settings {
 };
 
 /* Function to apply configuration to HE100 on configured serial port address */
-void SC_configureInterface (int);
+void HE100_configureInterface (int);
 
 /* Function to open HE100 device on configured seial port address */
-int SC_openPort (void);
+int HE100_openPort (void);
 
 /* Function to close serial device connection at given file descriptor */
-int SC_closePort (int);
+int HE100_closePort (int);
 
 /* Function to write a char array to a serial device at given file descriptor */
-int SC_write (int fdin, unsigned char *bytes, size_t size);
+int HE100_write (int fdin, unsigned char *bytes, size_t size);
 
 /**
  * struct to hold values of fletcher checksum
  */
-//typedef struct SC_checksum {} SC_checksum;
+//typedef struct HE100_checksum {} HE100_checksum;
 
 /** Optimized Fletcher Checksum  
  * 16-bit implementation of the Fletcher Checksum
@@ -60,19 +60,19 @@ int SC_write (int fdin, unsigned char *bytes, size_t size);
  * @param bytes - size_t - number of bytes to process
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
-struct SC_checksum SC_fletcher16 (char *data, size_t bytes);
+struct HE100_checksum HE100_fletcher16 (char *data, size_t bytes);
 
 /**
  * Function to parse a given frame, validate it, and write its payload to pipe 
  * @param response - the frame data to be validated 
  * @param length - the entire length of the frame in bytes
  */
-int SC_validateResponse (char *response, size_t length);
+int HE100_validateResponse (char *response, size_t length);
 
 /* Function to dump a given array to a given file descriptor */
-int SC_dumpBytes (FILE *fdout, unsigned char *bytes, size_t size);
+int HE100_dumpBytes (FILE *fdout, unsigned char *bytes, size_t size);
 
-/** Provide signal handling for SC_read **/
+/** Provide signal handling for HE100_read **/
 //volatile sig_atomic_t stop;
 //void inthand (int signum) { stop = 1; }
 
@@ -82,64 +82,64 @@ int SC_dumpBytes (FILE *fdout, unsigned char *bytes, size_t size);
  * 
  * @param fdin - the file descriptor representing the serial device
  */
-void SC_read (int);
+void HE100_read (int fd, time_t timeout);
 
 /**
  * Function to prepare data for transmission
  * @param char payload - data to be transmitted
  * @param size_t length - length of data stream
  */
-unsigned char * SC_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
+unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
 /* Function to ensure byte-by-byte that we are receiving a HE100 frame */
-//int SC_referenceByteSequence(unsigned char *response, int position);
+//int HE100_referenceByteSequence(unsigned char *response, int position);
         
 /** 
  * Function to decode validated and extracted data from response
  * @param response - the response data to interpret
  * @param length - the length of the data in bytes
  */
-int SC_interpretResponse (char *response, size_t length);
+int HE100_interpretResponse (char *response, size_t length);
 
 /**
  * Function to return NOOP byte sequence 
  * no arguments 
  */
-unsigned char * SC_NOOP();
+unsigned char * HE100_NOOP();
 
 /**
  * Function returning byte sequence to set the beacon message 
  * unsigned char *beacon_message_payload message to transmit 
  */
-unsigned char * SC_transmitData (unsigned char *transmit_data_payload, size_t transmit_data_len);
+unsigned char * HE100_transmitData (unsigned char *transmit_data_payload, size_t transmit_data_len);
 
 /**
  * Function returning byte sequence to enable beacon on given interval 
  * int beacon_interval interval in seconds 
  */
-unsigned char * SC_setBeaconInterval (int);
+unsigned char * HE100_setBeaconInterval (int);
 
 /**
  * Function returning byte sequence to set the beacon message 
  * unsigned char *beacon_message_payload message to transmit 
  */
-unsigned char * SC_setBeaconMessage (unsigned char *set_beacon_message_payload, size_t beacon_message_len);
+unsigned char * HE100_setBeaconMessage (unsigned char *set_beacon_message_payload, size_t beacon_message_len);
 
 /**
  * Function returning byte sequence to amplify power based
  * on input int power_level
  * int power_level decimal value from 0-255 (0%-100%)
  */
-unsigned char * SC_fastSetPA (int);
+unsigned char * HE100_fastSetPA (int);
 
 /**
  * Function returning byte sequence to soft reset HE100 board and restore flash settings 
  * no arguments
  */
-unsigned char * SC_softReset();
+unsigned char * HE100_softReset();
 
 /**
  * Function returning byte sequence to return firmware version 
  * no arguments
  */
-unsigned char * SC_readFirmwareRevision();
+unsigned char * HE100_readFirmwareRevision();

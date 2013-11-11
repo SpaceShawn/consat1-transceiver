@@ -100,7 +100,7 @@
  * REF: http://www.unixguide.net/unix/programming/3.6.2.shtml
  */
 void
-SC_configureInterface (int fdin)
+HE100_configureInterface (int fdin)
 { 
     struct termios settings;
    
@@ -110,21 +110,21 @@ SC_configureInterface (int fdin)
     {
         fprintf(
             stderr, 
-            "\r\nSC_configureInterface: failed to get config: %d, %s\n", 
+            "\r\nHE100_configureInterface: failed to get config: %d, %s\n", 
             fdin, 
             strerror(errno)
         );
         exit(EXIT_FAILURE);
     }
-    fprintf(stdout, "\r\nSC_configureInterface: successfully acquired old settings");
+    fprintf(stdout, "\r\nHE100_configureInterface: successfully acquired old settings");
 
     // attempt to set input and output baud rate to 9600
     if (cfsetispeed(&settings, B9600) < 0 || cfsetospeed(&settings, B9600) < 0) 
     {
-        fprintf(stderr, "\r\nSC_configureInterface: failed set BAUD rate: %d, %s\n", fdin, strerror(errno));
+        fprintf(stderr, "\r\nHE100_configureInterface: failed set BAUD rate: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);
     }
-    fprintf(stdout, "\r\nSC_configureInterface: successfully set new baud rate");
+    fprintf(stdout, "\r\nHE100_configureInterface: successfully set new baud rate");
 
     // Input flags 
     //settings.c_iflag = 0; // disable input processing
@@ -241,22 +241,22 @@ SC_configureInterface (int fdin)
     int apply_settings = -1;
     if ( apply_settings = tcsetattr(fdin, TCSANOW, &settings) < 0 ) // apply attributes
     {
-        fprintf(stderr, "\r\nSC_configureInterface: failed to set config: %d, %s\n", fdin, strerror(errno));
+        fprintf(stderr, "\r\nHE100_configureInterface: failed to set config: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);           
     }
 /*   
     int flush_device = -1;
     if ( flush_device = tcsetattr(fdin, TCSAFLUSH, &settings) < 0 ) // apply attributes
     {
-        fprintf(stderr, "\r\nSC_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
+        fprintf(stderr, "\r\nHE100_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);           
     }
 */
-    fprintf(stdout, "\r\nSC_configureInterface: successfully applied new settings and flush device");
+    fprintf(stdout, "\r\nHE100_configureInterface: successfully applied new settings and flush device");
 }
 
 int
-SC_openPort(void)
+HE100_openPort(void)
 {
     int fdin; // File descriptor for the port
     
@@ -273,7 +273,7 @@ SC_openPort(void)
         // Could not open port
         fprintf(
             stderr, 
-            "\r\nSC_openPort: Unable to open port: %s", port_address, "%s\n", strerror(errno)
+            "\r\nHE100_openPort: Unable to open port: %s", port_address, "%s\n", strerror(errno)
         );
         return -1;
     }
@@ -281,29 +281,29 @@ SC_openPort(void)
     if ( !isatty(fdin) ) {
         fprintf(
             stderr, 
-            "\r\nSC_openPort: Not a serial device: %s", port_address, "%s\n", strerror(errno)
+            "\r\nHE100_openPort: Not a serial device: %s", port_address, "%s\n", strerror(errno)
         );
         return -1;
     }
 
     fprintf(stderr, "\r\nSuccessfully opened port: %s",port_address);
-    SC_configureInterface(fdin);
+    HE100_configureInterface(fdin);
 
     return(fdin);
 }
 
 /* Function to close serial device connection at given file descriptor */
-SC_closePort(int fdin)
+HE100_closePort(int fdin)
 {
     if (close(fdin) == -1) 
     {
         fprintf(
             stderr, 
-            "\r\nSC_closePort: Unable to close the serial device connection!"
+            "\r\nHE100_closePort: Unable to close the serial device connection!"
         );
         return -1;
     }
-    fprintf(stdout, "\r\nSC_closePort: Closed device %s successfully!\r\n",port_address);
+    fprintf(stdout, "\r\nHE100_closePort: Closed device %s successfully!\r\n",port_address);
     return 1;
 }
 
@@ -314,7 +314,7 @@ SC_closePort(int fdin)
  * @param size - the length of the array in bytes
  */
 int 
-SC_write(int fdin, unsigned char *bytes, size_t size) 
+HE100_write(int fdin, unsigned char *bytes, size_t size) 
 {
     // Output outgoing transmission
     fprintf(stdout, "\r\nWriting to device: ");
@@ -338,10 +338,10 @@ SC_write(int fdin, unsigned char *bytes, size_t size)
 /**
  * struct to hold values of fletcher checksum
  */
-typedef struct SC_checksum {
+typedef struct HE100_checksum {
     uint8_t sum1;
     uint8_t sum2;
-} SC_checksum;
+} HE100_checksum;
 
 /** 
  * 16-bit implementation of the Fletcher Checksum
@@ -350,8 +350,8 @@ typedef struct SC_checksum {
  * @param bytes - size_t - number of bytes to process
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
-struct SC_checksum 
-SC_fletcher16unef (char *data, size_t bytes)
+struct HE100_checksum 
+HE100_fletcher16unef (char *data, size_t bytes)
 {
     uint8_t sum1=0, sum2=0;
     int i=0;
@@ -365,7 +365,7 @@ SC_fletcher16unef (char *data, size_t bytes)
     }
 
     // prepare and return checksum values 
-    SC_checksum r;
+    HE100_checksum r;
     r.sum1 = (sum1 % 255);
     r.sum2 = (sum2 % 255);
     return r;
@@ -378,8 +378,8 @@ SC_fletcher16unef (char *data, size_t bytes)
  * @param bytes - size_t - number of bytes to process
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
-struct SC_checksum
-SC_fletcher16 (char *data, size_t bytes)
+struct HE100_checksum
+HE100_fletcher16 (char *data, size_t bytes)
 {
     uint8_t sum1 = 0, sum2 = 0;
 
@@ -395,7 +395,7 @@ SC_fletcher16 (char *data, size_t bytes)
     }
     
     // prepare and return checksum values 
-    SC_checksum r;
+    HE100_checksum r;
    
     // final reduction to 8 bits
     r.sum1 = (sum1 & 0xff);
@@ -411,14 +411,14 @@ SC_fletcher16 (char *data, size_t bytes)
  */
 //unsigned char*
 int
-SC_validateResponse (char *response, size_t length) 
+HE100_validateResponse (char *response, size_t length) 
 {
-    fprintf(stdout,"\r\n  SC_validateResponse: validating %d byte message",(int)length);
+    fprintf(stdout,"\r\n  HE100_validateResponse: validating %d byte message",(int)length);
     unsigned char *data = (char *) malloc(length);
     int r=1;
 
     // prepare container for decoded data
-    int data_length = length - 10; // response - header - 4 checksum bytes
+    int data_length = length - 10; // response minus header minus 4 checksum bytes
     unsigned char *msg = (char *) malloc(data_length);
 
     int i; int j=0;
@@ -426,7 +426,7 @@ SC_validateResponse (char *response, size_t length)
         data[j] = response[i];
     
     // generate and compare header checksum
-    SC_checksum h_chksum = SC_fletcher16(data,10); 
+    HE100_checksum h_chksum = HE100_fletcher16(data,10); 
     int h_s1_chk = memcmp(&response[8], &h_chksum.sum1, 1);
     int h_s2_chk = memcmp(&response[9], &h_chksum.sum2, 1);
     int h_chk = h_s2_chk + h_s2_chk; // should be zero given valid chk
@@ -436,8 +436,8 @@ SC_validateResponse (char *response, size_t length)
         data[j] = response[i];
 
     // generate and compare payload checksum
-    //SC_checksum p_chksum = SC_fletcher16(data,10); 
-    SC_checksum p_chksum = SC_fletcher16(data,length-2); // chksum everything except 'He'
+    //HE100_checksum p_chksum = HE100_fletcher16(data,10); 
+    HE100_checksum p_chksum = HE100_fletcher16(data,length-2); // chksum everything except 'He'
     int p_s1_chk = memcmp(&response[length-2], &p_chksum.sum1, 1);
     int p_s2_chk = memcmp(&response[length-1], &p_chksum.sum2, 1);
     int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
@@ -477,9 +477,9 @@ SC_validateResponse (char *response, size_t length)
         if (r==1) 
         {
             //dump contents to helium data storage pipe
-            fdata = fopen(DATA_PIPE_PATH,"a");
-            SC_dumpBytes(fdata, msg, data_length);
-            fclose(fdata);
+            //fdata = fopen(DATA_PIPE_PATH,"a");
+            //HE100_dumpBytes(fdata, msg, data_length);
+            //fclose(fdata);
             //return (char*) msg; 
         }
     }
@@ -489,7 +489,7 @@ SC_validateResponse (char *response, size_t length)
 
 /* Function to dump a given array to a given file descriptor */
 int
-SC_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size) 
+HE100_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size) 
 {
     // Output outgoing transmission
     int j=0;
@@ -500,23 +500,18 @@ SC_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size)
     return 1;
 }
 
-/** Provide signal handling for SC_read **/
+/** Provide signal handling for HE100_read **/
 volatile sig_atomic_t stop;
 void inthand (int signum) { stop = 1; }
 
 /**
  * Function to read bytes in single-file from the serial device and 
  * append them to and return a response array
- *
- * !! Serial port is not sending any CR, LF, or other E-O-L or E-O-F bytes
- * !! Must check for Sync bytes and verify they are not in payload, e.g. 'He'llo
  * 
- * 1 - findstart building message frame, checking if each byte makes sense, else discard and look for 48 65
- *
  * @param fdin - the file descriptor representing the serial device
  */
 void
-SC_read (int fdin) 
+HE100_read (int fdin, time_t timeout) 
 {
     //FILE *fdout; 
     //fdout = fopen("/var/log/space/he100.log","a");
@@ -529,14 +524,14 @@ SC_read (int fdin)
     int action=0;
     int breakcond=255;
     
-    // Read continuously from serial device
-    signal(SIGINT, inthand);
-  
-    while (!stop)
+    timer_t read_timer = (timer_t)timer_get();
+    timer_start(&read_timer,timeout);
+
+    while (!timer_complete(&read_timer))
     {
-        if ( chars_read = read(fdin, &buffer, 1) > 0 )// if a byte is read
+        if ( chars_read = read(fdin, &buffer, 1) > 0 ) // if a byte is read
         { 
-            printf("\r\n SC_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
+            printf("\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
 
             // set break condition based on incoming byte pattern
             if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) // getting an ack
@@ -545,11 +540,12 @@ SC_read (int fdin)
             }
             else if ( i==5 && breakcond==255 ) // this is the length byte, set break point accordingly
             {
-                fprintf(stdout,"\r\n SC_read: Got length byte");
+                fprintf(stdout,"\r\n HE100_read: Got length byte");
                 breakcond = buffer[0] + 10;
             }
 
-            if ( SC_referenceByteSequence(&buffer,i) > 0 ) 
+            //if ( HE100_referenceByteSequence(buffer[0],i) > 0 ) 
+            if ( 1 ) 
             {
                     fprintf(stdout," >> returned 1");
                     response[i]=buffer[0];
@@ -562,7 +558,8 @@ SC_read (int fdin)
                     );
                     i++;
             }
-            else {
+            else 
+            {
                 fprintf(stdout," >> returned -1");
                 i=0; // restart message index
                 response[0] = '\0';
@@ -571,16 +568,16 @@ SC_read (int fdin)
 
             if (i==breakcond) 
             {
-                fprintf(stdout,"\n SC_read: hit break condition!");
+                fprintf(stdout,"\n HE100_read: hit break condition!");
                 if (i>0) // we have a message to validate 
                 {
-                    if ( SC_validateResponse(response, breakcond) > 0 ) {
+                    if ( HE100_validateResponse(response, breakcond) > 0 ) {
                         fprintf(stdout, "\r\n VALID MESSAGE!");
-                        // SC_storeData(response, i+1);
+                        // HE100_storeData(response, i+1);
                     }
                     else {
                         fprintf(stderr, "\r\n Invalid data!\r\n");
-                        SC_dumpBytes(stdout, response, i+1);
+                        HE100_dumpBytes(stdout, response, i+1);
                     }
                 }
 
@@ -601,7 +598,7 @@ SC_read (int fdin)
  * @param size_t length - length of data stream
  */
 unsigned char* 
-SC_prepareTransmission(
+HE100_prepareTransmission(
     unsigned char *payload, 
     size_t length, 
     unsigned char *command
@@ -623,7 +620,7 @@ SC_prepareTransmission(
     payloadbytes[3] = (unsigned char) length & 0xff; 
 
     // generate and attach header checksum
-    SC_checksum header_checksum = SC_fletcher16(payloadbytes,4); 
+    HE100_checksum header_checksum = HE100_fletcher16(payloadbytes,4); 
     payloadbytes[4] = (unsigned char) header_checksum.sum1 & 0xff;
     payloadbytes[5] = (unsigned char) header_checksum.sum2 & 0xff;
     printf ("\r\nheader_checksum: [%d,%d], [%d,%d]",
@@ -631,8 +628,8 @@ SC_prepareTransmission(
         payloadbytes[4], payloadbytes[5]);
     
     // generate and attach payload checksum
-    SC_checksum payload_checksum = SC_fletcher16(payload,length); // chksum only payload
-    //SC_checksum payload_checksum = SC_fletcher16(payloadbytes,length+6); // chksum everything except 'He'
+    HE100_checksum payload_checksum = HE100_fletcher16(payload,length); // chksum only payload
+    //HE100_checksum payload_checksum = HE100_fletcher16(payloadbytes,length+6); // chksum everything except 'He'
     payloadbytes[6+length] = payload_checksum.sum1;
     payloadbytes[6+length+1] = payload_checksum.sum2;
     printf ("\r\npayload_checksum: [%d,%d], [%d,%d]",
@@ -655,9 +652,9 @@ SC_prepareTransmission(
 }
 
 int
-SC_referenceByteSequence(unsigned char *response, int position)
+HE100_referenceByteSequence(unsigned char *response, int position)
 {
-    printf("\r\n  SC_referenceByteSequence(0x%02X,%d)",*response,(int)position);
+    printf("\r\n  HE100_referenceByteSequence(0x%02X,%d)",*response,(int)position);
     int r = -1;
     switch ((int)position)
     {
@@ -701,13 +698,13 @@ SC_referenceByteSequence(unsigned char *response, int position)
  * tx_ac            486520030a0a37a7
  */
 int
-SC_interpretResponse (char *response, size_t length) 
+HE100_interpretResponse (char *response, size_t length) 
 {
     printf("Response length: %d\n", (int)length);
 
     // if response == transmission, He100 device is off!   
     if ((int)response[2]==16) {
-        fprintf(stderr,"SC_read: He100 is off!");
+        fprintf(stderr,"HE100_read: He100 is off!");
         return 0;
     }
 
@@ -743,12 +740,12 @@ SC_interpretResponse (char *response, size_t length)
  * no arguments 
  */
 unsigned char *
-SC_NOOP ()
+HE100_NOOP ()
 {
    //noop[10] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43,0x00,0x00};
    unsigned char noop_payload[1] = {0};
    unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
-   return SC_prepareTransmission(noop_payload, 0, noop_command);
+   return HE100_prepareTransmission(noop_payload, 0, noop_command);
 }
 
 /**
@@ -756,10 +753,10 @@ SC_NOOP ()
  * unsigned char *beacon_message_payload message to transmit 
  */
 unsigned char *
-SC_transmitData (unsigned char *transmit_data_payload, size_t transmit_data_len)
+HE100_transmitData (unsigned char *transmit_data_payload, size_t transmit_data_len)
 {
    unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
-   return SC_prepareTransmission(transmit_data_payload, transmit_data_len, transmit_data_command);
+   return HE100_prepareTransmission(transmit_data_payload, transmit_data_len, transmit_data_command);
 }
 
 /**
@@ -767,11 +764,11 @@ SC_transmitData (unsigned char *transmit_data_payload, size_t transmit_data_len)
  * int beacon_interval interval in seconds 
  */
 unsigned char *
-SC_setBeaconInterval (int beacon_interval)
+HE100_setBeaconInterval (int beacon_interval)
 {
    unsigned char beacon_interval_payload[1] = {beacon_interval};
    unsigned char beacon_interval_command[2] = {CMD_TRANSMIT, CMD_BEACON_CONFIG};
-   return SC_prepareTransmission(beacon_interval_payload, 1, beacon_interval_command);
+   return HE100_prepareTransmission(beacon_interval_payload, 1, beacon_interval_command);
 }
 
 /**
@@ -779,10 +776,10 @@ SC_setBeaconInterval (int beacon_interval)
  * unsigned char *beacon_message_payload message to transmit 
  */
 unsigned char *
-SC_setBeaconMessage (unsigned char *set_beacon_message_payload, size_t beacon_message_len)
+HE100_setBeaconMessage (unsigned char *set_beacon_message_payload, size_t beacon_message_len)
 {
    unsigned char set_beacon_message_command[2] = {CMD_TRANSMIT, CMD_BEACON_DATA};
-   return SC_prepareTransmission(set_beacon_message_payload, beacon_message_len, set_beacon_message_command);
+   return HE100_prepareTransmission(set_beacon_message_payload, beacon_message_len, set_beacon_message_command);
 }
 
 /**
@@ -791,11 +788,11 @@ SC_setBeaconMessage (unsigned char *set_beacon_message_payload, size_t beacon_me
  * int power_level decimal value from 0-255 (0%-100%)
  */
 unsigned char *
-SC_fastSetPA (int power_level)
+HE100_fastSetPA (int power_level)
 {
    unsigned char fast_set_pa_payload[1] = {power_level};
    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
-   return SC_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command);
+   return HE100_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command);
 }
 
 /**
@@ -803,11 +800,11 @@ SC_fastSetPA (int power_level)
  * no arguments
  */
 unsigned char *
-SC_softReset()
+HE100_softReset()
 {
    unsigned char soft_reset_payload[1] = {0}; 
    unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
-   return SC_prepareTransmission(soft_reset_payload, 0, soft_reset_command);
+   return HE100_prepareTransmission(soft_reset_payload, 0, soft_reset_command);
 }
 
 /**
@@ -815,9 +812,9 @@ SC_softReset()
  * no arguments
  */
 unsigned char *
-SC_readFirmwareRevision()
+HE100_readFirmwareRevision()
 {
    unsigned char read_firmware_revision_payload[1] = {0}; 
    unsigned char read_firmware_revision_command[2] = {CMD_TRANSMIT, CMD_READ_FIRMWARE_V};
-   return SC_prepareTransmission(read_firmware_revision_payload, 0, read_firmware_revision_command);
+   return HE100_prepareTransmission(read_firmware_revision_payload, 0, read_firmware_revision_command);
 }

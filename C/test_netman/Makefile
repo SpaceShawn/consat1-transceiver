@@ -10,10 +10,10 @@ LIBPATH=-L./lib
 buildBin:
 #	 $(CC) $(CFLAGS) $(INCPATH) $(LIBPATH) src/he100.c -o bin/he100.x
 #	 $(CC) $(INCPATH) $(LIBPATH) -lshakespeare src/he100.c -o bin/he100.x
-	$(CC) $(LIBPATH) src/test_he100.c -o bin/test_he100.x -lhe100 
+	$(CC) $(LIBPATH) $(DEBUGFLAGS) src/test_he100.c -o bin/test_he100.x -lhe100 -ltimer -lrt
 buildQ6:
 #	$(MICROCC) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) -lshakespeare-mbcc src/he100.c -o bin/he100Q6.x 
-	$(MICROCC) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) src/test_he100.c -o bin/test_he100Q6.x -lhe100-mbcc 
+	$(MICROCC) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) $(DEBUGFLAGS) src/test_he100.c -o bin/test_he100Q6.x -lhe100-mbcc -ltimer-mbcc -lrt
 
 #buildAllTests: buildUnitTests
 #buildUnitTests:
