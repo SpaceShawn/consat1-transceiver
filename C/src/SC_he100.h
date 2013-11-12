@@ -40,10 +40,6 @@ struct he100_settings {
 /* Function to apply configuration to HE100 on configured serial port address */
 void HE100_configureInterface (int);
 
-/* Function to configure the Helium board based on altered input struct he100_settings */
-/* validation will occur here, and if valid values have passed constraints, apply the settings */
-int HE100_configureDevice (struct he100_settings);
-
 /* Function to open HE100 device on configured seial port address */
 int HE100_openPort (void);
 
@@ -148,3 +144,13 @@ unsigned char * HE100_softReset();
  * no arguments
  */
 unsigned char * HE100_readFirmwareRevision();
+
+/* Function to return an array of config struct from Helium 100 */
+struct he100_settings HE100_getConfig (int fdin);
+
+/* Function to configure the Helium board based on altered input struct he100_settings */
+/* validation will occur here, and if valid values have passed constraints, apply the settings */
+int HE100_setConfig (int fdin, struct he100_settings he100_new_settings);
+
+/* Function to write current set config to flash and overwrite default settings */
+int HE100_writeFlash (int fdin, unsigned char *flash_md5sum, size_t length);

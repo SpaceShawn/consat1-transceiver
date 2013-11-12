@@ -30,10 +30,12 @@
 #define LOG_FILE_PATH "/var/log/he100/he100.log"
 #define DATA_PIPE_PATH "/var/log/he100/data.log"
 
+#define EMPTY_PAYLOAD_WRITE_LENGTH 8
+
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
 #define MAX_FRAME_LENGTH 255
-#define BAUDRATE B9600
 #define TTYDEVICE "/dev/ttyS2"
+#define CFG_DEFAULT_BAUDRATE B9600
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
@@ -87,6 +89,31 @@
 #define CMD_FIRMWARE_PACKET     0x15
 #define CMD_FAST_SET_PA         0x20       
 
+// Config options
+#define CFG_PAYLOAD_LENGTH  34
+
+// Interface BAUD RATE config
+#define CFG_IF_BAUD_BYTE    0 // 1st byte
+#define CFG_DEF_IF_BAUD     0
+#define CFG_IF_BAUD_9600    0
+#define CFG_IF_BAUD_19200   1
+#define CFG_IF_BAUD_38400   2
+#define CFG_IF_BAUD_76800   3
+#define CFG_IF_BAUD_115200  4
+#define MAX_IF_BAUD_RATE    4
+#define MIN_IF_BAUD_RATE    0
+
+// RF BAUD rate config
+#define CFG_RF_RX_BAUD_BYTE 2 // 3rd byte 
+#define CFG_RF_TX_BAUD_BYTE 3 // 4th byte 
+#define CFG_DEF_RF_BAUDRATE 1
+#define CFG_RF_BAUD_1200    0
+#define CFG_RF_BAUD_9600    1
+#define CFG_RF_BAUD_19200   2
+#define CFG_RF_BAUD_38400   3
+#define MAX_RF_BAUD_RATE    3
+#define MIN_RF_BAUD_RATE    0
+
 // PA config
 #define CFG_PA_BYTE         1 // 2nd byte 
 #define MAX_PA_LEVEL        0xFF
@@ -111,6 +138,11 @@
 #define CFG_TX_FREQ_BYTE1   10 // 11th byte
 #define CFG_TX_FREQ_BYTE2   11 // 12th byte
 #define CFG_TX_FREQ_DEFAULT 431000 
+
+// RX CRC config
+//#define CFG_RX_CRC_BYTE     30 // 31st byte is for LED, no?
+//#define CFG_RX_CRC_ON       0x43
+//#define CFG_RX_CRC_OFF      0x03
 
 /**
  * Function to configure interface
@@ -272,60 +304,6 @@ HE100_configureInterface (int fdin)
     }
 */
     fprintf(stdout, "\r\nHE100_configureInterface: successfully applied new settings and flush device");
-}
-
-int 
-HE100_configureDevice (struct he100_settings he100_new_settings)
-{
-    // initiate config payload array
-    unsigned char settings_array[22];
-
-    // validate new interface baud rate setting
-    if (he100_new_settings.interface_baud_rate != 9600 ) 
-    {
-        // this would have to be changed with the serial connection as well
-        return -1;
-    }
-
-    // validate new power amplification level
-    if (
-            he100_new_settings.tx_power_amp_level > MIN_PA_LEVEL 
-            && he100_new_settings.tx_power_amp_level < MAX_PA_LEVEL
-       ) 
-    {
-        settings_array[CFG_PA_BYTE] = he100_new_settings.tx_power_amp_level;
-    }
-
-    // validate new LED setting
-    if (
-            he100_new_settings.led_blink_type == CFG_LED_PS
-         || he100_new_settings.led_blink_type == CFG_LED_RX
-         || he100_new_settings.led_blink_type == CFG_LED_TX  
-        )
-    {
-        settings_array[CFG_LED_BYTE] = he100_new_settings.led_blink_type;
-    }
-
-    // validate new RX setting
-    if ( 
-        (he100_new_settings.rx_freq > MIN_UPPER_FREQ && he100_new_settings.rx_freq < MAX_UPPER_FREQ)
-     || (he100_new_settings.rx_freq > MIN_LOWER_FREQ && he100_new_settings.rx_freq < MAX_LOWER_FREQ)
-    )
-    {
-       // don't know how to set this yet
-    }
-
-    // validate new TX setting
-    if ( 
-        (he100_new_settings.tx_freq > MIN_UPPER_FREQ && he100_new_settings.tx_freq < MAX_UPPER_FREQ)
-     || (he100_new_settings.tx_freq > MIN_LOWER_FREQ && he100_new_settings.tx_freq < MAX_LOWER_FREQ)
-    )
-    {
-       // don't know how to set this yet
-    }
-
-    // not completed yet, so
-    return -1;
 }
 
 int
@@ -656,7 +634,7 @@ HE100_read (int fdin, time_t timeout)
                         fprintf(stderr, "\r\n Invalid data!\r\n");
                         HE100_dumpBytes(stdout, response, i+1);            
                         // soft reset the transceiver 
-                        size_t write_len = 8;
+                        size_t write_len = EMPTY_PAYLOAD_WRITE_LENGTH;
                         if ( HE100_write(fdin, HE100_softReset(), write_len) > 0 )
                             printf("\r\n Soft Reset written successfully!");
                         else  
@@ -906,4 +884,139 @@ HE100_readFirmwareRevision()
    unsigned char read_firmware_revision_payload[1] = {0}; 
    unsigned char read_firmware_revision_command[2] = {CMD_TRANSMIT, CMD_READ_FIRMWARE_V};
    return HE100_prepareTransmission(read_firmware_revision_payload, 0, read_firmware_revision_command);
+}
+
+struct he100_settings HE100_getConfig (int fdin)
+{
+    unsigned char get_config_payload[1] = {0};
+    unsigned char get_config_command[2] = {CMD_TRANSMIT, CMD_GET_CONFIG};
+    
+    struct he100_settings old_settings;
+
+    // not ready yet, return empty
+    return old_settings;
+    
+    if(
+        SC_write(
+            fdin,
+            HE100_prepareTransmission(get_config_payload, 0, get_config_command),
+            EMPTY_PAYLOAD_WRITE_LENGTH
+        ) > 0
+    )
+    {
+       if ( HE100_read(fdin, 1) ) 
+       {
+            // check if is config
+            // data other than config could have been in buffer!
+            // pour data into struct
+       }
+    }
+}
+
+int 
+HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
+{
+    int r = -1;
+ 
+    // initiate config payload array
+    unsigned char set_config_payload[22];
+    unsigned char set_config_command[2] = {CMD_TRANSMIT, CMD_SET_CONFIG};
+
+    // validate new interface baud rate setting
+    if (
+            he100_new_settings.interface_baud_rate < MAX_IF_BAUD_RATE 
+        &&  he100_new_settings.interface_baud_rate > MIN_IF_BAUD_RATE 
+        &&  he100_new_settings.interface_baud_rate != CFG_DEF_IF_BAUD 
+    ) 
+    {
+        // this would have to be changed with the serial connection as well
+        // setttings_array[CFG_IF_BAUD_BYTE] = he100_new_settings.interface_baud_rate;
+        return -1;
+    }
+
+    // validate new rf baud rates
+    if (
+            he100_new_settings.rx_rf_baud_rate < MAX_RF_BAUD_RATE
+        &&  he100_new_settings.rx_rf_baud_rate > MIN_RF_BAUD_RATE
+        &&  he100_new_settings.tx_rf_baud_rate < MAX_RF_BAUD_RATE
+        &&  he100_new_settings.tx_rf_baud_rate > MIN_RF_BAUD_RATE
+    ) 
+    {
+        set_config_payload[CFG_RF_RX_BAUD_BYTE] = he100_new_settings.rx_rf_baud_rate;
+        set_config_payload[CFG_RF_TX_BAUD_BYTE] = he100_new_settings.tx_rf_baud_rate;
+    }
+
+    // validate new power amplification level
+    if (
+            he100_new_settings.tx_power_amp_level > MIN_PA_LEVEL 
+            && he100_new_settings.tx_power_amp_level < MAX_PA_LEVEL
+       ) 
+    {
+        set_config_payload[CFG_PA_BYTE] = he100_new_settings.tx_power_amp_level;
+    }
+
+    // validate new LED setting
+    if (
+            he100_new_settings.led_blink_type == CFG_LED_PS
+         || he100_new_settings.led_blink_type == CFG_LED_RX
+         || he100_new_settings.led_blink_type == CFG_LED_TX  
+        )
+    {
+        set_config_payload[CFG_LED_BYTE] = he100_new_settings.led_blink_type;
+    }
+
+    // validate new RX setting
+    if ( 
+        (he100_new_settings.rx_freq > MIN_UPPER_FREQ && he100_new_settings.rx_freq < MAX_UPPER_FREQ)
+     || (he100_new_settings.rx_freq > MIN_LOWER_FREQ && he100_new_settings.rx_freq < MAX_LOWER_FREQ)
+    )
+    {
+       // don't know how to set this yet
+    }
+
+    // validate new TX setting
+    if ( 
+        (he100_new_settings.tx_freq > MIN_UPPER_FREQ && he100_new_settings.tx_freq < MAX_UPPER_FREQ)
+     || (he100_new_settings.tx_freq > MIN_LOWER_FREQ && he100_new_settings.tx_freq < MAX_LOWER_FREQ)
+    )
+    {
+       // don't know how to set this yet
+    }
+
+    // not completed yet, so
+    return -1;
+
+    if (r==1) //
+        if(
+            SC_write(
+                fdin,
+                HE100_prepareTransmission(set_config_payload, CFG_PAYLOAD_LENGTH, set_config_command),
+                CFG_PAYLOAD_LENGTH+10
+            ) > 0
+        )
+            return 1; // Successfully wrote config
+        
+    return -1; // failed to set and/or write config
+}
+
+int 
+HE100_writeFlash (int fdin, unsigned char *flash_md5sum, size_t length)
+{
+    // not ready yet
+    return -1;
+
+    size_t write_length = length + 10;
+    unsigned char *write_flash_payload = (char *) malloc(length);
+    unsigned char write_flash_command[2] = {CMD_TRANSMIT, CMD_WRITE_FLASH};
+    
+    if(
+        SC_write(
+            fdin,
+            HE100_prepareTransmission(write_flash_payload, length, write_flash_command),
+            write_length
+        ) > 0
+    )
+        return 1; // Successfully wrote config
+        
+    return -1; // failed to set and/or write config
 }
