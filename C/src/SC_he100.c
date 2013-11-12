@@ -44,12 +44,6 @@
 
 #define CFG_OFF_LOGIC LOW   0x00
 
-// LED config
-#define CFG_LED_BYTE 38  // 38th byte in byte array
-#define CFG_LED_PS  0x41 // 2.5 second pulse
-#define CFG_LED_TX  0x42 // flash on transmit
-#define CFG_LED_RX  0x43 // flash on receive
-
 // Sync and command byte values
 #define SYNC1       0x48
 #define SYNC2           0x65
@@ -92,6 +86,31 @@
 #define CMD_FIRMWARE_UPDATE     0x14
 #define CMD_FIRMWARE_PACKET     0x15
 #define CMD_FAST_SET_PA         0x20       
+
+// PA config
+#define CFG_PA_BYTE         1 // 2nd byte 
+#define MAX_PA_LEVEL        0xFF
+#define MIN_PA_LEVEL        0x00
+
+// LED config
+#define CFG_LED_BYTE        30  // 31st byte
+#define CFG_LED_PS          0x41 // 2.5 second pulse
+#define CFG_LED_TX          0x42 // flash on transmit
+#define CFG_LED_RX          0x43 // flash on receive
+
+// RX TX FREQ config
+#define MAX_UPPER_FREQ      450000 
+#define MIN_UPPER_FREQ      400000
+#define MAX_LOWER_FREQ      150000
+#define MIN_LOWER_FREQ      120000
+
+#define CFG_RX_FREQ_BYTE1   6 // 7th byte
+#define CFG_RX_FREQ_BYTE2   7 // 8th byte
+#define CFG_RX_FREQ_DEFAULT 144200
+
+#define CFG_TX_FREQ_BYTE1   10 // 11th byte
+#define CFG_TX_FREQ_BYTE2   11 // 12th byte
+#define CFG_TX_FREQ_DEFAULT 431000 
 
 /**
  * Function to configure interface
@@ -253,6 +272,60 @@ HE100_configureInterface (int fdin)
     }
 */
     fprintf(stdout, "\r\nHE100_configureInterface: successfully applied new settings and flush device");
+}
+
+int 
+HE100_configureDevice (struct he100_settings he100_new_settings)
+{
+    // initiate config payload array
+    unsigned char settings_array[22];
+
+    // validate new interface baud rate setting
+    if (he100_new_settings.interface_baud_rate != 9600 ) 
+    {
+        // this would have to be changed with the serial connection as well
+        return -1;
+    }
+
+    // validate new power amplification level
+    if (
+            he100_new_settings.tx_power_amp_level > MIN_PA_LEVEL 
+            && he100_new_settings.tx_power_amp_level < MAX_PA_LEVEL
+       ) 
+    {
+        settings_array[CFG_PA_BYTE] = he100_new_settings.tx_power_amp_level;
+    }
+
+    // validate new LED setting
+    if (
+            he100_new_settings.led_blink_type == CFG_LED_PS
+         || he100_new_settings.led_blink_type == CFG_LED_RX
+         || he100_new_settings.led_blink_type == CFG_LED_TX  
+        )
+    {
+        settings_array[CFG_LED_BYTE] = he100_new_settings.led_blink_type;
+    }
+
+    // validate new RX setting
+    if ( 
+        (he100_new_settings.rx_freq > MIN_UPPER_FREQ && he100_new_settings.rx_freq < MAX_UPPER_FREQ)
+     || (he100_new_settings.rx_freq > MIN_LOWER_FREQ && he100_new_settings.rx_freq < MAX_LOWER_FREQ)
+    )
+    {
+       // don't know how to set this yet
+    }
+
+    // validate new TX setting
+    if ( 
+        (he100_new_settings.tx_freq > MIN_UPPER_FREQ && he100_new_settings.tx_freq < MAX_UPPER_FREQ)
+     || (he100_new_settings.tx_freq > MIN_LOWER_FREQ && he100_new_settings.tx_freq < MAX_LOWER_FREQ)
+    )
+    {
+       // don't know how to set this yet
+    }
+
+    // not completed yet, so
+    return -1;
 }
 
 int
