@@ -116,34 +116,66 @@
 #define MAX_RF_BAUD_RATE    3
 #define MIN_RF_BAUD_RATE    0
 // MODULATION config
-#define CFG_RX_MOD_BYTE     
-#define CFG_RX_DEF_MOD      0x00 
-#define CFG_RX_MOD_BYTE     
-#define CFG_TX_DEF_MOD      0x00
-// LED config
-#define CFG_LED_BYTE        30  // 31st byte
-#define CFG_LED_PS          0x41 // 2.5 second pulse
-#define CFG_LED_TX          0x42 // flash on transmit
-#define CFG_LED_RX          0x43 // flash on receive
-
+#define CFG_RX_MOD_BYTE     4 // 5th byte
+#define CFG_TX_MOD_BYTE     5 // 6th byte
+#define CFG_RX_DEF_MOD      0x00 // GFSK
+#define CFG_TX_DEF_MOD      0x00 // GFSK
 // RX TX FREQ config
 #define MAX_UPPER_FREQ      450000 
 #define MIN_UPPER_FREQ      400000
 #define MAX_LOWER_FREQ      150000
 #define MIN_LOWER_FREQ      120000
-
 #define CFG_RX_FREQ_BYTE1   6 // 7th byte
 #define CFG_RX_FREQ_BYTE2   7 // 8th byte
 #define CFG_RX_FREQ_DEFAULT 144200
-
 #define CFG_TX_FREQ_BYTE1   10 // 11th byte
 #define CFG_TX_FREQ_BYTE2   11 // 12th byte
 #define CFG_TX_FREQ_DEFAULT 431000 
+// CALLSIGN config
+#define CFG_SRC_CALL_BYTE   14 // 15th byte  
+#define CFG_DST_CALL_BYTE   20 // 21st byte
+#define CFG_SRC_CALL_DEF    "VA3ORB"
+#define CFG_DST_CALL_DEF    "VE2CUA"
+// PREAMBLE/POSTAMBLE config
+#define CFG_TX_PREAM_BYTE   26 // 27th byte
+#define CFG_TX_PREAM_DEF    0
+#define CFG_TX_PREAM_MIN    0
+#define CFG_TX_PREAM_MAX    10
+#define CFG_TX_POSTAM_BYTE  28 // 29th byte
+#define CFG_TX_POSTAM_DEF   0
+#define CFG_TX_POSTAM_MIN   0
+#define CFG_TX_POSTAM_MAX   10
+#define CFG_RX_PREAM_BYTE   26 // 27th byte
+#define CFG_RX_PREAM_DEF    0
+#define CFG_RX_PREAM_MIN    0
+#define CFG_RX_PREAM_MAX    10
+#define CFG_RX_POSTAM_BYTE  28 // 29th byte
+#define CFG_RX_POSTAM_DEF   0
+#define CFG_RX_POSTAM_MIN   0
+#define CFG_RX_POSTAM_MAX   10
 
 // RX CRC config
-//#define CFG_RX_CRC_BYTE     30 // 31st byte is for LED, no?
+//#define CFG_RX_CRC_BYTE     30 // 31st byte
 //#define CFG_RX_CRC_ON       0x43
 //#define CFG_RX_CRC_OFF      0x03
+// LED config
+#define CFG_LED_BYTE        30  // 31st byte
+#define CFG_LED_PS          0x41 // 2.5 second pulse
+#define CFG_LED_TX          0x42 // flash on transmit
+#define CFG_LED_RX          0x43 // flash on receive
+// RX CRC config// DIO - Pin 13 config
+#define CFG_DIO_PIN13_BYTE  30 // 31st byte
+#define CFG_DIO_PIN13_OFF   0x43
+#define CFG_DIO_PIN13_TXRXS 0x47 
+#define CFG_DIO_PIN13_2p5HZ 0x4b
+#define CFG_DIO_PIN13_RXTOG 0x4f
+
+// TX Test CW config
+#define CFG_RXTX_TEST_CW_BYTE 32 // 33rd byte
+#define CFG_RXTX_TEST_CW_DEF  0x00 
+#define CFG_RXTX_TEST_CW_OFF  0x00 
+#define CFG_TX_TEST_CW_ON   0x02 
+#define CFG_RX_TEST_CW_ON   0x04
 
 /**
  * Function to configure interface
@@ -579,7 +611,7 @@ HE100_read (int fdin, time_t timeout)
     int action=0;
     int breakcond=255;
     
-    timer_t read_timer = (timer_t)timer_get();
+    timer_t read_timer = timer_get();
     timer_start(&read_timer,timeout);
 
     while (!timer_complete(&read_timer))
@@ -857,7 +889,7 @@ HE100_setBeaconMessage (unsigned char *set_beacon_message_payload, size_t beacon
  */
 unsigned char *
 HE100_fastSetPA (int power_level)
-{
+{// set to 1 4865 1020 0001 31A1 01 040A
    unsigned char fast_set_pa_payload[1] = {power_level};
    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
    return HE100_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command);
@@ -869,7 +901,7 @@ HE100_fastSetPA (int power_level)
  */
 unsigned char *
 HE100_softReset()
-{
+{//4865 1002 0000 1246
    unsigned char soft_reset_payload[1] = {0}; 
    unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
    return HE100_prepareTransmission(soft_reset_payload, 0, soft_reset_command);
@@ -888,7 +920,7 @@ HE100_readFirmwareRevision()
 }
 
 struct he100_settings HE100_getConfig (int fdin)
-{
+{//48 65 10 05 00 00 15 4F
     unsigned char get_config_payload[1] = {0};
     unsigned char get_config_command[2] = {CMD_TRANSMIT, CMD_GET_CONFIG};
     
@@ -962,7 +994,8 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
          && he100_new_settings.tx_modulation == CFG_TX_DEF_MOD        
     )
     {
-        //set_config_payload
+        set_config_payload[CFG_RX_MOD_BYTE] == he100_new_settings.rx_modulation;
+        set_config_payload[CFG_TX_MOD_BYTE] == he100_new_settings.tx_modulation;
     }
 
     // validate new LED setting
@@ -991,6 +1024,33 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
     )
     {
        // don't know how to set this yet
+    }
+
+    // validate callsigns (USE DEFAULTS) 
+    if ( 1
+        // length should be 6, valid CALLSIGN
+        //( memcmp(he100_new_settings.source_callsign, CFG_SRC_CALL_DEF) == 0 )
+     //&& ( memcmp(he100_new_settings.destination_callsign, CFG_DST_CALL_DEF) == 0 )
+    )
+    {
+        int i;
+        int j=0;
+        //he100_new_settings.source_callsign = CFG_SRC_CALL_DEF;
+        unsigned char SRC_CALL[6] = "VA3ORB";
+        for (i=CFG_SRC_CALL_BYTE;i<CFG_SRC_CALL_BYTE+6;i++)
+            set_config_payload[i] = CFG_SRC_CALL_DEF[j];
+
+        //he100_new_settings.destination_callsign = CFG_DST_CALL_DEF;
+        unsigned char DST_CALL[6] = "VE2CUA";
+        j=0;
+        for (i=CFG_DST_CALL_BYTE;i<CFG_DST_CALL_BYTE+6;i++)
+            set_config_payload[i] = CFG_DST_CALL_DEF[j];
+    }
+    
+    // validate TX Test CW (USE DEFAULTS) 
+    if ( he100_new_settings.rxtx_test_cw == CFG_RXTX_TEST_CW_DEF )
+    {
+        set_config_payload[CFG_RXTX_TEST_CW_BYTE] == he100_new_settings.rxtx_test_cw;
     }
 
     // not completed yet, so

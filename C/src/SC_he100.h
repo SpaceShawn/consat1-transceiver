@@ -20,21 +20,22 @@ FILE *fdlog; // library log file
 FILE *fdata; // pipe to send valid payloads for external use
 
 struct he100_settings {
-  uint8_t   interface_baud_rate; // Radio Interface Baud Rate (9600=0x00)
-  uint8_t   tx_power_amp_level; // Tx Power Amp Level (min=0x00, max=0xFF)
-  int 	    rx_rf_baud_rate; // Radio RX RF Baud Rate (9600=0x00)
-  int 	    tx_rf_baud_rate; // Radio TX RF Baud Rate (9600=0x00)
-  int 	    rx_modulation; // (0x00 = GFSK)
-  int 	    tx_modulation; // (0x00 = GFSK)
-  uint16_t 	rx_freq; // Channel Rx Frequency default 144200
-  uint16_t 	tx_freq; // Channel Tx Frequency default 431000
-  char      led_blink_type;
-  char	    source_callsign; // VA3ORB, default NOCALL
-  char	    destination_callsign; // VE2CUA, default CQ
-  int	    tx_preamble; // AX25 Mode Tx Preamble byte length (0x00 = 20 flags)
-  int	    tx_postamble; // AX25 Mode Tx Postamble byte length (0x00 = 20 flags)
-  int function_config; // Radio Configuration discrete behaviors
-  int function_config2; // Radio Configuration discrete behaviors #2
+  uint8_t       interface_baud_rate; // Radio Interface Baud Rate (9600=0x00)
+  uint8_t       tx_power_amp_level; // Tx Power Amp Level (min=0x00, max=0xFF)
+  uint8_t       rx_rf_baud_rate; // Radio RX RF Baud Rate (9600=0x00)
+  uint8_t       tx_rf_baud_rate; // Radio TX RF Baud Rate (9600=0x00)
+  uint8_t       rx_modulation; // (0x00 = GFSK)
+  uint8_t       tx_modulation; // (0x00 = GFSK)
+  uint32_t 	    rx_freq; // Channel Rx Frequency default 144200
+  uint32_t 	    tx_freq; // Channel Tx Frequency default 431000
+  uint8_t       led_blink_type;
+  unsigned char	source_callsign; // VA3ORB, default NOCALL
+  unsigned char destination_callsign; // VE2CUA, default CQ
+  uint8_t       tx_preamble; // AX25 Mode Tx Preamble byte length (0x00 = 20 flags)
+  uint8_t       tx_postamble; // AX25 Mode Tx Postamble byte length (0x00 = 20 flags)
+  uint8_t       rxtx_test_cw; // default 0
+  int           function_config; // Radio Configuration discrete behaviors
+  int           function_config2; // Radio Configuration discrete behaviors #2
 };
 
 /* Function to apply configuration to HE100 on configured serial port address */
