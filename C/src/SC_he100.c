@@ -25,6 +25,7 @@
 #include <errno.h>      /*  Error number definitions */
 #include <termios.h>    /*  POSIX terminal control definitions */
 #include "./SC_he100.h" /*  Header file that exposes the correct serial device location */
+#include "./timer.h"
 #include "he100.h"      /*  Header file that exposes the correct serial device location */
 
 #define LOG_FILE_PATH "/var/log/he100/he100.log"
@@ -527,7 +528,7 @@ HE100_read (int fdin, time_t timeout)
     int action=0;
     int breakcond=255;
     
-    timer_t read_timer = (timer_t)timer_get();
+    timer_t read_timer = timer_get();
     timer_start(&read_timer,timeout);
 
     while (!timer_complete(&read_timer))

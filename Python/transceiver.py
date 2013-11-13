@@ -74,6 +74,7 @@ def SC_printMenu():
   print 'noop - np - send no-op sequence\r'
   print 'listen - l - listen for incoming communication\r'
   print 'getconfig- gc - send getConfig\r'
+  print 'getfirmware- gf - get firmware revision\r'
   print 'looptransmit - lt\r'
   print 'transmit - t - transmit given data\r'
   print 'testtransmit - tt - transmit hard-coded data\r'
@@ -123,6 +124,11 @@ if ser.isOpen():
 
     elif ((input == "setbaud") | (input == "sbaud")):
       input=SC_setLED()
+      SC_writeCallback(input)
+
+    elif ((input == "getfirmware") | (input == "gf")):
+      input=SC_getFirmware()
+      #SC_writeCallback(SC_prepare("", "10 12"))
       SC_writeCallback(input)
 
     elif ((input == "setbeacon") | (input == "sbeacon")):
