@@ -174,8 +174,8 @@
 #define CFG_RXTX_TEST_CW_BYTE 32 // 33rd byte
 #define CFG_RXTX_TEST_CW_DEF  0x00 
 #define CFG_RXTX_TEST_CW_OFF  0x00 
-#define CFG_TX_TEST_CW_ON   0x02 
-#define CFG_RX_TEST_CW_ON   0x04
+#define CFG_TX_TEST_CW_ON     0x02 
+#define CFG_RX_TEST_CW_ON     0x04
 
 /**
  * Function to configure interface
