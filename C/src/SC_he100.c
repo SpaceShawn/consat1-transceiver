@@ -91,7 +91,6 @@
 
 // Config options
 #define CFG_PAYLOAD_LENGTH  34
-
 // Interface BAUD RATE config
 #define CFG_IF_BAUD_BYTE    0 // 1st byte
 #define CFG_DEF_IF_BAUD     0
@@ -102,7 +101,10 @@
 #define CFG_IF_BAUD_115200  4
 #define MAX_IF_BAUD_RATE    4
 #define MIN_IF_BAUD_RATE    0
-
+// PA config
+#define CFG_PA_BYTE         1 // 2nd byte 
+#define MAX_PA_LEVEL        0xFF
+#define MIN_PA_LEVEL        0x00
 // RF BAUD rate config
 #define CFG_RF_RX_BAUD_BYTE 2 // 3rd byte 
 #define CFG_RF_TX_BAUD_BYTE 3 // 4th byte 
@@ -113,12 +115,11 @@
 #define CFG_RF_BAUD_38400   3
 #define MAX_RF_BAUD_RATE    3
 #define MIN_RF_BAUD_RATE    0
-
-// PA config
-#define CFG_PA_BYTE         1 // 2nd byte 
-#define MAX_PA_LEVEL        0xFF
-#define MIN_PA_LEVEL        0x00
-
+// MODULATION config
+#define CFG_RX_MOD_BYTE     
+#define CFG_RX_DEF_MOD      0x00 
+#define CFG_RX_MOD_BYTE     
+#define CFG_TX_DEF_MOD      0x00
 // LED config
 #define CFG_LED_BYTE        30  // 31st byte
 #define CFG_LED_PS          0x41 // 2.5 second pulse
@@ -934,6 +935,15 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
         return -1;
     }
 
+    // validate new power amplification level
+    if (
+            he100_new_settings.tx_power_amp_level > MIN_PA_LEVEL 
+            && he100_new_settings.tx_power_amp_level < MAX_PA_LEVEL
+       ) 
+    {
+        set_config_payload[CFG_PA_BYTE] = he100_new_settings.tx_power_amp_level;
+    }
+
     // validate new rf baud rates
     if (
             he100_new_settings.rx_rf_baud_rate < MAX_RF_BAUD_RATE
@@ -945,14 +955,14 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
         set_config_payload[CFG_RF_RX_BAUD_BYTE] = he100_new_settings.rx_rf_baud_rate;
         set_config_payload[CFG_RF_TX_BAUD_BYTE] = he100_new_settings.tx_rf_baud_rate;
     }
-
-    // validate new power amplification level
+   
+    // validate modulation (USE DEFAULTS)
     if (
-            he100_new_settings.tx_power_amp_level > MIN_PA_LEVEL 
-            && he100_new_settings.tx_power_amp_level < MAX_PA_LEVEL
-       ) 
+            he100_new_settings.rx_modulation == CFG_RX_DEF_MOD
+         && he100_new_settings.tx_modulation == CFG_TX_DEF_MOD        
+    )
     {
-        set_config_payload[CFG_PA_BYTE] = he100_new_settings.tx_power_amp_level;
+        //set_config_payload
     }
 
     // validate new LED setting

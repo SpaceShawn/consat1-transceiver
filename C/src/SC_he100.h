@@ -20,8 +20,8 @@ FILE *fdlog; // library log file
 FILE *fdata; // pipe to send valid payloads for external use
 
 struct he100_settings {
-  int 	    interface_baud_rate; // Radio Interface Baud Rate (9600=0x00)
-  int 	    tx_power_amp_level; // Tx Power Amp Level (min=0x00, max=0xFF)
+  uint8_t   interface_baud_rate; // Radio Interface Baud Rate (9600=0x00)
+  uint8_t   tx_power_amp_level; // Tx Power Amp Level (min=0x00, max=0xFF)
   int 	    rx_rf_baud_rate; // Radio RX RF Baud Rate (9600=0x00)
   int 	    tx_rf_baud_rate; // Radio TX RF Baud Rate (9600=0x00)
   int 	    rx_modulation; // (0x00 = GFSK)
