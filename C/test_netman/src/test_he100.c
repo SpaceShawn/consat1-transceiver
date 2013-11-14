@@ -22,6 +22,7 @@
 #include <errno.h>   /*  Error number definitions */
 #include <string.h>
 #include "SC_he100.h"
+#include "timer.h"
 
 int 
 main (int argc, char** argv) 
@@ -36,9 +37,20 @@ main (int argc, char** argv)
         
         fprintf(stdout, "\r\nCurrent status of device: %d",fdin);
 
+///*      // test the timer
+        timer_t test_timer = timer_get();
+	    timer_start(&test_timer, 2);
+
+        while (!timer_complete(&test_timer))
+        {
+            fprintf(stdout,"\r\nwaiting...");
+            sleep(1);
+        }
+//*/
+
 ///* 
         // Write a payload 
-        unsigned char *message = "Hello";
+        unsigned char *message = "10101";
         size_t msg_len = 5; // don't forget to change this
         size_t write_len = msg_len+10;
         if ( HE100_write(fdin, HE100_transmitData(message, msg_len), write_len) > 0 )
@@ -46,7 +58,7 @@ main (int argc, char** argv)
         else  
             printf("\r\n Problems writing to serial device"); 
 //*/
-        HE100_read(fdin, 2);
+
 /* 
         // send bogus bytes to get a NOACK 
         unsigned char bogus[8] = {0x48,0x65,0x10,0x7e,0x00,0x00,0x65,0x65};
@@ -106,7 +118,7 @@ main (int argc, char** argv)
             printf("\r\n Problems writing to serial device");
 */
 
-///* 
+/* 
         // Request firmware 
         unsigned char* firmware_payload = {0};
         size_t firm_write_len = 10;
@@ -114,11 +126,11 @@ main (int argc, char** argv)
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
+*/
+
+///*      // read continuously until SIGINT
+        HE100_read(fdin, 10);
 //*/
-
-        // read continuously until SIGINT
-        HE100_read(fdin, 1000);
-
         // close he100 device
         HE100_closePort(fdin);
         

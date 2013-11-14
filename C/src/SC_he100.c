@@ -25,6 +25,7 @@
 #include <errno.h>      /*  Error number definitions */
 #include <termios.h>    /*  POSIX terminal control definitions */
 #include "./SC_he100.h" /*  Header file that exposes the correct serial device location */
+#include "time.h"
 #include "./timer.h"
 #include "he100.h"      /*  Header file that exposes the correct serial device location */
 
@@ -332,7 +333,7 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     //fflush(fdin);
 
     // Issue a read to check for ACK/NOACK
-    HE100_read(fdin, 1);
+    HE100_read(fdin, 5);
 
     if (w>0) {
         return 1;
@@ -526,6 +527,7 @@ HE100_read (int fdin, time_t timeout)
     int chars_read;
     int i=0;
     int action=0;
+    int r = 0; // return value for HE100_read
     int breakcond=255;
     
     timer_t read_timer = timer_get();
@@ -535,25 +537,23 @@ HE100_read (int fdin, time_t timeout)
     {
         if ( chars_read = read(fdin, &buffer, 1) > 0 ) // if a byte is read
         { 
-            printf("\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
-
+            fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
+            
             // set break condition based on incoming byte pattern
             if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) // getting an ack
             {
                 breakcond=8; // ack is 8 bytes
             }
             else if ( i==5 && breakcond==255 ) // this is the length byte, set break point accordingly
-            {
+            { // could be done by HE100_referenceByteSequence
                 fprintf(stdout,"\r\n HE100_read: Got length byte");
                 breakcond = buffer[0] + 10;
             }
-
             if ( HE100_referenceByteSequence(buffer[0],i) > 0 ) 
             {
                     fprintf(stdout," >> returned 1");
                     response[i]=buffer[0];
                     buffer[0] = '\0';
-                    //fprintf(fdout, "0x%02X ", response[i]);
                     fprintf(
                         stdout,
                         "\n  i:%d breakcondition:%d",
@@ -577,36 +577,37 @@ HE100_read (int fdin, time_t timeout)
                     if ( HE100_validateResponse(response, breakcond) > 0 ) 
                     {
                         fprintf(stdout, "\r\n VALID MESSAGE!");
-                        return 1; // we got a frame, time to ack!
+                        r = 1; // we got a frame, time to ack!
                     }
                     else 
                     {
                         fprintf(stderr, "\r\n Invalid data!\r\n");
-                        HE100_dumpBytes(stdout, response, i+1);            
+                        HE100_dumpBytes(stdout, response, i+1);           
+/*  
                         // soft reset the transceiver 
                         size_t write_len = 8;
                         if ( HE100_write(fdin, HE100_softReset(), write_len) > 0 )
                             printf("\r\n Soft Reset written successfully!");
                         else  
                             printf("\r\n Problems writing to serial device");
+*/
                     }
                 }
 
                 i=0; // restart message index
                 response[0] = '\0';
                 breakcond=255;
-                //fprintf(fdout,"\n");
             }
-
             buffer[0] = '\0'; // wipe buffer each time
         }
         else if (chars_read = -1) 
         {
-            return chars_read;
+            // bad or no read
+            //fprintf(stdout, "Bad read");
+            r = -1;
         }
     }
-    // received nothing
-    return 0;
+    return r;
 }
 
 /**
