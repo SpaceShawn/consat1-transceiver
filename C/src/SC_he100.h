@@ -28,12 +28,17 @@ struct he100_settings {
   uint8_t       tx_modulation; // (0x00 = GFSK)
   uint32_t 	    rx_freq; // Channel Rx Frequency default 144200
   uint32_t 	    tx_freq; // Channel Tx Frequency default 431000
-  uint8_t       led_blink_type;
+
+  uint8_t       rx_crc; // enable or disable RX CRC
+  uint8_t       led_blink_type; //
+  uint8_t       dio_pin13; // define DIO pin 13 behavior
+
   unsigned char	source_callsign; // VA3ORB, default NOCALL
   unsigned char destination_callsign; // VE2CUA, default CQ
   uint8_t       tx_preamble; // AX25 Mode Tx Preamble byte length (0x00 = 20 flags)
   uint8_t       tx_postamble; // AX25 Mode Tx Postamble byte length (0x00 = 20 flags)
   uint8_t       rxtx_test_cw; // default 0
+  uint8_t       ext_conf_setting; // default 0
   int           function_config; // Radio Configuration discrete behaviors
   int           function_config2; // Radio Configuration discrete behaviors #2
 };

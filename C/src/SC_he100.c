@@ -155,9 +155,9 @@
 #define CFG_RX_POSTAM_MAX   10
 
 // RX CRC config
-//#define CFG_RX_CRC_BYTE     30 // 31st byte
-//#define CFG_RX_CRC_ON       0x43
-//#define CFG_RX_CRC_OFF      0x03
+#define CFG_RX_CRC_BYTE     30 // 31st byte
+#define CFG_RX_CRC_ON       0x43
+#define CFG_RX_CRC_OFF      0x03
 // LED config
 #define CFG_LED_BYTE        30  // 31st byte
 #define CFG_LED_PS          0x41 // 2.5 second pulse
@@ -176,6 +176,15 @@
 #define CFG_RXTX_TEST_CW_OFF  0x00 
 #define CFG_TX_TEST_CW_ON     0x02 
 #define CFG_RX_TEST_CW_ON     0x04
+
+// EXT Functions config
+#define CFG_EXT_BYTE          33 // 34th byte
+#define CFG_EXT_DEF           0x00  
+#define CFG_EXT_OFF           0x00
+#define CFG_EXT_PING_ON       0x10
+#define CFG_EXT_CODEUPLOAD_ON 0x20
+#define CFG_EXT_RESET_ON      0x40
+ 
 
 /**
  * Function to configure interface
@@ -998,16 +1007,6 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
         set_config_payload[CFG_TX_MOD_BYTE] == he100_new_settings.tx_modulation;
     }
 
-    // validate new LED setting
-    if (
-            he100_new_settings.led_blink_type == CFG_LED_PS
-         || he100_new_settings.led_blink_type == CFG_LED_RX
-         || he100_new_settings.led_blink_type == CFG_LED_TX  
-        )
-    {
-        set_config_payload[CFG_LED_BYTE] = he100_new_settings.led_blink_type;
-    }
-
     // validate new RX setting
     if ( 
         (he100_new_settings.rx_freq > MIN_UPPER_FREQ && he100_new_settings.rx_freq < MAX_UPPER_FREQ)
@@ -1046,14 +1045,70 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
         for (i=CFG_DST_CALL_BYTE;i<CFG_DST_CALL_BYTE+6;i++)
             set_config_payload[i] = CFG_DST_CALL_DEF[j];
     }
+   
+/***   DIO PIN 13, RX CRC, LED, this doesn't make much sense yet:  *******************/
+/* the following settings are in conflict because they are set by the same byte */
+/* CFG_RX_CRC_BYTE == CFG_LED_BYTE == CFG_DIO_PIN13_BYTE == 30 */
+/* 0x43 could conceivably simultaneously enable CFG_RX_CRC_ON, CFG_LED_RX, and CFG_DIO_PIN13_OFF */
+
+    // validate RX CRC setting 
+    if (
+            he100_new_settings.rx_crc == CFG_RX_CRC_ON
+         || he100_new_settings.rx_crc == CFG_RX_CRC_OFF
+        )
+    {
+        set_config_payload[CFG_RX_CRC_BYTE] = he100_new_settings.rx_crc;
+    }
+ 
+    // validate new LED setting
+    if (
+            he100_new_settings.led_blink_type == CFG_LED_PS
+         || he100_new_settings.led_blink_type == CFG_LED_RX
+         || he100_new_settings.led_blink_type == CFG_LED_TX  
+        )
+    {
+        set_config_payload[CFG_LED_BYTE] = he100_new_settings.led_blink_type;
+    }
     
+    // validate new LED setting
+    if (
+            he100_new_settings.dio_pin13 == CFG_DIO_PIN13_OFF
+         || he100_new_settings.dio_pin13 == CFG_DIO_PIN13_TXRXS
+         || he100_new_settings.dio_pin13 == CFG_DIO_PIN13_2p5HZ 
+         || he100_new_settings.dio_pin13 == CFG_DIO_PIN13_RXTOG
+        )
+    {
+        set_config_payload[CFG_DIO_PIN13_BYTE] = he100_new_settings.dio_pin13;
+    }
+
+/*************************************************************************************/
     // validate TX Test CW (USE DEFAULTS) 
     if ( he100_new_settings.rxtx_test_cw == CFG_RXTX_TEST_CW_DEF )
     {
         set_config_payload[CFG_RXTX_TEST_CW_BYTE] == he100_new_settings.rxtx_test_cw;
     }
 
-    // not completed yet, so
+    // validate EXT functions
+    switch (he100_new_settings.ext_conf_setting)
+    {
+        case 0 : /* all EXT functions off */
+           set_config_payload[CFG_EXT_BYTE] = 0;
+           break; 
+        case CFG_EXT_PING_ON: /* ping on */        
+           set_config_payload[CFG_EXT_BYTE] = CFG_EXT_PING_ON;
+           break; 
+        case CFG_EXT_CODEUPLOAD_ON: /* code upload on */ 
+           set_config_payload[CFG_EXT_BYTE] = CFG_EXT_CODEUPLOAD_ON;
+           break; 
+        case CFG_EXT_RESET_ON: /* reset on */
+           set_config_payload[CFG_EXT_BYTE] = CFG_EXT_RESET_ON;
+           break; 
+        default : 
+           set_config_payload[CFG_EXT_BYTE] = CFG_EXT_DEF;
+           break;
+    }
+
+    fprintf(stdout, "config function not yet implemented, try again later");
     return -1;
 
     if (r==1) //
