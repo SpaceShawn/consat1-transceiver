@@ -20,27 +20,20 @@ FILE *fdlog; // library log file
 FILE *fdata; // pipe to send valid payloads for external use
 
 struct he100_settings {
-  uint8_t       interface_baud_rate; // Radio Interface Baud Rate (9600=0x00)
-  uint8_t       tx_power_amp_level; // Tx Power Amp Level (min=0x00, max=0xFF)
-  uint8_t       rx_rf_baud_rate; // Radio RX RF Baud Rate (9600=0x00)
-  uint8_t       tx_rf_baud_rate; // Radio TX RF Baud Rate (9600=0x00)
-  uint8_t       rx_modulation; // (0x00 = GFSK)
-  uint8_t       tx_modulation; // (0x00 = GFSK)
-  uint32_t 	    rx_freq; // Channel Rx Frequency default 144200
-  uint32_t 	    tx_freq; // Channel Tx Frequency default 431000
-
-  uint8_t       rx_crc; // enable or disable RX CRC
-  uint8_t       led_blink_type; //
-  uint8_t       dio_pin13; // define DIO pin 13 behavior
-
-  unsigned char	source_callsign; // VA3ORB, default NOCALL
-  unsigned char destination_callsign; // VE2CUA, default CQ
-  uint8_t       tx_preamble; // AX25 Mode Tx Preamble byte length (0x00 = 20 flags)
-  uint8_t       tx_postamble; // AX25 Mode Tx Postamble byte length (0x00 = 20 flags)
-  uint8_t       rxtx_test_cw; // default 0
-  uint8_t       ext_conf_setting; // default 0
-  int           function_config; // Radio Configuration discrete behaviors
-  int           function_config2; // Radio Configuration discrete behaviors #2
+  int 	interface_baud_rate; // Radio Interface Baud Rate (9600=0x00)
+  int 	tx_power_amp_level; // Tx Power Amp Level (min=0x00, max=0xFF)
+  int 	rx_rf_baud_rate; // Radio RX RF Baud Rate (9600=0x00)
+  int 	tx_rf_baud_rate; // Radio TX RF Baud Rate (9600=0x00)
+  int 	rx_modulation; // (0x00 = GFSK)
+  int 	tx_modulation; // (0x00 = GFSK)
+  int 	rx_freq; // Channel Tx Frequency 144200
+  int 	tx_freq; // Channel Tx Frequency 431000
+  char	source_callsign; // VA3ORB, default NOCALL
+  char	destination_callsign; // VE2CUA, default CQ
+  int	tx_preamble; // AX25 Mode Tx Preamble byte length (0x00 = 20 flags)
+  int	tx_postamble; // AX25 Mode Tx Postamble byte length (0x00 = 20 flags)
+  int function_config; // Radio Configuration discrete behaviors
+  int function_config2; // Radio Configuration discrete behaviors #2
 };
 
 /* Function to apply configuration to HE100 on configured serial port address */
@@ -89,7 +82,7 @@ int HE100_dumpBytes (FILE *fdout, unsigned char *bytes, size_t size);
  * 
  * @param fdin - the file descriptor representing the serial device
  */
-int HE100_read (int fdin, time_t timeout);
+int HE100_read (int fd, time_t timeout);
 
 /**
  * Function to prepare data for transmission
@@ -150,13 +143,3 @@ unsigned char * HE100_softReset();
  * no arguments
  */
 unsigned char * HE100_readFirmwareRevision();
-
-/* Function to return an array of config struct from Helium 100 */
-struct he100_settings HE100_getConfig (int fdin);
-
-/* Function to configure the Helium board based on altered input struct he100_settings */
-/* validation will occur here, and if valid values have passed constraints, apply the settings */
-int HE100_setConfig (int fdin, struct he100_settings he100_new_settings);
-
-/* Function to write current set config to flash and overwrite default settings */
-int HE100_writeFlash (int fdin, unsigned char *flash_md5sum, size_t length);

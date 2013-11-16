@@ -4,6 +4,7 @@ a.out
 *.exe
 q6t
 C/bin/*
+C/lib/*
 C/he100Q6_compile_transfer.sh
 *.a
 *.o

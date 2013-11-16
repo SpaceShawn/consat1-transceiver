@@ -3,16 +3,13 @@ MICROCC=microblaze-unknown-linux-gnu-gcc
 #CFLAGS=
 MICROCFLAGS=-mcpu=v8.10.a -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-compare -mno-xl-soft-mul -mno-xl-soft-div -mxl-float-sqrt -mhard-float -mxl-float-convert -ffixed-r31 --sysroot /usr/local/lib/mbgcc/microblaze-unknown-linux-gnu/sys-root
 DEBUGFLAGS=-ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provides macro info to gdb
-MICROINCPATH=-I./inc/Q6/
-INCPATH=-I./inc/PC/
+MICROINCPATH=-I./inc/
+INCPATH=-I./inc/
 LIBPATH=-L./lib
 
 buildBin:
-#	 $(CC) $(CFLAGS) $(INCPATH) $(LIBPATH) src/he100.c -o bin/he100.x
-#	 $(CC) $(INCPATH) $(LIBPATH) -lshakespeare src/he100.c -o bin/he100.x
-	$(CC) $(LIBPATH) $(DEBUGFLAGS) src/test_he100.c -o bin/test_he100.x -lhe100 -ltimer -lrt
+	$(CC) $(INCPATH) $(LIBPATH) $(DEBUGFLAGS) src/test_he100.c -o bin/test_he100.x -lhe100 -ltimer -lrt
 buildQ6:
-#	$(MICROCC) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) -lshakespeare-mbcc src/he100.c -o bin/he100Q6.x 
 	$(MICROCC) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) $(DEBUGFLAGS) src/test_he100.c -o bin/test_he100Q6.x -lhe100-mbcc -ltimer-mbcc -lrt
 
 #buildAllTests: buildUnitTests
