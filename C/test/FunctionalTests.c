@@ -1,1 +1,1 @@
-//
+// when execution fails bytes are left in the buffer, and the next time they are read they crash the python program, and cause unexpected behavior in the C library - advise cleaning the buffer promiscuously

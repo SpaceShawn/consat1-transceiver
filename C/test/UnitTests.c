@@ -10,22 +10,22 @@ void test_transmitData_HE100_prepareTransmission()
     size_t transmit_data_payload_length = 12;
     unsigned char test_payload[transmit_data_payload_length] = "Test Payload";
     unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
-    unsigned char transmit_data_expected_value[payload_length+10] = {0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,};
+    unsigned char transmit_data_expected_value[transmit_data_payload_length+WRAPPER_LENGTH] = {0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,};
     assert(
         HE100_prepareTransmission(transmit_data_payload, transmit_data_length, transmit_data_command),
-        transmit_data_expected_value;
+        transmit_data_expected_value
     );
 }
 
 void test_noop_HE100_prepareTransmission()
 {
-    size_t soft_reset_payload_length = 0;
-    unsigned char soft_reset_payload[soft_reset_payload_length] = {0};
-    unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
-    unsigned char soft_reset_expected_value[reset_payload_length+10] = {0x,0x,0x,0x,0x,0x,0x,0x};
+    size_t noop_payload_length = 0;
+    unsigned char noop_payload[noop_payload_length] = {0};
+    unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
+    unsigned char noop_expected_value[NOPAY_COMMAND_LENGTH] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
     assert(
-        HE100_prepareTransmission(soft_reset_payload, 0, soft_reset_command),
-        soft_reset_expected_value;
+        HE100_prepareTransmission(noop_payload, 0, noop_command),
+        noop_expected_value
     );
 }
 
@@ -34,10 +34,21 @@ void test_softReset_HE100_prepareTransmission()
     size_t soft_reset_payload_length = 0;
     unsigned char soft_reset_payload[soft_reset_payload_length] = {0};
     unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
-    unsigned char soft_reset_expected_value[reset_payload_length+10] = {0x,0x,0x,0x,0x,0x,0x,0x};
+    unsigned char soft_reset_expected_value[NOPAY_COMMAND_LENGTH] = {0x48,0x65,0x10,0x02,0x00,0x00,0x12,0x46};
     assert(
         HE100_prepareTransmission(soft_reset_payload, 0, soft_reset_command),
-        soft_reset_expected_value;
+        soft_reset_expected_value
+    );
+}
+
+void test_fastSetPA_HE100_prepareTransmission()
+{
+    unsigned char fast_set_pa_payload[1] = {11};
+    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
+    unsigned char fast_set_pa_expected_value[fast_set_pa_payload+WRAPPER_LENGTH] = {0x48,0x65,0x10,0x20,0x00,0x01,0x31,0xA1,0x03,0x06,0x0C};
+    assert(    
+        HE100_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command),
+        fast_set_pa_expected_value
     );
 }
 
