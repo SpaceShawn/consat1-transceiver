@@ -441,8 +441,8 @@ HE100_validateResponse (char *response, size_t length)
         data[j] = response[i];
 
     // generate and compare payload checksum
-    //HE100_checksum p_chksum = HE100_fletcher16(data,10); 
-    HE100_checksum p_chksum = HE100_fletcher16(data,length-2); // chksum everything except 'He'
+    HE100_checksum p_chksum = HE100_fletcher16(data,10); 
+    //HE100_checksum p_chksum = HE100_fletcher16(data,length-2); // chksum everything except 'He'
     int p_s1_chk = memcmp(&response[length-2], &p_chksum.sum1, 1);
     int p_s2_chk = memcmp(&response[length-1], &p_chksum.sum2, 1);
     int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
@@ -453,44 +453,54 @@ HE100_validateResponse (char *response, size_t length)
         {
             // log with shakespeare
             fprintf(stdout,"\r\n  HE100: Acknowledge");
-        }
+/* !! Check the header checksum here, a bit different than payload responses */
+            msg = "::ACK::";
+            data_length = 7;
+        } 
         else if (response[4] = 255) 
         {
             // log with shakespeare
             printf("\r\n  HE100: No-Acknowledge");
-
+            r = -1;
         }
         else 
         {
             // log with shakespeare
             printf("\r\n  HE100: Empty length?");
+            r = -1;
         } 
     } 
-    else 
-    {
+    else { 
         if (h_chk != 0) {
-            fprintf(stdout,"\r\nInvalid header checksum");
-            r=-1;
+            fprintf(
+                stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]", 
+                (int)&response[8], (int)&response[9], h_s1_chk, h_s2_chk 
+            );
+///* TESTING */            r=-1;
         }
         if (p_chk != 0) {
-            fprintf(stdout,"\r\nInvalid payload checksum");
-            r=-1;
+            fprintf(
+                stdout,"\r\nInvalid payload checksum \r\n   Incoming: [%d,%d] Calculated: [%d,%d]",
+                (int)&response[length-2], (int)&response[length-2], p_s1_chk, p_s2_chk
+            );
+///* TESTING */            r=-1;
         }
-        
-        printf("\r\nMessage: ");
-        j=0;
-        for (i=10;i<data_length;i++)
-            fprintf(stdout,"%s",(char*)&response[i]);
-            msg[j] = response[i];
 
-        if (r==1) 
-        {
-            //dump contents to helium data storage pipe
-            //fdata = fopen(DATA_PIPE_PATH,"a");
-            //HE100_dumpBytes(fdata, msg, data_length);
-            //fclose(fdata);
-            //return (char*) msg; 
+        printf("\r\nMessage: ");
+        fprintf(stdout,"%s",(char*)&response[0]);
+        j=0;
+        for (i=10;i<data_length;i++) {
+            msg[j] = response[i];
         }
+    }
+    if (r==1) 
+    {
+        //dump contents to helium data storage pipe
+        fdata = fopen(DATA_PIPE_PATH,"a");
+        fprintf(fdata,"%s ",&msg[0]);
+        //HE100_dumpBytes(fdata, msg, data_length);
+        fclose(fdata);
+        //return (char*) msg; 
     }
 
     return r;
@@ -504,10 +514,15 @@ HE100_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size)
     int j=0;
     for (j=0; j<size; j++) 
     {
-        fprintf(fdout,"%02X ",bytes[j]);
+        //fprintf(fdout,"%02X ",bytes[j]);
+        fprintf(fdout,"%s ",(char*)&bytes[j]);
     }    
     return 1;
 }
+
+/** Provide signal handling for SC_read **/
+volatile sig_atomic_t stop;
+void inthand (int signum) { stop = 1; }
 
 /**
  * Function to read bytes in single-file from the serial device and 
@@ -533,7 +548,11 @@ HE100_read (int fdin, time_t timeout)
     timer_t read_timer = timer_get();
     timer_start(&read_timer,timeout);
 
-    while (!timer_complete(&read_timer))
+    // Read continuously from serial device
+    signal(SIGINT, inthand);
+
+    //while (!stop)
+    while (!timer_complete(&read_timer) && !stop)
     {
         if ( chars_read = read(fdin, &buffer, 1) > 0 ) // if a byte is read
         { 
@@ -549,7 +568,7 @@ HE100_read (int fdin, time_t timeout)
                 fprintf(stdout,"\r\n HE100_read: Got length byte");
                 breakcond = buffer[0] + 10;
             }
-            if ( HE100_referenceByteSequence(buffer[0],i) > 0 ) 
+            if ( HE100_referenceByteSequence(&buffer,i) > 0 ) 
             {
                     fprintf(stdout," >> returned 1");
                     response[i]=buffer[0];
@@ -659,16 +678,19 @@ HE100_prepareTransmission(
     for (i=0;i<length;i++)
         payloadbytes[6+i] = payload[i];
     int j=0;
+    // or use memcpy with offset
 
     // attach payload and return final transmission
     for (i=2;i<length+10;i++) {
         transmission[i] = payloadbytes[j];
         j++;
     }
-
+    // or use memcpy with offset
+    
     return (char*) transmission;
 }
 
+/* Function to ensure byte-by-byte that we are receiving a HE100 frame */
 int
 HE100_referenceByteSequence(unsigned char *response, int position)
 {
@@ -687,7 +709,7 @@ HE100_referenceByteSequence(unsigned char *response, int position)
                 if ((int)*response==32) r=1; // CMD_RECEIVE  0x20
                 break;
         case 3   : // response command could be between 1-20
-                if (*response > 0x00 && *response < 0x20) r=(int)*response; 
+                if (*response > 0x00 && *response <= 0x20) r=(int)*response; 
                 break;
         case 4   : // first length byte
                 if ( 

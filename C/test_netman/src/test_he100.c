@@ -37,7 +37,7 @@ main (int argc, char** argv)
         
         fprintf(stdout, "\r\nCurrent status of device: %d",fdin);
 
-///*      // test the timer
+/*      // test the timer
         timer_t test_timer = timer_get();
 	    timer_start(&test_timer, 2);
 
@@ -46,7 +46,7 @@ main (int argc, char** argv)
             fprintf(stdout,"\r\nwaiting...");
             sleep(1);
         }
-//*/
+*/
 
 /* 
         // Write a payload 
@@ -80,7 +80,6 @@ main (int argc, char** argv)
 /*       
         // test HE100_fastSetPA()
         int fast_set_pa_level = 9;
-        write_len = 1+10; 
         if ( HE100_fastSetPA(fdin, fast_set_pa_level) > 0 )
             printf("\r\n Message written successfully!");
         else  
@@ -95,21 +94,19 @@ main (int argc, char** argv)
             printf("\r\n Problems writing to serial device");
 */
 
-///*       
+/*       
         // test HE100_setBeaconInterval()
-        size_t write_len = 1+10;
-        int beacon_interval = 3; // three second interval
+        int beacon_interval = 4; // three second interval
         if ( HE100_setBeaconInterval(fdin,beacon_interval) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device");
-//*/
+*/
 
 /*       
         // test HE100_setBeaconMessage()
         unsigned char* beacon_data = "this is a beacon";
         size_t msg_len = 16;
-        int beacon_interval = 3; // three second interval
         if ( HE100_setBeaconMessage(fdin, beacon_data, msg_len) > 0 )
             printf("\r\n Message written successfully!");
         else  
@@ -125,7 +122,7 @@ main (int argc, char** argv)
 */
 
 ///*      // read continuously until SIGINT
-        HE100_read(fdin, 10);
+        HE100_read(fdin, 15);
 //*/
         // close he100 device
         HE100_closePort(fdin);
