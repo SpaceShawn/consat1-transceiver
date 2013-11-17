@@ -82,7 +82,7 @@ int HE100_dumpBytes (FILE *fdout, unsigned char *bytes, size_t size);
  * 
  * @param fdin - the file descriptor representing the serial device
  */
-int HE100_read (int fd, time_t timeout);
+int HE100_read (int fdin, time_t timeout);
 
 /**
  * Function to prepare data for transmission
@@ -105,41 +105,41 @@ int HE100_interpretResponse (char *response, size_t length);
  * Function to return NOOP byte sequence 
  * no arguments 
  */
-unsigned char * HE100_NOOP();
+int HE100_NOOP(int fdin);
 
 /**
  * Function returning byte sequence to set the beacon message 
  * unsigned char *beacon_message_payload message to transmit 
  */
-unsigned char * HE100_transmitData (unsigned char *transmit_data_payload, size_t transmit_data_len);
+int HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t transmit_data_len);
 
 /**
  * Function returning byte sequence to enable beacon on given interval 
  * int beacon_interval interval in seconds 
  */
-unsigned char * HE100_setBeaconInterval (int);
+int HE100_setBeaconInterval (int fdin, int beacon_interval);
 
 /**
  * Function returning byte sequence to set the beacon message 
  * unsigned char *beacon_message_payload message to transmit 
  */
-unsigned char * HE100_setBeaconMessage (unsigned char *set_beacon_message_payload, size_t beacon_message_len);
+int HE100_setBeaconMessage (int fdin, unsigned char *set_beacon_message_payload, size_t beacon_message_len);
 
 /**
  * Function returning byte sequence to amplify power based
  * on input int power_level
  * int power_level decimal value from 0-255 (0%-100%)
  */
-unsigned char * HE100_fastSetPA (int);
+int HE100_fastSetPA (int fdin, int power_level);
 
 /**
  * Function returning byte sequence to soft reset HE100 board and restore flash settings 
  * no arguments
  */
-unsigned char * HE100_softReset();
+int HE100_softReset(int fdin);
 
 /**
  * Function returning byte sequence to return firmware version 
  * no arguments
  */
-unsigned char * HE100_readFirmwareRevision();
+int HE100_readFirmwareRevision(int fdin);

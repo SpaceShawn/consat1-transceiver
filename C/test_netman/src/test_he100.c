@@ -48,19 +48,20 @@ main (int argc, char** argv)
         }
 //*/
 
-///* 
+/* 
         // Write a payload 
-        unsigned char *message = "10101";
+        unsigned char *message = "LOLOL";
         size_t msg_len = 5; // don't forget to change this
         size_t write_len = msg_len+10;
-        if ( HE100_write(fdin, HE100_transmitData(message, msg_len), write_len) > 0 )
+        //if ( HE100_write(fdin, HE100_transmitData(message, msg_len), write_len) > 0 )
+        if ( HE100_transmitData(fdin, message, msg_len) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
-//*/
+*/
 
 /* 
-        // send bogus bytes to get a NOACK 
+        // send bogus (custom) bytes to get a NOACK 
         unsigned char bogus[8] = {0x48,0x65,0x10,0x7e,0x00,0x00,0x65,0x65};
         size_t write_len = 8;
         if ( HE100_write(fdin, bogus, write_len) > 0 )
@@ -70,8 +71,7 @@ main (int argc, char** argv)
 */
 
 /*       // test HE100_NOOP()
-        size_t write_len = 0+10; 
-        if ( HE100_write(fdin, HE100_NOOP(), write_len) > 0 )
+        if ( HE100_NOOP(fdin) > 0 )
             printf("\r\n NOOP written successfully!");
         else  
             printf("\r\n Problems writing to serial device");       
@@ -81,7 +81,7 @@ main (int argc, char** argv)
         // test HE100_fastSetPA()
         int fast_set_pa_level = 9;
         write_len = 1+10; 
-        if ( HE100_write(fdin, HE100_fastSetPA(50), write_len) > 0 )
+        if ( HE100_fastSetPA(fdin, fast_set_pa_level) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device");       
@@ -89,30 +89,28 @@ main (int argc, char** argv)
 
 /*  
         // test HE100_softReset()
-        size_t write_len = 0+10;
-        if ( HE100_write(fdin, HE100_softReset(), write_len) > 0 )
+        if ( HE100_softReset(fdin) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device");
 */
 
-/*       
+///*       
         // test HE100_setBeaconInterval()
         size_t write_len = 1+10;
         int beacon_interval = 3; // three second interval
-        if ( HE100_write(fdin, HE100_setBeaconInterval(beacon_interval), write_len) > 0 )
+        if ( HE100_setBeaconInterval(fdin,beacon_interval) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device");
-*/
+//*/
 
 /*       
         // test HE100_setBeaconMessage()
         unsigned char* beacon_data = "this is a beacon";
         size_t msg_len = 16;
-        size_t write_len = msg_len + 10;
         int beacon_interval = 3; // three second interval
-        if ( HE100_write(fdin, HE100_setBeaconMessage(beacon_data, msg_len), write_len) > 0 )
+        if ( HE100_setBeaconMessage(fdin, beacon_data, msg_len) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device");
@@ -120,9 +118,7 @@ main (int argc, char** argv)
 
 /* 
         // Request firmware 
-        unsigned char* firmware_payload = {0};
-        size_t firm_write_len = 10;
-        if ( HE100_write(fdin, HE100_readFirmwareRevision(), firm_write_len) > 0 )
+        if ( HE100_readFirmwareRevision(fdin)) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 

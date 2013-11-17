@@ -850,47 +850,75 @@ HE100_interpretResponse (char *response, size_t length)
  * Function to return NOOP byte sequence 
  * no arguments 
  */
-unsigned char *
-HE100_NOOP ()
+int
+HE100_NOOP (int fdin)
 {
    //noop[10] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43,0x00,0x00};
    unsigned char noop_payload[1] = {0};
    unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
-   return HE100_prepareTransmission(noop_payload, 0, noop_command);
+   return HE100_write(
+        fdin, 
+        HE100_prepareTransmission(
+                noop_payload, 
+                0, 
+                noop_command
+        ), 10
+    );
 }
 
 /**
  * Function returning byte sequence to set the beacon message 
  * unsigned char *beacon_message_payload message to transmit 
  */
-unsigned char *
-HE100_transmitData (unsigned char *transmit_data_payload, size_t transmit_data_len)
+int
+HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t transmit_data_len)
 {
-   unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
-   return HE100_prepareTransmission(transmit_data_payload, transmit_data_len, transmit_data_command);
+    unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
+    return HE100_write(
+        fdin, 
+        HE100_prepareTransmission(
+                transmit_data_payload, 
+                transmit_data_len, 
+                transmit_data_command
+        ), transmit_data_len+10
+    );
 }
 
 /**
  * Function returning byte sequence to enable beacon on given interval 
  * int beacon_interval interval in seconds 
  */
-unsigned char *
-HE100_setBeaconInterval (int beacon_interval)
+int
+HE100_setBeaconInterval (int fdin, int beacon_interval)
 {
    unsigned char beacon_interval_payload[1] = {beacon_interval};
    unsigned char beacon_interval_command[2] = {CMD_TRANSMIT, CMD_BEACON_CONFIG};
-   return HE100_prepareTransmission(beacon_interval_payload, 1, beacon_interval_command);
+   return HE100_write(
+        fdin, 
+        HE100_prepareTransmission(
+                beacon_interval_payload, 
+                1, 
+                beacon_interval_command
+        ), 1+10
+    );
 }
 
 /**
  * Function returning byte sequence to set the beacon message 
  * unsigned char *beacon_message_payload message to transmit 
  */
-unsigned char *
-HE100_setBeaconMessage (unsigned char *set_beacon_message_payload, size_t beacon_message_len)
+int
+HE100_setBeaconMessage (int fdin, unsigned char *set_beacon_message_payload, size_t beacon_message_len)
 {
    unsigned char set_beacon_message_command[2] = {CMD_TRANSMIT, CMD_BEACON_DATA};
-   return HE100_prepareTransmission(set_beacon_message_payload, beacon_message_len, set_beacon_message_command);
+   return HE100_write(
+        fdin, 
+        HE100_prepareTransmission(
+                set_beacon_message_payload, 
+                beacon_message_len, 
+                set_beacon_message_command
+        ), beacon_message_len+10
+    );
 }
 
 /**
@@ -898,36 +926,57 @@ HE100_setBeaconMessage (unsigned char *set_beacon_message_payload, size_t beacon
  * on input int power_level
  * int power_level decimal value from 0-255 (0%-100%)
  */
-unsigned char *
-HE100_fastSetPA (int power_level)
-{// set to 1 4865 1020 0001 31A1 01 040A
+int
+HE100_fastSetPA (int fdin, int power_level)
+{
    unsigned char fast_set_pa_payload[1] = {power_level};
    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
-   return HE100_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command);
+   return HE100_write(
+        fdin, 
+        HE100_prepareTransmission(
+                fast_set_pa_payload, 
+                1, 
+                fast_set_pa_command
+        ), 1+10
+    );
 }
 
 /**
  * Function returning byte sequence to soft reset HE100 board and restore flash settings 
  * no arguments
  */
-unsigned char *
-HE100_softReset()
-{//4865 1002 0000 1246
+int
+HE100_softReset(int fdin)
+{
    unsigned char soft_reset_payload[1] = {0}; 
    unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
-   return HE100_prepareTransmission(soft_reset_payload, 0, soft_reset_command);
+   return HE100_write(
+        fdin, 
+        HE100_prepareTransmission(
+                soft_reset_payload, 
+                0, 
+                soft_reset_command
+        ), 10
+    );
 }
 
 /**
  * Function returning byte sequence to return firmware version 
  * no arguments
  */
-unsigned char *
-HE100_readFirmwareRevision()
+int
+HE100_readFirmwareRevision(int fdin)
 {
    unsigned char read_firmware_revision_payload[1] = {0}; 
    unsigned char read_firmware_revision_command[2] = {CMD_TRANSMIT, CMD_READ_FIRMWARE_V};
-   return HE100_prepareTransmission(read_firmware_revision_payload, 0, read_firmware_revision_command);
+   return HE100_write(
+        fdin, 
+        HE100_prepareTransmission(
+                read_firmware_revision_payload, 
+                0, 
+                read_firmware_revision_command
+        ), 10
+    );
 }
 
 struct he100_settings HE100_getConfig (int fdin)
@@ -1147,3 +1196,4 @@ HE100_writeFlash (int fdin, unsigned char *flash_md5sum, size_t length)
         
     return -1; // failed to set and/or write config
 }
+
