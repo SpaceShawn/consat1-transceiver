@@ -31,10 +31,6 @@ main (int argc, char** argv)
 
     if ( fdin = HE100_openPort() ) // Input stream
     { 
-        // open output file for appending
-        FILE *fdout; 
-        fdout = fopen("/var/log/space/he100","a");
-        
         fprintf(stdout, "\r\nCurrent status of device: %d",fdin);
 
 /*      // test the timer
@@ -48,17 +44,25 @@ main (int argc, char** argv)
         }
 */
 
-/* 
+/*  
+        // test HE100_softReset()
+        if ( HE100_softReset(fdin) > 0 )
+            printf("\r\n Message written successfully!");
+        else  
+            printf("\r\n Problems writing to serial device");
+*/
+
+///* 
         // Write a payload 
-        unsigned char *message = "LOLOL";
-        size_t msg_len = 5; // don't forget to change this
+        unsigned char *message = "I can't let you do that Ty";
+        size_t msg_len = 26; // don't forget to change this
         size_t write_len = msg_len+10;
         //if ( HE100_write(fdin, HE100_transmitData(message, msg_len), write_len) > 0 )
         if ( HE100_transmitData(fdin, message, msg_len) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
-*/
+//*/
 
 /* 
         // send bogus (custom) bytes to get a NOACK 
@@ -86,14 +90,6 @@ main (int argc, char** argv)
             printf("\r\n Problems writing to serial device");       
 */
 
-/*  
-        // test HE100_softReset()
-        if ( HE100_softReset(fdin) > 0 )
-            printf("\r\n Message written successfully!");
-        else  
-            printf("\r\n Problems writing to serial device");
-*/
-
 /*       
         // test HE100_setBeaconInterval()
         int beacon_interval = 4; // three second interval
@@ -106,20 +102,20 @@ main (int argc, char** argv)
 /*       
         // test HE100_setBeaconMessage()
         unsigned char* beacon_data = "this is a beacon";
-        size_t msg_len = 16;
-        if ( HE100_setBeaconMessage(fdin, beacon_data, msg_len) > 0 )
+        size_t bcn_msg_len = 16;
+        if ( HE100_setBeaconMessage(fdin, beacon_data, bcn_msg_len) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device");
 */
 
-/* 
+///* 
         // Request firmware 
-        if ( HE100_readFirmwareRevision(fdin)) > 0 )
+        if ( HE100_readFirmwareRevision(fdin) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
-*/
+//*/
 
 ///*      // read continuously until SIGINT
         HE100_read(fdin, 15);
@@ -127,9 +123,6 @@ main (int argc, char** argv)
         // close he100 device
         HE100_closePort(fdin);
         
-        // close output file
-        fclose(fdout);
-
         return EXIT_SUCCESS;    
     }
 }

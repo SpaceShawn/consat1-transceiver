@@ -333,7 +333,7 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     //fflush(fdin);
 
     // Issue a read to check for ACK/NOACK
-    HE100_read(fdin, 5);
+    HE100_read(fdin, 2);
 
     if (w>0) {
         return 1;
@@ -420,42 +420,48 @@ HE100_validateResponse (char *response, size_t length)
 {
     fprintf(stdout,"\r\n  HE100_validateResponse: validating %d byte message",(int)length);
     unsigned char *data = (char *) malloc(length);
-    int r=1;
+    int r=1; // return value
 
     // prepare container for decoded data
-    int data_length = length - 10; // response minus header minus 4 checksum bytes
+    int data_length = length - 2; // response minus 2 sync bytes 
+    int payload_length = length - 10; // response minus header minus 4 checksum bytes
     unsigned char *msg = (char *) malloc(data_length);
 
+    // copy the header into the new response array minus sync bytes
     int i; int j=0;
-    for (i=2;i<7;i++) 
+    for (i=2;i<8;i++) {
         data[j] = response[i];
+        j++;
+    }
     
     // generate and compare header checksum
-    HE100_checksum h_chksum = HE100_fletcher16(data,10); 
-    int h_s1_chk = memcmp(&response[8], &h_chksum.sum1, 1);
-    int h_s2_chk = memcmp(&response[9], &h_chksum.sum2, 1);
+    HE100_checksum h_chksum = HE100_fletcher16(data,4); 
+    uint8_t h_s1_chk = memcmp(&response[6], &h_chksum.sum1, 1);
+    uint8_t h_s2_chk = memcmp(&response[7], &h_chksum.sum2, 1);
     int h_chk = h_s2_chk + h_s2_chk; // should be zero given valid chk
 
     // pick up j where it left off
-    for (i=8;i<length-2;i++) // read up to, not including, payload chksums
+    for (i=8;i<length-2;i++) // read up to, not including payload chksum
+    {
         data[j] = response[i];
+        j++;
+    }    
 
     // generate and compare payload checksum
-    HE100_checksum p_chksum = HE100_fletcher16(data,10); 
-    //HE100_checksum p_chksum = HE100_fletcher16(data,length-2); // chksum everything except 'He'
-    int p_s1_chk = memcmp(&response[length-2], &p_chksum.sum1, 1);
-    int p_s2_chk = memcmp(&response[length-1], &p_chksum.sum2, 1);
+    HE100_checksum p_chksum = HE100_fletcher16(data,data_length-2); // chksum everything except 'He'
+    uint8_t p_s1_chk = memcmp(&response[length-2], &p_chksum.sum1, 1);
+    uint8_t p_s2_chk = memcmp(&response[length-1], &p_chksum.sum2, 1);
     int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
     
     if (response[4] == response[5] ) // ACK or NOACK or EMPTY length
     {
         if (response[4] == 10) 
         {
-            // log with shakespeare
+            // log with shakespeare 
+            msg = "::ACK::";
+            payload_length=7;
             fprintf(stdout,"\r\n  HE100: Acknowledge");
 /* !! Check the header checksum here, a bit different than payload responses */
-            msg = "::ACK::";
-            data_length = 7;
         } 
         else if (response[4] = 255) 
         {
@@ -470,18 +476,22 @@ HE100_validateResponse (char *response, size_t length)
             r = -1;
         } 
     } 
-    else { 
-        if (h_chk != 0) {
+    else 
+    { 
+        if (h_chk != 0) 
+        {
             fprintf(
                 stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]", 
-                (int)&response[8], (int)&response[9], h_s1_chk, h_s2_chk 
+                (uint8_t)response[8], (uint8_t)response[9], (uint8_t)h_chksum.sum1, (uint8_t)h_chksum.sum2 
             );
 ///* TESTING */            r=-1;
         }
-        if (p_chk != 0) {
+        
+        if (p_chk != 0) 
+        {
             fprintf(
                 stdout,"\r\nInvalid payload checksum \r\n   Incoming: [%d,%d] Calculated: [%d,%d]",
-                (int)&response[length-2], (int)&response[length-2], p_s1_chk, p_s2_chk
+                (uint8_t)response[length-2], (uint8_t)response[length-1], (uint8_t)p_chksum.sum1, (uint8_t)p_chksum.sum2
             );
 ///* TESTING */            r=-1;
         }
@@ -489,16 +499,20 @@ HE100_validateResponse (char *response, size_t length)
         printf("\r\nMessage: ");
         fprintf(stdout,"%s",(char*)&response[0]);
         j=0;
-        for (i=10;i<data_length;i++) {
+       
+        // fill payload message array
+        for (i=10;i<length;i++) 
+        {
             msg[j] = response[i];
+            j++;
         }
     }
+    
     if (r==1) 
     {
         //dump contents to helium data storage pipe
         fdata = fopen(DATA_PIPE_PATH,"a");
-        fprintf(fdata,"%s ",&msg[0]);
-        //HE100_dumpBytes(fdata, msg, data_length);
+        HE100_dumpBytes(fdata, msg, payload_length);
         fclose(fdata);
         //return (char*) msg; 
     }
@@ -511,12 +525,18 @@ int
 HE100_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size) 
 {
     // Output outgoing transmission
+    fwrite (bytes, 1, size, fdout);
+
+/*  // readability   
     int j=0;
+    fprintf(fdout,"Dumping %d bytes: ", size); 
     for (j=0; j<size; j++) 
     {
-        //fprintf(fdout,"%02X ",bytes[j]);
-        fprintf(fdout,"%s ",(char*)&bytes[j]);
-    }    
+        fprintf(fdout,"%02X ",bytes[j]);
+        //fprintf(fdout,"%s ",(char*)&bytes[j]);
+    }
+    fprintf(fdout,"\r\n"); 
+*/
     return 1;
 }
 
@@ -533,16 +553,12 @@ void inthand (int signum) { stop = 1; }
 int
 HE100_read (int fdin, time_t timeout) 
 {
-    //FILE *fdout; 
-    //fdout = fopen("/var/log/space/he100.log","a");
-
     // Read response
     unsigned char buffer[1];
     unsigned char response[255];
     int chars_read;
     int i=0;
-    int action=0;
-    int r = 0; // return value for HE100_read
+    int r=0; // return value for HE100_read
     int breakcond=255;
     
     timer_t read_timer = timer_get();
@@ -568,6 +584,8 @@ HE100_read (int fdin, time_t timeout)
                 fprintf(stdout,"\r\n HE100_read: Got length byte");
                 breakcond = buffer[0] + 10;
             }
+           
+            // increment response array values based on byte pattern
             if ( HE100_referenceByteSequence(&buffer,i) > 0 ) 
             {
                     fprintf(stdout," >> returned 1");
@@ -595,22 +613,22 @@ HE100_read (int fdin, time_t timeout)
                 {
                     if ( HE100_validateResponse(response, breakcond) > 0 ) 
                     {
-                        fprintf(stdout, "\r\n VALID MESSAGE!");
+                        fprintf(stdout, "\r\n VALID MESSAGE!\r\n");
                         r = 1; // we got a frame, time to ack!
                     }
                     else 
                     {
                         fprintf(stderr, "\r\n Invalid data!\r\n");
-                        HE100_dumpBytes(stdout, response, i+1);           
+                        // r=-1;
 /*  
                         // soft reset the transceiver 
-                        size_t write_len = 8;
-                        if ( HE100_write(fdin, HE100_softReset(), write_len) > 0 )
+                        if ( HE100_softReset(fdin) > 0 )
                             printf("\r\n Soft Reset written successfully!");
                         else  
-                            printf("\r\n Problems writing to serial device");
+                            printf("\r\n Problems with soft reset");
 */
                     }
+                    //HE100_dumpBytes(stdout, response, i+1);
                 }
 
                 i=0; // restart message index
@@ -622,7 +640,6 @@ HE100_read (int fdin, time_t timeout)
         else if (chars_read = -1) 
         {
             // bad or no read
-            //fprintf(stdout, "Bad read");
             r = -1;
         }
     }
@@ -632,7 +649,7 @@ HE100_read (int fdin, time_t timeout)
 /**
  * Function to prepare data for transmission
  * @param char payload - data to be transmitted
- * @param size_t length - length of data stream
+ * @param size_t length - length of incoming data 
  */
 unsigned char* 
 HE100_prepareTransmission(
@@ -641,9 +658,35 @@ HE100_prepareTransmission(
     unsigned char *command
 )
 {
-    unsigned char *transmission = (char *) malloc(length+10);
-    unsigned char *payloadbytes = (char *) malloc(length+8);
+    size_t transmission_length;
+    size_t payloadbytes_length;
+    size_t data_position;
+    size_t header;
+    size_t payload_chksum_position; 
+    int payload_chksum_bool;
+   
+    // set the array bounds based on command  
+    if (
+           command[1] == 0x01 
+        || command[1] == 0x02
+        || command[1] == 0x12
+        || command[1] == 0x05
+    ) // empty payload
+    {
+        transmission_length = 8;
+        payloadbytes_length = 6;
+        payload_chksum_bool = 0;
+    }
+    else 
+    {
+        transmission_length = length+10;
+        payloadbytes_length = length+8;
+        payload_chksum_bool = 1;
+    }
     
+    unsigned char *transmission = (char *) malloc(transmission_length);
+    unsigned char *payloadbytes = (char *) malloc(payloadbytes_length);
+
     // attach sync bytes to final transmission byte array
     transmission[0] = SYNC1; //0x48;
     transmission[1] = SYNC2; //0x65;
@@ -653,7 +696,8 @@ HE100_prepareTransmission(
     payloadbytes[1] = (unsigned char) command[1];
 
     // attach length bytes
-    payloadbytes[2] = 0x00;
+    //payloadbytes[2] = 0x00;
+    payloadbytes[2] = length >> 8;
     payloadbytes[3] = (unsigned char) length & 0xff; 
 
     // generate and attach header checksum
@@ -662,26 +706,32 @@ HE100_prepareTransmission(
     payloadbytes[5] = (unsigned char) header_checksum.sum2 & 0xff;
     printf ("\r\nheader_checksum: [%d,%d], [%d,%d]",
         header_checksum.sum1, header_checksum.sum2,
-        payloadbytes[4], payloadbytes[5]);
+        payloadbytes[4], payloadbytes[5]
+    );
     
-    // generate and attach payload checksum
-    HE100_checksum payload_checksum = HE100_fletcher16(payload,length); // chksum only payload
-    //HE100_checksum payload_checksum = HE100_fletcher16(payloadbytes,length+6); // chksum everything except 'He'
-    payloadbytes[6+length] = payload_checksum.sum1;
-    payloadbytes[6+length+1] = payload_checksum.sum2;
-    printf ("\r\npayload_checksum: [%d,%d], [%d,%d]",
-        payload_checksum.sum1, payload_checksum.sum2,
-        payloadbytes[6+length], payloadbytes[6+length+1]);
+    if( payload_chksum_bool==1 ) // real payloads
+    {
+        // generate and attach payload checksum
+        //HE100_checksum payload_checksum = HE100_fletcher16(payload,length); // chksum only payload
+        HE100_checksum payload_checksum = HE100_fletcher16(payloadbytes,length+6); // chksum everything except 'He'
+        payloadbytes[6+length] = payload_checksum.sum1;
+        payloadbytes[6+length+1] = payload_checksum.sum2;
+        
+        printf ("\r\npayload_checksum: [%d,%d], [%d,%d]",
+            payload_checksum.sum1, payload_checksum.sum2,
+            payloadbytes[6+length], payloadbytes[6+length+1]
+        );
+    }
 
     // attach data to payload 
     int i;
     for (i=0;i<length;i++)
         payloadbytes[6+i] = payload[i];
-    int j=0;
     // or use memcpy with offset
 
     // attach payload and return final transmission
-    for (i=2;i<length+10;i++) {
+    int j=0;
+    for ( i=2; i<transmission_length; i++ ) {
         transmission[i] = payloadbytes[j];
         j++;
     }
