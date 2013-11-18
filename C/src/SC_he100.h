@@ -1,3 +1,11 @@
+#ifndef SC_HE100_H_
+#define SC_HE100_H_
+
+#include <stdint.h>
+#include <stddef.h>
+#include <time.h>
+#include <stdio.h>
+
 /*
  * =====================================================================================
  *
@@ -16,9 +24,6 @@
  * =====================================================================================
  */
 
-FILE *fdlog; // library log file 
-FILE *fdata; // pipe to send valid payloads for external use
-
 struct he100_settings {
   int 	interface_baud_rate; // Radio Interface Baud Rate (9600=0x00)
   int 	tx_power_amp_level; // Tx Power Amp Level (min=0x00, max=0xFF)
@@ -35,6 +40,14 @@ struct he100_settings {
   int function_config; // Radio Configuration discrete behaviors
   int function_config2; // Radio Configuration discrete behaviors #2
 };
+
+/**
+ * struct to hold values of fletcher checksum
+ */
+typedef struct HE100_checksum {
+    uint8_t sum1;
+    uint8_t sum2;
+} HE100_checksum;
 
 /* Function to apply configuration to HE100 on configured serial port address */
 void HE100_configureInterface (int);
@@ -143,3 +156,5 @@ int HE100_softReset(int fdin);
  * no arguments
  */
 int HE100_readFirmwareRevision(int fdin);
+
+#endif
