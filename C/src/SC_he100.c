@@ -582,7 +582,7 @@ HE100_read (int fdin, time_t timeout)
             }
            
             // increment response array values based on byte pattern
-            if ( HE100_referenceByteSequence(&buffer,i) > 0 ) 
+            if ( HE100_referenceByteSequence(buffer,i) > 0 ) 
             {
                     fprintf(stdout," >> returned 1");
                     response[i]=buffer[0];

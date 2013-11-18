@@ -105,7 +105,7 @@ int HE100_read (int fdin, time_t timeout);
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
 /* Function to ensure byte-by-byte that we are receiving a HE100 frame */
-//int HE100_referenceByteSequence(unsigned char *response, int position);
+int HE100_referenceByteSequence(unsigned char *response, int position);
         
 /** 
  * Function to decode validated and extracted data from response

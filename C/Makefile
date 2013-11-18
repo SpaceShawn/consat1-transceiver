@@ -1,4 +1,6 @@
 CC=gcc
+CXX=g++
+CXX_FLAGS=-fpermissive
 MICROCC=microblaze-unknown-linux-gnu-gcc
 #CFLAGS=-static
 MICROCFLAGS=-c -mcpu=v8.10.a -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-compare -mno-xl-soft-mul -mno-xl-soft-div -mxl-float-sqrt -mhard-float -mxl-float-convert -ffixed-r31 --sysroot /usr/local/lib/mbgcc/microblaze-unknown-linux-gnu/sys-root 
@@ -7,6 +9,9 @@ MICROINCPATH=-I./inc/Q6/
 INCPATH=-I./inc/PC/
 LIBPATH=-L./lib
 
+buildBinCpp:
+#	 $(CC) $(CFLAGS) $(INCPATH) $(LIBPATH) -lshakespeare src/he100.c -o bin/he100.x
+	$(CXX) $(CXX_FLAGS) $(INCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o -ltimer 
 buildBin:
 #	 $(CC) $(CFLAGS) $(INCPATH) $(LIBPATH) -lshakespeare src/he100.c -o bin/he100.x
 	$(CC) $(INCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o -ltimer 
