@@ -322,7 +322,7 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     fprintf(stdout, "\r\nWriting to device: ");
 
     // Write byte array
-    int w = write (fdin, bytes, size); // write given 10 bytes to fdin 
+    int w = write (fdin, bytes, size); 
     int j=0;
     for (j=0; j<size; j++) 
     {
@@ -416,9 +416,9 @@ HE100_fletcher16 (char *data, size_t bytes)
  */
 //unsigned char*
 int
-HE100_validateResponse (char *response, size_t length) 
+HE100_storeValidResponse (char *response, size_t length) 
 {
-    fprintf(stdout,"\r\n  HE100_validateResponse: validating %d byte message",(int)length);
+    fprintf(stdout,"\r\n  HE100_storeValidResponse: validating %d byte message",(int)length);
     unsigned char *data = (char *) malloc(length);
     int r=1; // return value
 
@@ -484,7 +484,7 @@ HE100_validateResponse (char *response, size_t length)
                 stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]", 
                 (uint8_t)response[8], (uint8_t)response[9], (uint8_t)h_chksum.sum1, (uint8_t)h_chksum.sum2 
             );
-///* TESTING */            r=-1;
+///* DISABLED FOR TESTING */            r=-1;
         }
         
         if (p_chk != 0) 
@@ -493,7 +493,7 @@ HE100_validateResponse (char *response, size_t length)
                 stdout,"\r\nInvalid payload checksum \r\n   Incoming: [%d,%d] Calculated: [%d,%d]",
                 (uint8_t)response[length-2], (uint8_t)response[length-1], (uint8_t)p_chksum.sum1, (uint8_t)p_chksum.sum2
             );
-///* TESTING */            r=-1;
+///* DISABLED FOR TESTING */            r=-1;
         }
 
         printf("\r\nMessage: ");
@@ -611,7 +611,7 @@ HE100_read (int fdin, time_t timeout)
                 fprintf(stdout,"\n HE100_read: hit break condition!");
                 if (i>0) // we have a message to validate 
                 {
-                    if ( HE100_validateResponse(response, breakcond) > 0 ) 
+                    if ( HE100_storeValidResponse(response, breakcond) > 0 ) 
                     {
                         fprintf(stdout, "\r\n VALID MESSAGE!\r\n");
                         r = 1; // we got a frame, time to ack!
