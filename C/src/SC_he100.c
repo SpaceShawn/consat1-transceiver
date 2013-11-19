@@ -381,7 +381,7 @@ HE100_fletcher16unef (unsigned char *data, size_t bytes)
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
 struct HE100_checksum
-HE100_fletcher16 (char *data, size_t bytes)
+HE100_fletcher16 (unsigned char *data, size_t bytes)
 {
     uint8_t sum1 = 0, sum2 = 0;
 
