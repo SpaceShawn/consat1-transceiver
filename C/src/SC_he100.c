@@ -279,7 +279,7 @@ HE100_openPort(void)
         // Could not open port
         fprintf(
             stderr, 
-            "\r\nHE100_openPort: Unable to open port: %s", port_address, "%s\n", strerror(errno)
+            "\r\nHE100_openPort: Unable to open port: %s Errno:%s\n Line:%d", port_address, strerror(errno), __LINE__
         );
         return -1;
     }
@@ -287,12 +287,12 @@ HE100_openPort(void)
     if ( !isatty(fdin) ) {
         fprintf(
             stderr, 
-            "\r\nHE100_openPort: Not a serial device: %s", port_address, "%s\n", strerror(errno)
+            "\r\nHE100_openPort: Not a serial device: %s Errno: %s\n Line:%d\r\n", port_address, strerror(errno), __LINE__
         );
         return -1;
     }
 
-    fprintf(stderr, "\r\nSuccessfully opened port: %s",port_address);
+    fprintf(stdout, "\r\nSuccessfully opened port: %s",port_address);
     HE100_configureInterface(fdin);
 
     return(fdin);
@@ -305,7 +305,7 @@ HE100_closePort(int fdin)
     {
         fprintf(
             stderr, 
-            "\r\nHE100_closePort: Unable to close the serial device connection!"
+            "\r\nHE100_closePort: Unable to close the serial device connection! Line:%d", __LINE__
         );
         return -1;
     }
@@ -790,7 +790,7 @@ HE100_interpretResponse (char *response, size_t length)
 
     // if response == transmission, He100 device is off!   
     if ((int)response[2]==16) {
-        fprintf(stderr,"HE100_read: He100 is off!");
+        fprintf(stderr,"HE100_read: He100 is off! Line:%d", __LINE__);
         return 0;
     }
 
