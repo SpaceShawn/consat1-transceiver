@@ -95,6 +95,10 @@
 #define CMD_FIRMWARE_PACKET     0x15
 #define CMD_FAST_SET_PA         0x20       
 
+FILE *fdlog; // library log file 
+FILE *fdata; // pipe to send valid payloads for external use
+
+
 /**
  * Function to configure interface
  * @param fdin - the file descriptor representing the serial device
@@ -340,14 +344,6 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     } 
 }
 
-/**
- * struct to hold values of fletcher checksum
- */
-typedef struct HE100_checksum {
-    uint8_t sum1;
-    uint8_t sum2;
-} HE100_checksum;
-
 /** 
  * 16-bit implementation of the Fletcher Checksum
  * returns two 8-bit sums
@@ -586,7 +582,7 @@ HE100_read (int fdin, time_t timeout)
             }
            
             // increment response array values based on byte pattern
-            if ( HE100_referenceByteSequence(&buffer,i) > 0 ) 
+            if ( HE100_referenceByteSequence(buffer,i) > 0 ) 
             {
                     fprintf(stdout," >> returned 1");
                     response[i]=buffer[0];
