@@ -454,8 +454,8 @@ HE100_storeValidResponse (char *response, size_t length)
         if (response[4] == 10) 
         {
             // log with shakespeare 
-            msg = "::ACK::";
-            payload_length=7;
+            //msg = "::ACK::";
+            //payload_length=7;
             fprintf(stdout,"\r\n  HE100: Acknowledge");
 /* !! Check the header checksum here, a bit different than payload responses */
         } 
@@ -558,7 +558,7 @@ HE100_read (int fdin, time_t timeout)
     int breakcond=255;
     
     timer_t read_timer = timer_get();
-    timer_start(&read_timer,timeout);
+    timer_start(&read_timer,timeout,0);
 
     // Read continuously from serial device
     signal(SIGINT, inthand);

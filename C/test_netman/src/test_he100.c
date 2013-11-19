@@ -109,13 +109,13 @@ main (int argc, char** argv)
             printf("\r\n Problems writing to serial device");
 */
 
-///* 
+/* 
         // Request firmware 
         if ( HE100_readFirmwareRevision(fdin) > 0 )
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
-//*/
+*/
 
 ///*      // read continuously until SIGINT
         HE100_read(fdin, 15);
