@@ -73,14 +73,14 @@ int HE100_write (int fdin, unsigned char *bytes, size_t size);
  * @param bytes - size_t - number of bytes to process
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
-struct HE100_checksum HE100_fletcher16 (char *data, size_t bytes);
+struct HE100_checksum HE100_fletcher16 (unsigned char *data, size_t bytes);
 
 /**
  * Function to parse a given frame, validate it, and write its payload to pipe 
  * @param response - the frame data to be validated 
  * @param length - the entire length of the frame in bytes
  */
-int HE100_validateResponse (char *response, size_t length);
+int HE100_storeValidResponse (unsigned char *response, size_t length);
 
 /* Function to dump a given array to a given file descriptor */
 int HE100_dumpBytes (FILE *fdout, unsigned char *bytes, size_t size);
@@ -112,7 +112,7 @@ int HE100_referenceByteSequence(unsigned char *response, int position);
  * @param response - the response data to interpret
  * @param length - the length of the data in bytes
  */
-int HE100_interpretResponse (char *response, size_t length);
+int HE100_interpretResponse (unsigned char *response, size_t length);
 
 /**
  * Function to return NOOP byte sequence 

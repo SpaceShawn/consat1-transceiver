@@ -299,6 +299,7 @@ HE100_openPort(void)
 }
 
 /* Function to close serial device connection at given file descriptor */
+int
 HE100_closePort(int fdin)
 {
     if (close(fdin) == -1) 
@@ -352,7 +353,7 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
 struct HE100_checksum 
-HE100_fletcher16unef (char *data, size_t bytes)
+HE100_fletcher16unef (unsigned char *data, size_t bytes)
 {
     uint8_t sum1=0, sum2=0;
     int i=0;
@@ -412,16 +413,16 @@ HE100_fletcher16 (char *data, size_t bytes)
  */
 //unsigned char*
 int
-HE100_storeValidResponse (char *response, size_t length) 
+HE100_storeValidResponse (unsigned char *response, size_t length) 
 {
     fprintf(stdout,"\r\n  HE100_storeValidResponse: validating %d byte message",(int)length);
-    unsigned char *data = (char *) malloc(length);
+    unsigned char *data = (unsigned char *) malloc(length);
     int r=1; // return value
 
     // prepare container for decoded data
     int data_length = length - 2; // response minus 2 sync bytes 
     int payload_length = length - 10; // response minus header minus 4 checksum bytes
-    unsigned char *msg = (char *) malloc(data_length);
+    unsigned char *msg = (unsigned char *) malloc(data_length);
 
     // copy the header into the new response array minus sync bytes
     int i; int j=0;
@@ -680,8 +681,8 @@ HE100_prepareTransmission(
         payload_chksum_bool = 1;
     }
     
-    unsigned char *transmission = (char *) malloc(transmission_length);
-    unsigned char *payloadbytes = (char *) malloc(payloadbytes_length);
+    unsigned char *transmission = (unsigned char *) malloc(transmission_length);
+    unsigned char *payloadbytes = (unsigned char *) malloc(payloadbytes_length);
 
     // attach sync bytes to final transmission byte array
     transmission[0] = SYNC1; //0x48;
@@ -733,7 +734,7 @@ HE100_prepareTransmission(
     }
     // or use memcpy with offset
     
-    return (char*) transmission;
+    return (unsigned char*) transmission;
 }
 
 /* Function to ensure byte-by-byte that we are receiving a HE100 frame */
@@ -784,7 +785,7 @@ HE100_referenceByteSequence(unsigned char *response, int position)
  * tx_ac            486520030a0a37a7
  */
 int
-HE100_interpretResponse (char *response, size_t length) 
+HE100_interpretResponse (unsigned char *response, size_t length) 
 {
     printf("Response length: %d\n", (int)length);
 
@@ -794,7 +795,7 @@ HE100_interpretResponse (char *response, size_t length)
         return 0;
     }
 
-    char* value; 
+    const char* value; 
     int i=0;
     for (i=0; i<length; i++) // only runs once! 
     {
