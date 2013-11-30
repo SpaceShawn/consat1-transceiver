@@ -1,3 +1,11 @@
+#ifndef SC_HE100_H_
+#define SC_HE100_H_
+
+#include <stdint.h>
+#include <stddef.h>
+#include <time.h>
+#include <stdio.h>
+
 /*
  * =====================================================================================
  *
@@ -16,9 +24,6 @@
  * =====================================================================================
  */
 
-FILE *fdlog; // library log file 
-FILE *fdata; // pipe to send valid payloads for external use
-
 struct he100_settings {
   int 	interface_baud_rate; // Radio Interface Baud Rate (9600=0x00)
   int 	tx_power_amp_level; // Tx Power Amp Level (min=0x00, max=0xFF)
@@ -35,6 +40,14 @@ struct he100_settings {
   int function_config; // Radio Configuration discrete behaviors
   int function_config2; // Radio Configuration discrete behaviors #2
 };
+
+/**
+ * struct to hold values of fletcher checksum
+ */
+typedef struct HE100_checksum {
+    uint8_t sum1;
+    uint8_t sum2;
+} HE100_checksum;
 
 /* Function to apply configuration to HE100 on configured serial port address */
 void HE100_configureInterface (int);
@@ -60,14 +73,14 @@ int HE100_write (int fdin, unsigned char *bytes, size_t size);
  * @param bytes - size_t - number of bytes to process
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
-struct HE100_checksum HE100_fletcher16 (char *data, size_t bytes);
+struct HE100_checksum HE100_fletcher16 (unsigned char *data, size_t bytes);
 
 /**
  * Function to parse a given frame, validate it, and write its payload to pipe 
  * @param response - the frame data to be validated 
  * @param length - the entire length of the frame in bytes
  */
-int HE100_validateResponse (char *response, size_t length);
+int HE100_storeValidResponse (unsigned char *response, size_t length);
 
 /* Function to dump a given array to a given file descriptor */
 int HE100_dumpBytes (FILE *fdout, unsigned char *bytes, size_t size);
@@ -92,14 +105,14 @@ int HE100_read (int fdin, time_t timeout);
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
 /* Function to ensure byte-by-byte that we are receiving a HE100 frame */
-//int HE100_referenceByteSequence(unsigned char *response, int position);
+int HE100_referenceByteSequence(unsigned char *response, int position);
         
 /** 
  * Function to decode validated and extracted data from response
  * @param response - the response data to interpret
  * @param length - the length of the data in bytes
  */
-int HE100_interpretResponse (char *response, size_t length);
+int HE100_interpretResponse (unsigned char *response, size_t length);
 
 /**
  * Function to return NOOP byte sequence 
@@ -143,3 +156,5 @@ int HE100_softReset(int fdin);
  * no arguments
  */
 int HE100_readFirmwareRevision(int fdin);
+
+#endif
