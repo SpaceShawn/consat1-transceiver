@@ -26,8 +26,11 @@
 #include <termios.h>    /*  POSIX terminal control definitions */
 #include "./SC_he100.h" /*  Header file that exposes the correct serial device location */
 #include "time.h"
-#include "./timer.h"
+
+// project includes
 #include "he100.h"      /*  Header file that exposes the correct serial device location */
+#include "./Net2Com.h"
+#include "./timer.h"
 
 #define LOG_FILE_PATH "/var/log/he100/he100.log"
 #define DATA_PIPE_PATH "/var/log/he100/data.log"
@@ -46,6 +49,8 @@
 
 #define CFG_OFF_LOGIC LOW   0x00
 
+#define NOPAY_COMMAND_LENGTH 8
+#define WRAPPER_LENGTH       10
 // LED config
 #define CFG_LED_BYTE 38  // 38th byte in byte array
 #define CFG_LED_PS  0x41 // 2.5 second pulse
