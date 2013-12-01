@@ -1,10 +1,10 @@
 CC=gcc
 CXX=g++
-MICROCC=microblaze-unknown-linux-gnu-gcc
-MICROCPP=microblaze-unknown-linux-gnu-g++
+MICROCC=microblazeel-xilinx-linux-gnu-gcc
+MICROCPP=microblazeel-xilinx-linux-gnu-g++
 CXX_FLAGS=-fpermissive
 #CFLAGS=
-MICROCFLAGS=-mcpu=v8.10.a -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-compare -mno-xl-soft-mul -mno-xl-soft-div -mxl-float-sqrt -mhard-float -mxl-float-convert -ffixed-r31 --sysroot /usr/local/lib/mbgcc/microblaze-unknown-linux-gnu/sys-root
+MICROCFLAGS=-mcpu=v8.10.a -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-compare -mno-xl-soft-mul -mno-xl-soft-div -mxl-float-sqrt -mhard-float -mxl-float-convert -ffixed-r31 --sysroot /usr/local/lib/mbgcc/microblazeel-xilinx-linux-gnu/sys-root
 DEBUGFLAGS=-ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provides macro info to gdb
 MICROINCPATH=-I./inc/
 INCPATH=-I./inc/

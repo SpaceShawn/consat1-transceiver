@@ -112,7 +112,7 @@ HE100_configureInterface (int fdin)
    
     // get current settings
     int get_settings = -1; 
-    if ( get_settings = tcgetattr(fdin, &settings) < 0 ) 
+    if ( ( get_settings = tcgetattr(fdin, &settings) ) < 0 ) 
     {
         fprintf(
             stderr, 
@@ -245,7 +245,7 @@ HE100_configureInterface (int fdin)
     tcflush(fdin, TCIFLUSH); // flush port before persisting changes 
     
     int apply_settings = -1;
-    if ( apply_settings = tcsetattr(fdin, TCSANOW, &settings) < 0 ) // apply attributes
+    if ( (apply_settings = tcsetattr(fdin, TCSANOW, &settings)) < 0 ) // apply attributes
     {
         fprintf(stderr, "\r\nHE100_configureInterface: failed to set config: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);           
@@ -342,7 +342,8 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
 
     if (w>0) {
         return 1;
-    } 
+    }
+
 }
 
 /** 
@@ -435,7 +436,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     HE100_checksum h_chksum = HE100_fletcher16(data,4); 
     uint8_t h_s1_chk = memcmp(&response[6], &h_chksum.sum1, 1);
     uint8_t h_s2_chk = memcmp(&response[7], &h_chksum.sum2, 1);
-    int h_chk = h_s2_chk + h_s2_chk; // should be zero given valid chk
+    int h_chk = h_s1_chk + h_s2_chk; // should be zero given valid chk
 
     // pick up j where it left off
     for (i=8;i<length-2;i++) // read up to, not including payload chksum
@@ -460,7 +461,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
             fprintf(stdout,"\r\n  HE100: Acknowledge");
 /* !! Check the header checksum here, a bit different than payload responses */
         } 
-        else if (response[4] = 255) 
+        else if (response[4] == 255) 
         {
             // log with shakespeare
             printf("\r\n  HE100: No-Acknowledge");
@@ -567,7 +568,7 @@ HE100_read (int fdin, time_t timeout)
     //while (!stop)
     while (!timer_complete(&read_timer) && !stop)
     {
-        if ( chars_read = read(fdin, &buffer, 1) > 0 ) // if a byte is read
+        if ( (chars_read = read(fdin, &buffer, 1)) > 0 ) // if a byte is read
         { 
             fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
             
@@ -634,7 +635,7 @@ HE100_read (int fdin, time_t timeout)
             }
             buffer[0] = '\0'; // wipe buffer each time
         }
-        else if (chars_read = -1) 
+        else if (chars_read == -1) 
         {
             // bad or no read
             r = -1;
@@ -657,9 +658,6 @@ HE100_prepareTransmission(
 {
     size_t transmission_length;
     size_t payloadbytes_length;
-    size_t data_position;
-    size_t header;
-    size_t payload_chksum_position; 
     int payload_chksum_bool;
    
     // set the array bounds based on command  
