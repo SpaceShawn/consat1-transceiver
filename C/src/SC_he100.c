@@ -334,6 +334,7 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
 
     // Write byte array
     int w = write (fdin, bytes, size); 
+    int write_return = 0;
     int j=0;
     for (j=0; j<size; j++) 
     {
@@ -344,12 +345,14 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     //fflush(fdin);
 
     // Issue a read to check for ACK/NOACK
-    HE100_read(fdin, 2);
-
-    if (w>0) {
-        return 1;
+    if ( HE100_read(fdin, 2) > 0 ) 
+    {
+       write_return = 1; 
     }
-
+    if (w>0) {
+        write_return = 1;
+    }
+    return write_return;
 }
 
 /** 
@@ -515,15 +518,16 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     if (r==1) 
     {
         //dump contents to helium data storage pipe
-        fdata = fopen(DATA_PIPE_PATH,"a");
-        //fdata = popen(DATA_PIPE_PATH,"a"); // open pipe
-        //f_fdata_int = fileno(fdata); // set as file descriptor
-        //fcntl(f_fdata_int, F_SETFL, O_NONBLOCK); // set non-blocking
+        //fdata = fopen(DATA_PIPE_PATH,"a");
+        fdata = popen(DATA_PIPE_PATH,"a"); // open pipe
+        f_fdata_int = fileno(fdata); // set as file descriptor
+        fcntl(f_fdata_int, F_SETFL, O_NONBLOCK); // set non-blocking
         HE100_dumpBytes(fdata, msg, payload_length);
-        fclose(fdata);
-        //pclose(f_fdata_int);
+        //fclose(fdata);
+        pclose(fdata);
         
         //return (char*) msg; // return the stripped message so it doesn't have to be done again
+        // we aren't doing this because this function writes the valid frame to the pipe
     }
 
     return r;
@@ -838,7 +842,6 @@ HE100_interpretResponse (unsigned char *response, size_t length)
 int
 HE100_NOOP (int fdin)
 {
-   //noop[10] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43,0x00,0x00};
    unsigned char noop_payload[1] = {0};
    unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
    return HE100_write(

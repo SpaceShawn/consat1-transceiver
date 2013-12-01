@@ -19,6 +19,7 @@ GTEST_DIR = ../../../gtest-1.7.0
 # Where to find user code.
 USER_DIR = ../../../HE100-lib/C
 TIMER_DIR = ../../../space-timer-lib
+TIMER_DIR = ../../../space-timer-lib
 MICROINCPATH=-I../inc/Q6/
 INCPATH=-I../inc/PC/
 
@@ -73,7 +74,7 @@ gtest_main.a : gtest-all.o gtest_main.o
 ###########################
 
 timer.o : $(TIMER_DIR)/src/timer.c $(TIMER_DIR)/inc/timer.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(timer_DIR)/src/timer.c
+	$(CXX) $(CPPFLAGS) -I$(TIMER_DIR)/inc/ $(CXXFLAGS) -c $(TIMER_DIR)/src/timer.c
 
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(USER_DIR)/src/timer.h $(USER_DIR)/src/SC_he100.h $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(INCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c

@@ -9,7 +9,10 @@ class Helium_100_Test : public ::testing::Test
     {
 
     }
-
+    
+    int fdin = 1; // fake file descriptor to simulate HE100
+    size_t write_size = 8;
+    unsigned char *write_test = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
     unsigned char he100_noop_expected_value = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
     unsigned char he100_soft_reset_expected_value = {0x48,0x65,0x10,0x02,0x00,0x00,0x12,0x46};
     unsigned char he100_fast_set_pa_expected_value = {0x48,0x65,0x10,0x20,0x00,0x01,0x31,0xA1,0x03,0x06,0x0C};
@@ -21,6 +24,14 @@ struct HE100_checksum HE100_fletcher16 (char *data, size_t bytes);
 
 // Pass the function some data and check against expected result
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
+
+void test_write_HE100_write(fdin, write_bytes, write_size)
+{
+    ASSERT_EQ(
+        HE100_write(fdin, write_bytes, write_size),
+        1
+    );
+}
 
 // verify transmit data preparation bytes - with "Test Payload" message
 void test_transmitData_HE100_prepareTransmission()
