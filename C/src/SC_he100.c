@@ -29,7 +29,7 @@
 
 // project includes
 #include "he100.h"      /*  Header file that exposes the correct serial device location */
-#include "./Net2Com.h"
+//#include "./Net2Com.h"
 #include "./timer.h"
 
 #define LOG_FILE_PATH "/var/log/he100/he100.log"
@@ -102,6 +102,7 @@
 
 FILE *fdlog; // library log file 
 FILE *fdata; // pipe to send valid payloads for external use
+int f_fdata_int; // file descriptor for pipe
 
 
 /**
@@ -514,9 +515,14 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     {
         //dump contents to helium data storage pipe
         fdata = fopen(DATA_PIPE_PATH,"a");
+        //fdata = popen(DATA_PIPE_PATH,"a"); // open pipe
+        //f_fdata_int = fileno(fdata); // set as file descriptor
+        //fcntl(f_fdata_int, F_SETFL, O_NONBLOCK); // set non-blocking
         HE100_dumpBytes(fdata, msg, payload_length);
         fclose(fdata);
-        //return (char*) msg; 
+        //pclose(f_fdata_int);
+        
+        //return (char*) msg; // return the stripped message so it doesn't have to be done again
     }
 
     return r;
