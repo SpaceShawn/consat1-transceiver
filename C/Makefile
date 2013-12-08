@@ -11,16 +11,13 @@ INCPATH=-I./inc/PC/
 LIBPATH=-L./lib
 
 buildBinCpp:
-#	 $(CC) $(CFLAGS) $(INCPATH) $(LIBPATH) -lshakespeare src/he100.c -o bin/he100.x
 	$(CXX) $(CXX_FLAGS) $(INCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o -ltimer 
+
 buildBin:
-#	 $(CC) $(CFLAGS) $(INCPATH) $(LIBPATH) -lshakespeare src/he100.c -o bin/he100.x
 	$(CC) $(INCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o -ltimer 
+
 buildQ6:
-#	$(MICROCC) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) -lshakespeare-mbcc src/he100.c -o bin/he100Q6.x 
 	$(MICROCC) $(CSS_FLAGS) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-mbcc.o -ltimer-mbcc
+
 buildQ6Cpp:
 	$(MICROPP) $(CXX_FLAGS) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-mbcc.o -ltimer-mbcc
-#buildAllTests: buildUnitTests
-#buildUnitTests:
-#	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(INCPATH) $(INCTESTPATH) $(LIBPATH) src/*.c tests/unit/*.c -o bin/AllUnitTests $(LIBS)

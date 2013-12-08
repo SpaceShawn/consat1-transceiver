@@ -335,7 +335,8 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     // Write byte array
     int w = write (fdin, bytes, size); 
     int write_return = 0;
-    int j=0;
+    size_t j=0;
+
     for (j=0; j<size; j++) 
     {
         printf("%02X ",bytes[j]);
@@ -366,7 +367,7 @@ struct HE100_checksum
 HE100_fletcher16unef (unsigned char *data, size_t bytes)
 {
     uint8_t sum1=0, sum2=0;
-    int i=0;
+    size_t i=0;
 
     for (i=0; i<bytes; i++) {
         // calculate sums
@@ -435,7 +436,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     unsigned char *msg = (unsigned char *) malloc(data_length);
 
     // copy the header into the new response array minus sync bytes
-    int i; int j=0;
+    size_t i; size_t j=0;
     for (i=2;i<8;i++) {
         data[j] = response[i];
         j++;
@@ -734,7 +735,7 @@ HE100_prepareTransmission(
     }
 
     // attach data to payload 
-    int i;
+    size_t i;
     for (i=0;i<length;i++)
         payloadbytes[6+i] = payload[i];
     // or use memcpy with offset
@@ -809,7 +810,7 @@ HE100_interpretResponse (unsigned char *response, size_t length)
     }
 
     const char* value; 
-    int i=0;
+    size_t i=0;
     for (i=0; i<length; i++) // only runs once! 
     {
         printf("0x%02X : %d ",response[i], response[i]);

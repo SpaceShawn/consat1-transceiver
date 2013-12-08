@@ -25,11 +25,12 @@
 #include "timer.h"
 
 int 
-main (int argc, char** argv) 
+main () 
 {
     int fdin = 0; // serial_device instance
 
-    if ( fdin = HE100_openPort() ) // Input stream
+  
+    if ( (fdin = HE100_openPort()) > 1 ) // Input stream
     { 
         fprintf(stdout, "\r\nCurrent status of device: %d",fdin);
 
@@ -54,9 +55,8 @@ main (int argc, char** argv)
 
 ///* 
         // Write a payload 
-        unsigned char *message = "I can't let you do that Ty";
+        unsigned char message[27] = "I can't let you do that Ty";
         size_t msg_len = 26; // don't forget to change this
-        size_t write_len = msg_len+10;
         //if ( HE100_write(fdin, HE100_transmitData(message, msg_len), write_len) > 0 )
         if ( HE100_transmitData(fdin, message, msg_len) > 0 )
             printf("\r\n Message written successfully!");
@@ -125,4 +125,5 @@ main (int argc, char** argv)
         
         return EXIT_SUCCESS;    
     }
+    return -1;
 }
