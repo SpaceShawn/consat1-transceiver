@@ -340,7 +340,7 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     {
         printf("%02X ",bytes[j]);
     }    
-    fprintf(stdout, "\r\nWrite size: %d",w);
+    fprintf(stdout, "\r\nWrite size: %d\n",w);
 
     //fflush(fdin);
 
@@ -573,9 +573,21 @@ HE100_read (int fdin, time_t timeout)
     int i=0;
     int r=0; // return value for HE100_read
     int breakcond=255;
-    
     timer_t read_timer = timer_get();
     timer_start(&read_timer,timeout,0);
+    // Variables for select
+    int ret_value; 
+    fd_set rfds;
+    struct timeval tv;
+    int retval;
+
+    // wait for 5 ms 
+    tv.tv_sec = 0;
+    tv.tv_usec = 5;
+
+    //FD_ZERO(&rfds);
+    if(FD_ISSET(fdin, &rfds) == 0)
+    	FD_SET(fdin, &rfds);
 
     // Read continuously from serial device
     signal(SIGINT, inthand);
@@ -583,8 +595,10 @@ HE100_read (int fdin, time_t timeout)
     //while (!stop)
     while (!timer_complete(&read_timer) && !stop)
     {
-        if ( (chars_read = read(fdin, &buffer, 1)) > 0 ) // if a byte is read
+
+        if ( ret_value = select(1, &rfds, NULL, NULL, &tv) ) // if a byte is read
         { 
+	    chars_read = read(fdin, &buffer, 1);
             fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
             
             // set break condition based on incoming byte pattern
@@ -650,9 +664,10 @@ HE100_read (int fdin, time_t timeout)
             }
             buffer[0] = '\0'; // wipe buffer each time
         }
-        else if (chars_read == -1) 
+        else if (ret_value == -1) 
         {
             // bad or no read
+	printf("Oh dear, something went wrong with select()! %s\n", strerror(errno));
             r = -1;
         }
     }
