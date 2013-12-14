@@ -23,7 +23,6 @@
 #include <string.h>
 #include "SC_he100.h"
 #include "timer.h"
-
 int 
 main (int argc, char** argv) 
 {
@@ -54,7 +53,9 @@ main (int argc, char** argv)
 
 ///* 
         // Write a payload 
-        unsigned char *message = "I can't let you do that Ty";
+
+
+        unsigned char message[27] = "I can't let you do that Ty";
         size_t msg_len = 26; // don't forget to change this
         size_t write_len = msg_len+10;
         //if ( HE100_write(fdin, HE100_transmitData(message, msg_len), write_len) > 0 )
@@ -62,7 +63,8 @@ main (int argc, char** argv)
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
-//*/
+
+
 
 /* 
         // send bogus (custom) bytes to get a NOACK 

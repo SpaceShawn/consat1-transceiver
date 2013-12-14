@@ -15,7 +15,10 @@ buildBinCpp:
 buildBin:
 	$(CC) $(INCPATH) $(LIBPATH) $(DEBUGFLAGS) src/test_he100.c -o bin/test_he100.x -lhe100 -ltimer -lrt
 buildQ6:
-	$(MICROCPP) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) $(DEBUGFLAGS) src/test_he100.c -o bin/test_he100Q6.x -lhe100-mbcc -ltimer-mbcc -lrt
+	$(MICROCPP) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) $(DEBUGFLAGS) src/test_he100.c -o bin/test_he100Q6.x -lhe100-mbcc -lNamedPipe-mbcc -ltimer-mbcc -lrt
+
+buildtest:
+	$(MICROCPP) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) $(DEBUGFLAGS) test.c -o bin/testQ6.x 
 
 buildAllTests: buildUnitTests
 #buildUnitTests:

@@ -31,9 +31,11 @@
 #include "he100.h"      /*  Header file that exposes the correct serial device location */
 //#include "./Net2Com.h"
 #include "./timer.h"
+#include "./NamedPipe.h"
 
 #define LOG_FILE_PATH "/var/log/he100/he100.log"
 #define DATA_PIPE_PATH "/var/log/he100/data.log"
+static NamedPipe datapipe("/var/log/he100/data.log");
 
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
 #define MAX_FRAME_LENGTH 255
@@ -104,6 +106,7 @@ FILE *fdlog; // library log file
 FILE *fdata; // pipe to send valid payloads for external use
 int f_fdata_int; // file descriptor for pipe
 
+static int pipe_initialized = FALSE;
 
 /**
  * Function to configure interface
@@ -111,6 +114,14 @@ int f_fdata_int; // file descriptor for pipe
  * REF: http://man7.org/linux/man-pages/man3/termios.3.html
  * REF: http://www.unixguide.net/unix/programming/3.6.2.shtml
  */
+
+void pipe_init(){
+   if(!pipe_initialized){
+      if (!datapipe.Exist()) datapipe.CreatePipe();
+      pipe_initialized = TRUE;
+   }
+}
+
 void
 HE100_configureInterface (int fdin)
 { 
@@ -504,8 +515,14 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
         printf("\r\nMessage: ");
         fprintf(stdout,"%s",(char*)&response[0]);
         j=0;
-       
-        // fill payload message array
+	printf("\n");
+/*
+    for (j=0; j<length; j++) 
+    {
+        printf("%02X ",response[j]);
+    }    
+*/  
+      // fill payload message array
         for (i=10;i<length;i++) 
         {
             msg[j] = response[i];
@@ -518,12 +535,12 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
 	
         //dump contents to helium data storage pipe
         //fdata = fopen(DATA_PIPE_PATH,"a");
-        fdata = popen(DATA_PIPE_PATH,"w"); // open pipe
-        f_fdata_int = fileno(fdata); // set as file descriptor
-        fcntl(f_fdata_int, F_SETFL, O_NONBLOCK); // set non-blocking
+     //   fdata = popen(DATA_PIPE_PATH,"w"); // open pipe
+     //   f_fdata_int = fileno(fdata); // set as file descriptor
+     //   fcntl(f_fdata_int, F_SETFL, O_NONBLOCK); // set non-blocking
         HE100_dumpBytes(fdata, msg, payload_length);
         //fclose(fdata);
-        pclose(fdata);
+     //   pclose(fdata);
         
         //return (char*) msg; // return the stripped message so it doesn't have to be done again
         // we aren't doing this because this function writes the valid frame to the pipe
@@ -538,8 +555,11 @@ HE100_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size)
 {
     // Output outgoing transmission
     fprintf(stdout,"dumping bytes\n");
+    int ret_val;
+//    ret_val = fwrite (bytes, 1, size, fdout);
+    pipe_init();
+    datapipe.WriteToPipe(bytes, size);
 
-    fwrite (bytes, 1, size, fdout);
 
 /*  // readability   
     int j=0;
