@@ -26,7 +26,7 @@
 #include <termios.h>    /*  POSIX terminal control definitions */
 #include "./SC_he100.h" /*  Header file that exposes the correct serial device location */
 #include "time.h"
-
+#include <poll.h>
 // project includes
 #include "he100.h"      /*  Header file that exposes the correct serial device location */
 //#include "./Net2Com.h"
@@ -341,7 +341,6 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
         printf("%02X ",bytes[j]);
     }    
     fprintf(stdout, "\r\nWrite size: %d\n",w);
-
     //fflush(fdin);
 
     // Issue a read to check for ACK/NOACK
@@ -428,12 +427,11 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     fprintf(stdout,"\r\n  HE100_storeValidResponse: validating %d byte message",(int)length);
     unsigned char *data = (unsigned char *) malloc(length);
     int r=1; // return value
-
     // prepare container for decoded data
     int data_length = length - 2; // response minus 2 sync bytes 
     int payload_length = length - 10; // response minus header minus 4 checksum bytes
     unsigned char *msg = (unsigned char *) malloc(data_length);
-
+    
     // copy the header into the new response array minus sync bytes
     int i; int j=0;
     for (i=2;i<8;i++) {
@@ -517,9 +515,10 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     
     if (r==1) 
     {
+	
         //dump contents to helium data storage pipe
         //fdata = fopen(DATA_PIPE_PATH,"a");
-        fdata = popen(DATA_PIPE_PATH,"a"); // open pipe
+        fdata = popen(DATA_PIPE_PATH,"w"); // open pipe
         f_fdata_int = fileno(fdata); // set as file descriptor
         fcntl(f_fdata_int, F_SETFL, O_NONBLOCK); // set non-blocking
         HE100_dumpBytes(fdata, msg, payload_length);
@@ -538,6 +537,8 @@ int
 HE100_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size) 
 {
     // Output outgoing transmission
+    fprintf(stdout,"dumping bytes\n");
+
     fwrite (bytes, 1, size, fdout);
 
 /*  // readability   
@@ -592,11 +593,15 @@ HE100_read (int fdin, time_t timeout)
     // Read continuously from serial device
     signal(SIGINT, inthand);
 
+    struct pollfd fds;
+    fds.fd = fdin;
+    fds.events = POLLIN;
+
     //while (!stop)
     while (!timer_complete(&read_timer) && !stop)
     {
 
-        if ( ret_value = select(1, &rfds, NULL, NULL, &tv) ) // if a byte is read
+        if ( poll(&fds, 1, 5)) // if a byte is read
         { 
 	    chars_read = read(fdin, &buffer, 1);
             fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
