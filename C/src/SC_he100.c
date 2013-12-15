@@ -554,7 +554,7 @@ int
 HE100_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size) 
 {
     // Output outgoing transmission
-    fprintf(stdout,"dumping bytes\n");
+    fprintf(stdout,"\ndumping bytes\n");
     int ret_val;
 //    ret_val = fwrite (bytes, 1, size, fdout);
     pipe_init();
@@ -624,7 +624,7 @@ HE100_read (int fdin, time_t timeout)
         if ( poll(&fds, 1, 5)) // if a byte is read
         { 
 	    chars_read = read(fdin, &buffer, 1);
-            fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
+//            fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
             
             // set break condition based on incoming byte pattern
             if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) // getting an ack
@@ -633,26 +633,26 @@ HE100_read (int fdin, time_t timeout)
             }
             else if ( i==5 && breakcond==255 ) // this is the length byte, set break point accordingly
             { // could be done by HE100_referenceByteSequence
-                fprintf(stdout,"\r\n HE100_read: Got length byte");
+ //               fprintf(stdout,"\r\n HE100_read: Got length byte");
                 breakcond = buffer[0] + 10;
             }
            
             // increment response array values based on byte pattern
             if ( HE100_referenceByteSequence(buffer,i) > 0 ) 
             {
-                    fprintf(stdout," >> returned 1");
+ //                   fprintf(stdout," >> returned 1");
                     response[i]=buffer[0];
                     buffer[0] = '\0';
-                    fprintf(
+/*                    fprintf(
                         stdout,
                         "\n  i:%d breakcondition:%d",
                         i,breakcond
-                    );
+                    );*/
                     i++;
             }
             else 
             {
-                fprintf(stdout," >> returned -1");
+ //               fprintf(stdout," >> returned -1");
                 i=0; // restart message index
                 response[0] = '\0';
                 breakcond=255;
@@ -660,7 +660,7 @@ HE100_read (int fdin, time_t timeout)
 
             if (i==breakcond) 
             {
-                fprintf(stdout,"\n HE100_read: hit break condition!");
+   //             fprintf(stdout,"\n HE100_read: hit break condition!");
                 if (i>0) // we have a message to validate 
                 {
                     if ( HE100_storeValidResponse(response, breakcond) > 0 ) 
@@ -794,7 +794,7 @@ HE100_prepareTransmission(
 int
 HE100_referenceByteSequence(unsigned char *response, int position)
 {
-    printf("\r\n  HE100_referenceByteSequence(0x%02X,%d)",*response,(int)position);
+ //   printf("\r\n  HE100_referenceByteSequence(0x%02X,%d)",*response,(int)position);
     int r = -1;
     switch ((int)position)
     {
