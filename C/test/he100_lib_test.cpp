@@ -1,22 +1,14 @@
 #include "gtest/gtest.h"
-#include "../inc/SC_he100.h"
-#include "../inc/timer.h"
+#include "../src/SC_he100.h"
+#include "../src/timer.h"
 
 class Helium_100_Test : public ::testing::Test
 {
-    protected
-    virtual void SetUp()
-    {
-
-    }
+    protected:
+    virtual void SetUp() { }
     
-    int fdin = 1; // fake file descriptor to simulate HE100
-    size_t write_size = 8;
-    unsigned char *write_test = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
-    unsigned char he100_noop_expected_value = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
-    unsigned char he100_soft_reset_expected_value = {0x48,0x65,0x10,0x02,0x00,0x00,0x12,0x46};
-    unsigned char he100_fast_set_pa_expected_value = {0x48,0x65,0x10,0x20,0x00,0x01,0x31,0xA1,0x03,0x06,0x0C};
-}
+    size_t z; // assert loop index
+};
 
 // will be tested in following tests, but isolate some 
 // test null bytes, passing wrong length, etc
@@ -25,79 +17,120 @@ struct HE100_checksum HE100_fletcher16 (char *data, size_t bytes);
 // Pass the function some data and check against expected result
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
-void test_write_HE100_write(fdin, write_bytes, write_size)
+// Test writing to the helium device
+TEST_F(Helium_100_Test, GoodWrite)
 {
+    const static int fdin = 1; // fake file descriptor to simulate HE100
+    unsigned char write_test[8] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43}; // 8
+    int write_result = HE100_write(fdin, write_test, 8);
     ASSERT_EQ(
-        HE100_write(fdin, write_bytes, write_size),
+        write_result,
         1
     );
 }
 
 // verify transmit data preparation bytes - with "Test Payload" message
-void test_transmitData_HE100_prepareTransmission()
+TEST_F(Helium_100_Test, CorrectPayloadPreparation)
 {
+    //memset ( test_payload, "Test Payload", transmit_data_payload_length*sizeof(unsigned char) );
     size_t transmit_data_payload_length = 12;
-    unsigned char test_payload[transmit_data_payload_length] = "Test Payload";
-    unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
-    unsigned char transmit_data_expected_value[transmit_data_payload_length+WRAPPER_LENGTH] = {0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,0x,};
-    ASSERT_EQ(
-        HE100_prepareTransmission(transmit_data_payload, transmit_data_length, transmit_data_command),
-        transmit_data_expected_value
-    );
+    unsigned char test_payload[13] = "Test Payload"; // 12
+    unsigned char transmit_data_command[2] = {0x10, 0x03};
+    //unsigned char transmit_data_expected_value[transmit_data_payload_length+WRAPPER_LENGTH] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0,0x0,0x0,0x0,0x0,0x0};
+    unsigned char transmit_data_expected_value[22] = {0x48,0x65,0x10,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0,0x0,0x0,0x0,0x0,0x0};
+    unsigned char *prepare_result = HE100_prepareTransmission(test_payload, 12, transmit_data_command);	
+    
+	for (z = 0; z<transmit_data_payload_length+10; z++) {
+        ASSERT_EQ(
+            prepare_result[z],
+            transmit_data_expected_value[z]
+        );
+    }
 }
 
 // verify NOOP preparation bytes
-void test_noop_HE100_prepareTransmission()
+TEST_F(Helium_100_Test, CorrectNoopPayload)
 {
-    size_t noop_payload_length = 0;
-    unsigned char noop_payload[noop_payload_length] = {0};
-    unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
-    ASSERT_EQ(
-        HE100_prepareTransmission(noop_payload, 0, noop_command),
-        he100_noop_expected_value
-    );
+    unsigned char noop_payload[1] = {0};
+    unsigned char he100_noop_expected_value[8] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
+    unsigned char noop_command[2] = {0x10, 0x01};
+    //unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
+
+    unsigned char *noop_result = HE100_prepareTransmission(noop_payload, 0, noop_command);
+
+	for (z = 0; z<8; z++) {
+        ASSERT_EQ(
+            noop_result[z],
+            he100_noop_expected_value[z]
+        );
+    }
 }
 
 // verify Soft Reset preparation bytes
-void test_softReset_HE100_prepareTransmission()
+TEST_F(Helium_100_Test, CorrectSoftResetPayload)
 {
     size_t soft_reset_payload_length = 0;
-    unsigned char soft_reset_payload[soft_reset_payload_length] = {0};
-    unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
-    ASSERT_EQ(
-        HE100_prepareTransmission(soft_reset_payload, 0, soft_reset_command),
-        he100_soft_reset_expected_value
-    );
+    unsigned char soft_reset_payload[1] = {0};
+    //unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
+    unsigned char soft_reset_command[2] = {0x10, 0x02};
+    unsigned char he100_soft_reset_expected_value[8] = {0x48,0x65,0x10,0x02,0x00,0x00,0x12,0x46};
+
+    unsigned char *soft_reset_result = HE100_prepareTransmission(soft_reset_payload, soft_reset_payload_length, soft_reset_command);
+
+	for (z = 0; z<soft_reset_payload_length+8; z++) {
+        ASSERT_EQ(
+            soft_reset_result[z],
+            he100_soft_reset_expected_value[z]
+        );
+    }
 }
 
 // verify Fast Set PA preparation bytes
-void test_fastSetPA_HE100_prepareTransmission()
+TEST_F(Helium_100_Test, CorrectFastSetPaPayload)
 {
+    size_t fast_set_pa_payload_length = 1;
     unsigned char fast_set_pa_payload[1] = {11};
-    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
-    
-    ASSERT_EQ(    
-        HE100_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command),
-        he100_fast_set_pa_expected_value
-    );
+    //unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
+    unsigned char fast_set_pa_command[2] = {0x10, 0x20};
+    unsigned char he100_fast_set_pa_expected_value[11] = {0x48,0x65,0x10,0x20,0x00,0x01,0x31,0xA1,0x03,0x06,0x0C};
+
+    unsigned char *fast_set_pa_result = HE100_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command);
+
+	for (z = 0; z<fast_set_pa_payload_length+10; z++) {
+        ASSERT_EQ(    
+            fast_set_pa_result[z],
+            he100_fast_set_pa_expected_value[z]
+        );
+    }
 }
 
 // Function should be tested for a string of bytes similar to expected but invalid
 
+/*
 // wrong length 
-void test_HE100_storeValidResponse(response, length)
+TEST_F(Helium_100_Test, WrongLength)
 {
-
+    ASSERT_EQ(
+        HE100_storeValidResponse(response,length),
+        -1
+    );
 }
 
 // invalid checksum
-void test_HE100_storeValidResponse(response, length)
+TEST_F(Helium_100_Test, InvalidChecksum)
 {
-
+    ASSERT_EQ(
+        HE100_storeValidResponse(response,length),
+        -1
+    );
 }
 
 // invalid command
-void test_HE100_storeValidResponse(response, length)
+TEST_F(Helium_100_Test, InvalidCommand)
 {
-
+    ASSERT_EQ(
+        HE100_storeValidResponse(response,length),
+        -1
+    );
 }
+*/

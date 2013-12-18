@@ -79,5 +79,8 @@ timer.o : $(TIMER_DIR)/src/timer.c $(TIMER_DIR)/inc/timer.h $(GTEST_HEADERS)
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(USER_DIR)/src/timer.h $(USER_DIR)/src/SC_he100.h $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(INCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c
 
-he100_lib_test : timer.o SC_he100.o gtest_main.a
+he100_lib_test : he100_lib_test.o timer.o SC_he100.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt
+
+he100_lib_test.o : $(USER_DIR)/test/he100_lib_test.cpp $(USER_DIR)/src/SC_he100.h $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/test/he100_lib_test.cpp
