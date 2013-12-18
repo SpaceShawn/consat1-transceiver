@@ -104,7 +104,6 @@ FILE *fdlog; // library log file
 FILE *fdata; // pipe to send valid payloads for external use
 int f_fdata_int; // file descriptor for pipe
 
-
 /**
  * Function to configure interface
  * @param fdin - the file descriptor representing the serial device

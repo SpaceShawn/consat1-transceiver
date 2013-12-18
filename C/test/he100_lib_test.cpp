@@ -17,16 +17,62 @@ struct HE100_checksum HE100_fletcher16 (char *data, size_t bytes);
 // Pass the function some data and check against expected result
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
+// Test the fletcher checksum
+TEST_F(Helium_100_Test, GoodChecksum)
+{
+
+    //    unsigned char *checksum_bytes[97] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcedefghjklmnopqrstuvwxyz~!@#$%^&*()_+`1234567890-={}\\|:\"<>?[];',./";
+    
+    //ACTUAL
+    unsigned char checksum_bytes[56] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcedefghjklmnopqrstuvwxyz~!@";
+    HE100_checksum checksum_result = HE100_fletcher16(checksum_bytes,56);
+    
+    //EXPECTED http://www.lammertbies.nl/comm/info/crc-calculation.html
+    // NOTE: reality on the HE100 is subjective and unexpected
+    HE100_checksum expected_result;
+    expected_result.sum1 = 0x27;
+    expected_result.sum2 = 0xD3;
+
+    ASSERT_EQ(
+        checksum_result.sum1,
+        expected_result.sum1 
+    ); 
+    ASSERT_EQ(
+        checksum_result.sum2,
+        expected_result.sum2
+    );
+}
+
 // Test writing to the helium device
 TEST_F(Helium_100_Test, GoodWrite)
 {
     const static int fdin = 1; // fake file descriptor to simulate HE100
     unsigned char write_test[8] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43}; // 8
     int write_result = HE100_write(fdin, write_test, 8);
+    
     ASSERT_EQ(
         write_result,
         1
     );
+}
+
+// Test a bogus byte sequence
+TEST_F(Helium_100_Test, Caught)
+{
+    int expected_reference_result = -1;
+    int actual_reference_result;
+
+    unsigned char bad_sequence[8] = {0x47,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
+    actual_reference_result = HE100_referenceByteSequence(bad_sequence, 0);
+    ASSERT_EQ(actual_reference_result,expected_reference_result);
+
+    bad_sequence[0] = 0x48; bad_sequence[1] = 0x64;
+    actual_reference_result = HE100_referenceByteSequence(bad_sequence, 1); 
+    ASSERT_EQ(actual_reference_result,expected_reference_result);    
+    
+    bad_sequence[1] = 0x65; bad_sequence[2] = 0x35;
+    actual_reference_result = HE100_referenceByteSequence(bad_sequence, 1);    
+    ASSERT_EQ(actual_reference_result,expected_reference_result);    
 }
 
 // verify transmit data preparation bytes - with "Test Payload" message
