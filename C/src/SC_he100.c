@@ -26,7 +26,7 @@
 #include <termios.h>    /*  POSIX terminal control definitions */
 #include "./SC_he100.h" /*  Header file that exposes the correct serial device location */
 #include "time.h"
-
+#include <poll.h>
 // project includes
 #include "he100.h"      /*  Header file that exposes the correct serial device location */
 //#include "./Net2Com.h"
@@ -104,7 +104,6 @@ FILE *fdlog; // library log file
 FILE *fdata; // pipe to send valid payloads for external use
 int f_fdata_int; // file descriptor for pipe
 
-
 /**
  * Function to configure interface
  * @param fdin - the file descriptor representing the serial device
@@ -160,18 +159,6 @@ HE100_configureInterface (int fdin)
     
     // Output flags
     settings.c_oflag = 0; // disable output processing, raw output
-/*    
-    settings.c_oflag &= ~(
-          OCRNL  // turn off output processing
-        | ONLCR  // no CR to NL translation 
-        | ONLRET // no NL to CR-NL translation
-        | ONOCR  // no NL to CR translation
-        | ONOEOT // no column 0 CR suppression
-        | OFILL  // no Ctrl-D suppression, no fill characters,
-        | OLCUC  // no case mapping
-        | OPOST  // no local output processing
-    );
-*/
 
     // Line processing flags
     settings.c_lflag = 0; // disable line processing 
@@ -180,15 +167,6 @@ HE100_configureInterface (int fdin)
     //cfmakeraw(&settings); // raw mode Input is not assembled into lines and special characters are not processed.
     
     settings.c_lflag = ECHONL; 
-/*  
-    settings.c_lflag &= ~(
-          ECHO   // echo off
-        | ECHONL // echo newline off
-        | ICANON // canonical mode off
-        | IEXTEN // extended input processing off
-        | ISIG   // signal chars off
-    );
-*/
 
     // Control flags
     settings.c_cflag &= ~( // disable stuff
@@ -210,37 +188,6 @@ HE100_configureInterface (int fdin)
     // ONLY non-canonical read control behaviour 
     settings.c_cc[VMIN]  = 1;     // min bytes to return read
     settings.c_cc[VTIME] = 30;    // read timeout in 1/10 seconds 
-
-    //   VEOF, VEOL, VERASE, VKILL (and also 
-    //   VEOL2, VSTATUS and VWERASE if defined and IEXTEN is set) 
-    
-/* 
-    // ONLY canonical mode parameters
-    settings.c_cc[VINTR]    = 0;     //  Ctrl-c  
-    settings.c_cc[VQUIT]    = 0;     //  Ctrl-\
-    settings.c_cc[VERASE]   = 0;     //  del 
-    settings.c_cc[VKILL]    = 0;     //  @ 
-    settings.c_cc[VEOF]     = 4;     //  Ctrl-d 
-    settings.c_cc[VTIME]    = 0;     //  inter-character timer unused 
-    settings.c_cc[VMIN]     = 1;     //  blocking read until 1 character arrives 
-    settings.c_cc[VSWTC]    = 0;     //  '\0' 
-    settings.c_cc[VSTART]   = 0;     //  Ctrl-q 
-    settings.c_cc[VSTOP]    = 0;     //  Ctrl-s 
-    settings.c_cc[VSUSP]    = 0;     //  Ctrl-z 
-    settings.c_cc[VREPRINT] = 0;     //  Ctrl-r 
-    settings.c_cc[VDISCARD] = 0;     //  Ctrl-u 
-    settings.c_cc[VWERASE]  = 0;     //  Ctrl-w 
-    settings.c_cc[VLNEXT]   = 0;     //  Ctrl-v 
-    settings.c_cc[VEOL]     = 0;     //  end-of-line '\0' 
-    settings.c_cc[VEOL2]    = 0;     //  end-of-line '\0' 
-*/
-
-    // only if ISIG is set:
-    //   VINTR, VQUIT, VSUSP (and also VDSUSP if 
-    //   defined and IEXTEN is set) 
-    
-    // only if IXON or IXOFF is set:
-    //   VSTOP, VSTART 
    
     fcntl(
         fdin, 
@@ -342,7 +289,6 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
         printf("%02X ",bytes[j]);
     }    
     fprintf(stdout, "\r\nWrite size: %d\n",w);
-
     //fflush(fdin);
 
     // Issue a read to check for ACK/NOACK
@@ -429,12 +375,11 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     fprintf(stdout,"\r\n  HE100_storeValidResponse: validating %d byte message",(int)length);
     unsigned char *data = (unsigned char *) malloc(length);
     int r=1; // return value
-
     // prepare container for decoded data
     int data_length = length - 2; // response minus 2 sync bytes 
     int payload_length = length - 10; // response minus header minus 4 checksum bytes
     unsigned char *msg = (unsigned char *) malloc(data_length);
-
+    
     // copy the header into the new response array minus sync bytes
     size_t i; size_t j=0;
     for (i=2;i<8;i++) {
@@ -518,9 +463,10 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     
     if (r==1) 
     {
+	
         //dump contents to helium data storage pipe
         //fdata = fopen(DATA_PIPE_PATH,"a");
-        fdata = popen(DATA_PIPE_PATH,"a"); // open pipe
+        fdata = popen(DATA_PIPE_PATH,"w"); // open pipe
         f_fdata_int = fileno(fdata); // set as file descriptor
         fcntl(f_fdata_int, F_SETFL, O_NONBLOCK); // set non-blocking
         HE100_dumpBytes(fdata, msg, payload_length);
@@ -539,6 +485,8 @@ int
 HE100_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size) 
 {
     // Output outgoing transmission
+    fprintf(stdout,"dumping bytes\n");
+
     fwrite (bytes, 1, size, fdout);
 
 /*  // readability   
@@ -579,8 +527,8 @@ HE100_read (int fdin, time_t timeout)
     // Variables for select
     int ret_value; 
     fd_set rfds;
-    struct timeval tv;
-    int retval;
+    struct timeval tv; // unused?
+    //int retval; // unused?
 
     // wait for 5 ms 
     tv.tv_sec = 0;
@@ -593,11 +541,15 @@ HE100_read (int fdin, time_t timeout)
     // Read continuously from serial device
     signal(SIGINT, inthand);
 
+    struct pollfd fds;
+    fds.fd = fdin;
+    fds.events = POLLIN;
+
     //while (!stop)
     while (!timer_complete(&read_timer) && !stop)
     {
 
-        if ( ret_value = select(1, &rfds, NULL, NULL, &tv) ) // if a byte is read
+        if ( poll(&fds, 1, 5)) // if a byte is read
         { 
 	    chars_read = read(fdin, &buffer, 1);
             fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
@@ -756,7 +708,7 @@ HE100_prepareTransmission(
     // or use memcpy with offset
 
     // attach payload and return final transmission
-    int j=0;
+    size_t j=0;
     for ( i=2; i<transmission_length; i++ ) {
         transmission[i] = payloadbytes[j];
         j++;
@@ -980,4 +932,5 @@ HE100_readFirmwareRevision(int fdin)
                 0, 
                 read_firmware_revision_command
         ), 10
-    );}
+    );
+}
