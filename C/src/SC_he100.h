@@ -16,7 +16,7 @@
  *        Version:  1.0
  *        Created:  13-11-09 01:14:59 PM
  *       Revision:  none
- *       Compiler:  gcc
+ *       Compiler:  gcc/g++
  *
  *         Author:  SHAWN BULGER (), 
  *   Organization:  

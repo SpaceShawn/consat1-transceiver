@@ -159,18 +159,6 @@ HE100_configureInterface (int fdin)
     
     // Output flags
     settings.c_oflag = 0; // disable output processing, raw output
-/*    
-    settings.c_oflag &= ~(
-          OCRNL  // turn off output processing
-        | ONLCR  // no CR to NL translation 
-        | ONLRET // no NL to CR-NL translation
-        | ONOCR  // no NL to CR translation
-        | ONOEOT // no column 0 CR suppression
-        | OFILL  // no Ctrl-D suppression, no fill characters,
-        | OLCUC  // no case mapping
-        | OPOST  // no local output processing
-    );
-*/
 
     // Line processing flags
     settings.c_lflag = 0; // disable line processing 
@@ -179,15 +167,6 @@ HE100_configureInterface (int fdin)
     //cfmakeraw(&settings); // raw mode Input is not assembled into lines and special characters are not processed.
     
     settings.c_lflag = ECHONL; 
-/*  
-    settings.c_lflag &= ~(
-          ECHO   // echo off
-        | ECHONL // echo newline off
-        | ICANON // canonical mode off
-        | IEXTEN // extended input processing off
-        | ISIG   // signal chars off
-    );
-*/
 
     // Control flags
     settings.c_cflag &= ~( // disable stuff
@@ -209,37 +188,6 @@ HE100_configureInterface (int fdin)
     // ONLY non-canonical read control behaviour 
     settings.c_cc[VMIN]  = 1;     // min bytes to return read
     settings.c_cc[VTIME] = 30;    // read timeout in 1/10 seconds 
-
-    //   VEOF, VEOL, VERASE, VKILL (and also 
-    //   VEOL2, VSTATUS and VWERASE if defined and IEXTEN is set) 
-    
-/* 
-    // ONLY canonical mode parameters
-    settings.c_cc[VINTR]    = 0;     //  Ctrl-c  
-    settings.c_cc[VQUIT]    = 0;     //  Ctrl-\
-    settings.c_cc[VERASE]   = 0;     //  del 
-    settings.c_cc[VKILL]    = 0;     //  @ 
-    settings.c_cc[VEOF]     = 4;     //  Ctrl-d 
-    settings.c_cc[VTIME]    = 0;     //  inter-character timer unused 
-    settings.c_cc[VMIN]     = 1;     //  blocking read until 1 character arrives 
-    settings.c_cc[VSWTC]    = 0;     //  '\0' 
-    settings.c_cc[VSTART]   = 0;     //  Ctrl-q 
-    settings.c_cc[VSTOP]    = 0;     //  Ctrl-s 
-    settings.c_cc[VSUSP]    = 0;     //  Ctrl-z 
-    settings.c_cc[VREPRINT] = 0;     //  Ctrl-r 
-    settings.c_cc[VDISCARD] = 0;     //  Ctrl-u 
-    settings.c_cc[VWERASE]  = 0;     //  Ctrl-w 
-    settings.c_cc[VLNEXT]   = 0;     //  Ctrl-v 
-    settings.c_cc[VEOL]     = 0;     //  end-of-line '\0' 
-    settings.c_cc[VEOL2]    = 0;     //  end-of-line '\0' 
-*/
-
-    // only if ISIG is set:
-    //   VINTR, VQUIT, VSUSP (and also VDSUSP if 
-    //   defined and IEXTEN is set) 
-    
-    // only if IXON or IXOFF is set:
-    //   VSTOP, VSTART 
    
     fcntl(
         fdin, 

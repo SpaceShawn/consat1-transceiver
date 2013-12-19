@@ -161,16 +161,23 @@ TEST_F(Helium_100_Test, WrongLength)
         -1
     );
 }
+*/
 
 // invalid checksum
 TEST_F(Helium_100_Test, InvalidChecksum)
 {
+    unsigned char invalid_checksum_response[12] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};
+    size_t icr_length = 12;
+
+    int actual_svr_result = HE100_storeValidResponse(invalid_checksum_response,icr_length);
+
     ASSERT_EQ(
-        HE100_storeValidResponse(response,length),
+        actual_svr_result,
         -1
     );
 }
 
+/*
 // invalid command
 TEST_F(Helium_100_Test, InvalidCommand)
 {
