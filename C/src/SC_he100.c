@@ -355,8 +355,7 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     //fflush(fdin);
 
     // Issue a read to check for ACK/NOACK
-    if ( HE100_read(fdin, 2) > 0 ) 
-    {
+    if ( HE100_read(fdin, 2) > 0 ) {
        write_return = 1; 
     }
     if (w>0) {
@@ -478,6 +477,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
             //payload_length=7;
             fprintf(stdout,"\r\n  HE100: Acknowledge");
 /* !! Check the header checksum here, a bit different than payload responses */
+            r = 0;
         } 
         else if (response[4] == 255) 
         {
@@ -500,7 +500,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
                 stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]", 
                 (uint8_t)response[8], (uint8_t)response[9], (uint8_t)h_chksum.sum1, (uint8_t)h_chksum.sum2 
             );
-///* DISABLED FOR TESTING */            r=-1;
+            r=-1;
         }
         
         if (p_chk != 0) 
@@ -515,14 +515,9 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
         printf("\r\nMessage: ");
         fprintf(stdout,"%s",(char*)&response[0]);
         j=0;
-	printf("\n");
-/*
-    for (j=0; j<length; j++) 
-    {
-        printf("%02X ",response[j]);
-    }    
-*/  
-      // fill payload message array
+        printf("\n");
+
+        // fill payload message array
         for (i=10;i<length;i++) 
         {
             msg[j] = response[i];
@@ -532,16 +527,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     
     if (r==1) 
     {
-	
-        //dump contents to helium data storage pipe
-        //fdata = fopen(DATA_PIPE_PATH,"a");
-     //   fdata = popen(DATA_PIPE_PATH,"w"); // open pipe
-     //   f_fdata_int = fileno(fdata); // set as file descriptor
-     //   fcntl(f_fdata_int, F_SETFL, O_NONBLOCK); // set non-blocking
         HE100_dumpBytes(fdata, msg, payload_length);
-        //fclose(fdata);
-     //   pclose(fdata);
-        
         //return (char*) msg; // return the stripped message so it doesn't have to be done again
         // we aren't doing this because this function writes the valid frame to the pipe
     }
@@ -598,17 +584,7 @@ HE100_read (int fdin, time_t timeout)
     timer_start(&read_timer,timeout,0);
     // Variables for select
     int ret_value; 
-    fd_set rfds;
     struct timeval tv;
-    int retval;
-
-    // wait for 5 ms 
-    tv.tv_sec = 0;
-    tv.tv_usec = 5;
-
-    //FD_ZERO(&rfds);
-    if(FD_ISSET(fdin, &rfds) == 0)
-    	FD_SET(fdin, &rfds);
 
     // Read continuously from serial device
     signal(SIGINT, inthand);
@@ -621,7 +597,7 @@ HE100_read (int fdin, time_t timeout)
     while (!timer_complete(&read_timer) && !stop)
     {
 
-        if ( poll(&fds, 1, 5)) // if a byte is read
+        if ( ret_value = (poll(&fds, 1, 5))) // if a byte is read
         { 
 	    chars_read = read(fdin, &buffer, 1);
 //            fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
@@ -663,7 +639,7 @@ HE100_read (int fdin, time_t timeout)
    //             fprintf(stdout,"\n HE100_read: hit break condition!");
                 if (i>0) // we have a message to validate 
                 {
-                    if ( HE100_storeValidResponse(response, breakcond) > 0 ) 
+                    if ( HE100_storeValidResponse(response, breakcond) >= 0 ) 
                     {
                         fprintf(stdout, "\r\n VALID MESSAGE!\r\n");
                         r = 1; // we got a frame, time to ack!
