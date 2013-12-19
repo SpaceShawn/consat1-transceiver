@@ -31,9 +31,11 @@
 #include "he100.h"      /*  Header file that exposes the correct serial device location */
 //#include "./Net2Com.h"
 #include "./timer.h"
+#include "./NamedPipe.h"
 
 #define LOG_FILE_PATH "/var/log/he100/he100.log"
 #define DATA_PIPE_PATH "/var/log/he100/data.log"
+static NamedPipe datapipe("/var/log/he100/data.log");
 
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
 #define MAX_FRAME_LENGTH 255
@@ -104,12 +106,22 @@ FILE *fdlog; // library log file
 FILE *fdata; // pipe to send valid payloads for external use
 int f_fdata_int; // file descriptor for pipe
 
+static int pipe_initialized = FALSE;
+
 /**
  * Function to configure interface
  * @param fdin - the file descriptor representing the serial device
  * REF: http://man7.org/linux/man-pages/man3/termios.3.html
  * REF: http://www.unixguide.net/unix/programming/3.6.2.shtml
  */
+
+void pipe_init(){
+   if(!pipe_initialized){
+      if (!datapipe.Exist()) datapipe.CreatePipe();
+      pipe_initialized = TRUE;
+   }
+}
+
 void
 HE100_configureInterface (int fdin)
 { 
@@ -292,8 +304,7 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     //fflush(fdin);
 
     // Issue a read to check for ACK/NOACK
-    if ( HE100_read(fdin, 2) > 0 ) 
-    {
+    if ( HE100_read(fdin, 2) > 0 ) {
        write_return = 1; 
     }
     if (w>0) {
@@ -415,6 +426,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
             //payload_length=7;
             fprintf(stdout,"\r\n  HE100: Acknowledge");
 /* !! Check the header checksum here, a bit different than payload responses */
+            r = 0;
         } 
         else if (response[4] == 255) 
         {
@@ -437,7 +449,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
                 stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]", 
                 (uint8_t)response[8], (uint8_t)response[9], (uint8_t)h_chksum.sum1, (uint8_t)h_chksum.sum2 
             );
-///* DISABLED FOR TESTING */            r=-1;
+            r=-1;
         }
         
         if (p_chk != 0) 
@@ -452,7 +464,8 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
         printf("\r\nMessage: ");
         fprintf(stdout,"%s",(char*)&response[0]);
         j=0;
-       
+        printf("\n");
+
         // fill payload message array
         for (i=10;i<length;i++) 
         {
@@ -463,16 +476,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     
     if (r==1) 
     {
-	
-        //dump contents to helium data storage pipe
-        //fdata = fopen(DATA_PIPE_PATH,"a");
-        fdata = popen(DATA_PIPE_PATH,"w"); // open pipe
-        f_fdata_int = fileno(fdata); // set as file descriptor
-        fcntl(f_fdata_int, F_SETFL, O_NONBLOCK); // set non-blocking
         HE100_dumpBytes(fdata, msg, payload_length);
-        //fclose(fdata);
-        pclose(fdata);
-        
         //return (char*) msg; // return the stripped message so it doesn't have to be done again
         // we aren't doing this because this function writes the valid frame to the pipe
     }
@@ -485,9 +489,12 @@ int
 HE100_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size) 
 {
     // Output outgoing transmission
-    fprintf(stdout,"dumping bytes\n");
+    fprintf(stdout,"\ndumping bytes\n");
+    int ret_val;
+//    ret_val = fwrite (bytes, 1, size, fdout);
+    pipe_init();
+    datapipe.WriteToPipe(bytes, size);
 
-    fwrite (bytes, 1, size, fdout);
 
 /*  // readability   
     int j=0;
@@ -526,17 +533,6 @@ HE100_read (int fdin, time_t timeout)
     timer_start(&read_timer,timeout,0);
     // Variables for select
     int ret_value; 
-    fd_set rfds;
-    struct timeval tv; // unused?
-    //int retval; // unused?
-
-    // wait for 5 ms 
-    tv.tv_sec = 0;
-    tv.tv_usec = 5;
-
-    //FD_ZERO(&rfds);
-    if(FD_ISSET(fdin, &rfds) == 0)
-    	FD_SET(fdin, &rfds);
 
     // Read continuously from serial device
     signal(SIGINT, inthand);
@@ -549,10 +545,10 @@ HE100_read (int fdin, time_t timeout)
     while (!timer_complete(&read_timer) && !stop)
     {
 
-        if ( poll(&fds, 1, 5)) // if a byte is read
+        if ( ret_value = (poll(&fds, 1, 5))) // if a byte is read
         { 
 	    chars_read = read(fdin, &buffer, 1);
-            fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
+//            fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
             
             // set break condition based on incoming byte pattern
             if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) // getting an ack
@@ -561,26 +557,26 @@ HE100_read (int fdin, time_t timeout)
             }
             else if ( i==5 && breakcond==255 ) // this is the length byte, set break point accordingly
             { // could be done by HE100_referenceByteSequence
-                fprintf(stdout,"\r\n HE100_read: Got length byte");
+ //               fprintf(stdout,"\r\n HE100_read: Got length byte");
                 breakcond = buffer[0] + 10;
             }
            
             // increment response array values based on byte pattern
             if ( HE100_referenceByteSequence(buffer,i) > 0 ) 
             {
-                    fprintf(stdout," >> returned 1");
+ //                   fprintf(stdout," >> returned 1");
                     response[i]=buffer[0];
                     buffer[0] = '\0';
-                    fprintf(
+/*                    fprintf(
                         stdout,
                         "\n  i:%d breakcondition:%d",
                         i,breakcond
-                    );
+                    );*/
                     i++;
             }
             else 
             {
-                fprintf(stdout," >> returned -1");
+ //               fprintf(stdout," >> returned -1");
                 i=0; // restart message index
                 response[0] = '\0';
                 breakcond=255;
@@ -588,10 +584,10 @@ HE100_read (int fdin, time_t timeout)
 
             if (i==breakcond) 
             {
-                fprintf(stdout,"\n HE100_read: hit break condition!");
+   //             fprintf(stdout,"\n HE100_read: hit break condition!");
                 if (i>0) // we have a message to validate 
                 {
-                    if ( HE100_storeValidResponse(response, breakcond) > 0 ) 
+                    if ( HE100_storeValidResponse(response, breakcond) >= 0 ) 
                     {
                         fprintf(stdout, "\r\n VALID MESSAGE!\r\n");
                         r = 1; // we got a frame, time to ack!
@@ -722,7 +718,7 @@ HE100_prepareTransmission(
 int
 HE100_referenceByteSequence(unsigned char *response, int position)
 {
-    printf("\r\n  HE100_referenceByteSequence(0x%02X,%d)",*response,(int)position);
+ //   printf("\r\n  HE100_referenceByteSequence(0x%02X,%d)",*response,(int)position);
     int r = -1;
     switch ((int)position)
     {

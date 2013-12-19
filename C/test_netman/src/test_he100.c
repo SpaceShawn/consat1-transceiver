@@ -23,6 +23,20 @@
 #include <string.h>
 #include "SC_he100.h"
 #include "timer.h"
+#include <NamedPipe.h>
+
+int pipe_initialized = 0;
+static NamedPipe datapipe("/var/log/he100/data.log");
+void init() {
+
+   if(!pipe_initialized){
+      if (!datapipe.Exist()) datapipe.CreatePipe();
+      pipe_initialized = 1;
+   }
+    datapipe.ensure_open('r');
+
+}
+
 
 int 
 main () 
@@ -55,6 +69,8 @@ main ()
 
 ///* 
         // Write a payload 
+        init();
+
         unsigned char message[27] = "I can't let you do that Ty";
         size_t msg_len = 26; // don't forget to change this
         //if ( HE100_write(fdin, HE100_transmitData(message, msg_len), write_len) > 0 )
@@ -62,7 +78,8 @@ main ()
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device"); 
-//*/
+
+
 
 /* 
         // send bogus (custom) bytes to get a NOACK 
