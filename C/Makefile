@@ -11,23 +11,13 @@ INCPATH=-I./inc/PC/
 LIBPATH=-L./lib
 
 buildBinCpp:
-<<<<<<< HEAD
-	$(CXX) $(CXX_FLAGS) $(INCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o -ltimer 
-
-buildBin:
-	$(CC) $(INCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o -ltimer 
-
-=======
 	$(CXX) $(CXX_FLAGS) $(INCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o -ltimer -lshakespeare
+
 buildBin:
 	$(CC) $(INCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o -ltimer -lshakespeare
->>>>>>> 176a5acad47c36db1ba2d78e2713517086a84821
+
 buildQ6:
 	$(MICROCC) $(CSS_FLAGS) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-mbcc.o -ltimer-mbcc
 
 buildQ6Cpp:
-<<<<<<< HEAD
-	$(MICROPP) $(CXX_FLAGS) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-mbcc.o -ltimer-mbcc
-=======
 	$(MICROPP) $(CXX_FLAGS) $(MICROCFLAGS) $(MICROINCPATH) $(LIBPATH) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-mbcc.o -ltimer-mbcc -lshakespeare-mbcc
->>>>>>> 176a5acad47c36db1ba2d78e2713517086a84821
