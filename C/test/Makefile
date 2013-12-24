@@ -19,6 +19,7 @@ GTEST_DIR = ../../../gtest-1.7.0
 # Where to find user code.
 USER_DIR = ../../../HE100-lib/C
 TIMER_DIR = ../../../space-timer-lib
+NAMEDPIPE_DIR = ../../../space-commander
 SHAKES_DIR = ../../../space-lib/shakespeare
 MICROINCPATH=-I../inc/Q6/
 INCPATH=-I../inc/PC/
@@ -73,6 +74,9 @@ gtest_main.a : gtest-all.o gtest_main.o
 
 ###########################
 
+NamedPipe.o : $(NAMEDPIPE_DIR)/src/NamedPipe.cpp $(NAMEDPIPE_DIR)/include/NamedPipe.h $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) -I$(NAMEDPIPE_DIR)/include/ $(CXXFLAGS) -c $(NAMEDPIPE_DIR)/src/NamedPipe.cpp 
+
 timer.o : $(TIMER_DIR)/src/timer.c $(TIMER_DIR)/inc/timer.h $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) -I$(TIMER_DIR)/inc/ $(CXXFLAGS) -c $(TIMER_DIR)/src/timer.c 
 
@@ -82,7 +86,7 @@ SC_he100.o : $(USER_DIR)/src/SC_he100.c $(USER_DIR)/src/timer.h $(USER_DIR)/src/
 shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(SHAKES_DIR)/inc/shakespeare.h $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) -I$(SHAKES_DIR)/inc/ $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp 
 
-he100_lib_test : he100_lib_test.o timer.o shakespeare.o SC_he100.o gtest_main.a
+he100_lib_test : he100_lib_test.o NamedPipe.o timer.o shakespeare.o SC_he100.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt
 
 he100_lib_test.o : $(USER_DIR)/test/he100_lib_test.cpp $(USER_DIR)/src/SC_he100.h $(GTEST_HEADERS)

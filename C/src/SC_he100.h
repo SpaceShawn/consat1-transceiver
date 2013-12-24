@@ -16,7 +16,7 @@
  *        Version:  1.0
  *        Created:  13-11-09 01:14:59 PM
  *       Revision:  none
- *       Compiler:  gcc/g++
+ *       Compiler:  g++
  *
  *         Author:  SHAWN BULGER (), 
  *   Organization:  
@@ -74,6 +74,8 @@ int HE100_write (int fdin, unsigned char *bytes, size_t size);
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
 struct HE100_checksum HE100_fletcher16 (unsigned char *data, size_t bytes);
+
+struct HE100_checksum HE100_KBPayloadChecksum (unsigned char *data, size_t size);
 
 /**
  * Function to parse a given frame, validate it, and write its payload to pipe 
