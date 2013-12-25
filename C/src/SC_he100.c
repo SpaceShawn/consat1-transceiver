@@ -509,7 +509,7 @@ HE100_dumpBytes(FILE *fdout, unsigned char *bytes, size_t size)
 
     // readability   
     size_t j=0;
-    fprintf(fdout,"Dumping %d bytes: ", size); 
+    fprintf(fdout,"Dumping %zd bytes: ", size); 
     ret_val = 1;
     for (j=0; j<size; j++) 
     {
