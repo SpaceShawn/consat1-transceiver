@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
-#include "../src/SC_he100.h"
-#include "../src/timer.h"
+#include "../inc/SC_he100.h"
+#include "../inc/timer.h"
 
 class Helium_100_Test : public ::testing::Test
 {
@@ -13,7 +13,32 @@ class Helium_100_Test : public ::testing::Test
 
 // will be tested in following tests, but isolate some 
 // test null bytes, passing wrong length, etc
-struct HE100_checksum HE100_fletcher16 (char *data, size_t bytes);
+//struct HE100_checksum HE100_fletcher16 (char *data, size_t bytes);
+
+//struct HE100_checksum HE100_KBPayloadChecksum (unsigned char *data, size_t size);
+/**
+ * Kevin Brown's Fletcher checksum, use to compare to ours
+ */
+struct HE100_checksum
+HE100_KBPayloadChecksum (unsigned char *data, size_t size)
+{
+    size_t i = 0;
+    uint8_t ck_a = 0;
+    uint8_t ck_b = 0;
+
+    for( i = 0; i < size; i++ )
+    {
+        ck_a += data[i];
+        ck_b += ck_a;
+    }
+
+    HE100_checksum r;
+        
+    r.sum1 = ck_a;
+    r.sum2 = ck_b;
+
+    return r;
+}
 
 // Pass the function some data and check against expected result
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
@@ -74,20 +99,50 @@ TEST_F(Helium_100_Test, BrownVsWorld)
     );  
 }
 
-TEST_F(Helium_100_Test, VerifyHeliumFrame)
+// Compare our fletcher algorithm with Kevin Brown's
+TEST_F(Helium_100_Test, TestIncomingChecksum)
 {
-    unsigned char helium_payload_bytes[27] = {0xA6,0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
-    unsigned char helium_receive_command[2] = {0x20, 0x04};
-    unsigned char *helium_result = HE100_prepareTransmission(helium_payload_bytes, 26, helium_receive_command);	
-
+    unsigned char checksum_bytes[33] = {0x20,0x04,0x00,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08};
+    HE100_checksum our_result = HE100_fletcher16(checksum_bytes,33);
+    
     ASSERT_EQ(
         0x63,
-        helium_result[34]
-    );
+        our_result.sum1
+    ); 
     ASSERT_EQ(
         0x9f,
+        our_result.sum2
+    );  
+}
+
+TEST_F(Helium_100_Test, VerifyHeliumFrame)
+{
+    unsigned char helium_expected[37] = {0x48,0x65,0x20,0x04,0x00,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
+
+    unsigned char helium_payload_bytes[27] = {0xA6,0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
+    unsigned char helium_receive_command[2] = {0x20, 0x04};
+    unsigned char *helium_result = HE100_prepareTransmission(helium_payload_bytes, 27, helium_receive_command);
+
+    HE100_dumpHex(stdout, helium_result, 36);
+    HE100_dumpHex(stdout, helium_payload_bytes, 36);
+
+    for (z=0; z<37; z++) {
+        ASSERT_EQ(
+            helium_expected[z],
+            helium_result[z]
+        );
+    }
+
+    /* 
+    ASSERT_EQ(
+        helium_expected[35], //0x63,
         helium_result[35]
     );
+    ASSERT_EQ(
+        helium_expected[36], //0x9f,
+        helium_result[36]
+    );
+    */
 }
 
 // Test writing to the helium device
@@ -129,12 +184,15 @@ TEST_F(Helium_100_Test, CorrectPayloadPreparation)
     unsigned char test_payload[13] = "Test Payload"; // 12
     unsigned char transmit_data_command[2] = {0x10, 0x03};
     //unsigned char transmit_data_expected_value[transmit_data_payload_length+WRAPPER_LENGTH] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0,0x0,0x0,0x0,0x0,0x0};
-    unsigned char transmit_data_expected_value[22] = {0x48,0x65,0x10,0x03,0x00,0x0C,0x1F,0x55,0x54,0x65,0x73,0x74,0x20,0x50,0x61,0x79,0x6c,0x6f,0x61,0x64,0x00,0x00};
+    unsigned char transmit_data_expected[22] = {0x48,0x65,0x10,0x03,0x00,0x0C,0x1F,0x55,0x54,0x65,0x73,0x74,0x20,0x50,0x61,0x79,0x6c,0x6f,0x61,0x64,0x1D,0xD9};
     unsigned char *prepare_result = HE100_prepareTransmission(test_payload, 12, transmit_data_command);	
     
+    HE100_dumpHex(stdout,transmit_data_expected,22);
+    HE100_dumpHex(stdout,prepare_result,22);
+
 	for (z=0; z<transmit_data_payload_length+10; z++) {
         ASSERT_EQ(
-            transmit_data_expected_value[z],
+            transmit_data_expected[z],
             prepare_result[z]
         );
     }
@@ -149,6 +207,9 @@ TEST_F(Helium_100_Test, CorrectNoopPayload)
     //unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
 
     unsigned char *noop_result = HE100_prepareTransmission(noop_payload, 0, noop_command);
+    
+    HE100_dumpHex(stdout, he100_noop_expected_value, 8);
+    HE100_dumpHex(stdout, noop_result, 8);
 
 	for (z=0; z<8; z++) {
         ASSERT_EQ(
@@ -187,8 +248,8 @@ TEST_F(Helium_100_Test, CorrectFastSetPaPayload)
     unsigned char *fast_set_pa_actual_result = HE100_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command);
     unsigned char he100_fast_set_pa_expected_value[11] = {0x48,0x65,0x10,0x20,0x00,0x01,0x31,0xA1,0x03,0x06,0x0C};
     
-    HE100_dumpBytes(stdout, fast_set_pa_actual_result, 11);
-    HE100_dumpBytes(stdout, he100_fast_set_pa_expected_value, 11);
+    HE100_dumpHex(stdout, fast_set_pa_actual_result, 11);
+    HE100_dumpHex(stdout, he100_fast_set_pa_expected_value, 11);
 
 	for (z=0; z<fast_set_pa_payload_length+10; z++) {
         ASSERT_EQ(    

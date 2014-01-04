@@ -9,7 +9,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  he100.h
+ *       Filename:  SC_he100.h
  *
  *    Description:  Header file for he100 library
  *
@@ -75,8 +75,6 @@ int HE100_write (int fdin, unsigned char *bytes, size_t size);
  */
 struct HE100_checksum HE100_fletcher16 (unsigned char *data, size_t bytes);
 
-struct HE100_checksum HE100_KBPayloadChecksum (unsigned char *data, size_t size);
-
 /**
  * Function to parse a given frame, validate it, and write its payload to pipe 
  * @param response - the frame data to be validated 
@@ -85,7 +83,8 @@ struct HE100_checksum HE100_KBPayloadChecksum (unsigned char *data, size_t size)
 int HE100_storeValidResponse (unsigned char *response, size_t length);
 
 /* Function to dump a given array to a given file descriptor */
-int HE100_dumpBytes (FILE *fdout, unsigned char *bytes, size_t size);
+int HE100_dumpBinary (FILE *fdout, unsigned char *bytes, size_t size);
+void HE100_dumpHex (FILE *fdout, unsigned char *bytes, size_t size);
 
 /** Provide signal handling for HE100_read **/
 //volatile sig_atomic_t stop;
