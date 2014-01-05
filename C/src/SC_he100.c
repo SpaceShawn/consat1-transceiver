@@ -347,8 +347,8 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     unsigned char *data = (unsigned char *) malloc(length);
     int r=1; // return value
     // prepare container for decoded data
-    int data_length = length - 2; // response minus 2 sync bytes 
-    int payload_length = length - 10; // response minus header minus 4 checksum bytes
+    size_t data_length = length - 2; // response minus 2 sync bytes 
+    size_t payload_length = length - 10; // response minus header minus 4 checksum bytes
     unsigned char *msg = (unsigned char *) malloc(data_length);
     
     // copy the header into the new response array minus sync bytes
@@ -365,7 +365,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     int h_chk = h_s1_chk + h_s2_chk; // should be zero given valid chk
 
     // pick up j where it left off
-    for (i=8;i<length-2;i++) // read up to, not including payload chksum
+    for (i=8;i<data_length-1;i++) /* read up to, not including payload chksum */
     {
         data[j] = response[i];
         j++;
@@ -382,7 +382,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
         if (response[4] == 10) {
             // TODO log with shakespeare 
             //fprintf(stdout,"\r\n  HE100: Acknowledge");
-/* !! Check the header checksum here, a bit different than payload responses */
+            /* TODO Check the header checksum here, a bit different than payload responses */
             r = 0;
         } else if (response[4] == 255) {
             // TODO log with shakespeare
@@ -390,19 +390,19 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
             r = -1;
         } else {
             // TODO log with shakespeare
-            printf("\r\n  HE100: Empty length?");
+            printf("\r\n  HE100: Empty length? \r\n");
             r = -1;
         } 
     } 
     else 
     { 
         if (h_chk != 0) {
-            //fprintf(stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[8],(uint8_t)response[9],(uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2);
+            fprintf(stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[6],(uint8_t)response[7],(uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2);
             r=-1;
         }
         
         if (p_chk != 0) {
-            //fprintf(stdout,"\r\nInvalid payload checksum \r\n   Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[length-2],(uint8_t)response[length-1],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2);
+            fprintf(stdout,"\r\nInvalid payload checksum \r\n   Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[length-2],(uint8_t)response[length-1],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2);
             r=-1;
         }
 

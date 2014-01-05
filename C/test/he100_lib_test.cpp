@@ -282,6 +282,27 @@ TEST_F(Helium_100_Test, WrongLength)
 }
 */
 
+/*
+// invalid command
+TEST_F(Helium_100_Test, InvalidCommand)
+{
+    ASSERT_EQ(
+        -1,
+        HE100_storeValidResponse(response,length)
+    );
+}
+*/
+
+// store valid response, should return 1
+TEST_F(Helium_100_Test, StoreValidResponse)
+{
+    unsigned char sv_expected[37] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
+    ASSERT_EQ(
+        1,
+        HE100_storeValidResponse(sv_expected,37)
+    );
+}
+
 // invalid checksum
 // 1 - pass a frame with an invalid checksum to HE100_storeValidResponse 
 // 2 - if an invalid checksum is encountered, the payload should not be persisted,
@@ -307,17 +328,6 @@ TEST_F(Helium_100_Test, CatchBadChecksum)
         actual_svr_result
     );
 }
-
-/*
-// invalid command
-TEST_F(Helium_100_Test, InvalidCommand)
-{
-    ASSERT_EQ(
-        -1,
-        HE100_storeValidResponse(response,length)
-    );
-}
-*/
 
 // BEACON TESTING
 TEST_F(Helium_100_Test, SetBeaconInterval)
