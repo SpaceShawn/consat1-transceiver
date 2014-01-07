@@ -348,6 +348,11 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     int r=1; // return value
     // prepare container for decoded data
     size_t data_length = length - 2; // response minus 2 sync bytes 
+    int hb1 = 6; int hb2 = 7;
+    int pb1 = data_length-2; int pb2 = data_length-1;
+
+    fprintf(stdout,"\r\nlength=%d,data_length=%d,hb1=%d,hb2=%d,pb1=%d,pb2=%d\r\n",length,data_length,hb1,hb2,pb1,pb2);
+
     size_t payload_length = length - 10; // response minus header minus 4 checksum bytes
     unsigned char *msg = (unsigned char *) malloc(data_length);
     
@@ -357,6 +362,8 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
         data[j] = response[i];
         j++;
     }
+    fprintf(stdout,"\r\nj=%d\r\n",j);
+    HE100_dumpHex(stdout,data,4);
     
     // generate and compare header checksum
     HE100_checksum h_chksum = HE100_fletcher16(data,4); 
@@ -364,12 +371,14 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     uint8_t h_s2_chk = memcmp(&response[7], &h_chksum.sum2, 1);
     int h_chk = h_s1_chk + h_s2_chk; // should be zero given valid chk
 
-    // pick up j where it left off
-    for (i=8;i<data_length-1;i++) /* read up to, not including payload chksum */
+    // pick up where j left off
+    for (i=8;i<data_length;i++) /* read up to, not including payload chksum */
     {
         data[j] = response[i];
         j++;
     }    
+    HE100_dumpHex(stdout,data,data_length-2);
+    HE100_dumpHex(stdout,response,length);
 
     // generate and compare payload checksum
     HE100_checksum p_chksum = HE100_fletcher16(data,data_length-2); // chksum everything except 'He'
