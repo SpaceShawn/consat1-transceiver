@@ -285,16 +285,34 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     int w = write (fdin, bytes, size); 
     int write_return = 0;
     
-    //size_t j=0;
-    //for (j=0; j<size; j++) 
-    //    printf("%02X ",bytes[j]);
-    //fprintf(stdout, "\r\nWrite size: %d\n",w);
     //fflush(fdin);
 
     // Issue a read to check for ACK/NOACK
     if ( HE100_read(fdin, 2) > 0 ) {
        write_return = 1; 
     }
+    if (w>0) {
+        write_return = 1;
+    }
+    return write_return;
+}
+
+/** 
+ * Function to write a given byte sequence to the serial device
+ * @param fdin - the file descriptor representing the serial device
+ * @param bytes - the char array containing the byte sequence to write
+ * @param size - the length of the array in bytes
+ */
+int 
+HE100_spam(int fdin, unsigned char *bytes, size_t size) 
+{
+    // Output outgoing transmission
+    //fprintf(stdout, "\r\nWriting to device: ");
+
+    // Write byte array
+    int w = write (fdin, bytes, size); 
+    int write_return = 0;
+    
     if (w>0) {
         write_return = 1;
     }
@@ -747,6 +765,23 @@ HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t trans
 {
     unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
     return HE100_write(
+        fdin, 
+        HE100_prepareTransmission(
+                transmit_data_payload, 
+                transmit_data_len, 
+                transmit_data_command
+        ), transmit_data_len+10
+    );
+}
+/**
+ * Function returning byte sequence to set the beacon message 
+ * unsigned char *beacon_message_payload message to transmit 
+ */
+int
+HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t transmit_data_len)
+{
+    unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
+    return HE100_spam(
         fdin, 
         HE100_prepareTransmission(
                 transmit_data_payload, 

@@ -9,14 +9,14 @@
 /*
  * =====================================================================================
  *
- *       Filename:  SC_he100.h
+ *       Filename:  he100.h
  *
  *    Description:  Header file for he100 library
  *
  *        Version:  1.0
  *        Created:  13-11-09 01:14:59 PM
  *       Revision:  none
- *       Compiler:  g++
+ *       Compiler:  gcc
  *
  *         Author:  SHAWN BULGER (), 
  *   Organization:  
@@ -60,7 +60,6 @@ int HE100_closePort (int);
 
 /* Function to write a char array to a serial device at given file descriptor */
 int HE100_write (int fdin, unsigned char *bytes, size_t size);
-int HE100_spam (int fdin, unsigned char *bytes, size_t size);
 
 /**
  * struct to hold values of fletcher checksum
@@ -74,18 +73,17 @@ int HE100_spam (int fdin, unsigned char *bytes, size_t size);
  * @param bytes - size_t - number of bytes to process
  * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
  */
-struct HE100_checksum HE100_fletcher16 (unsigned char *data, size_t bytes);
+struct HE100_checksum HE100_fletcher16 (char *data, size_t bytes);
 
 /**
  * Function to parse a given frame, validate it, and write its payload to pipe 
  * @param response - the frame data to be validated 
  * @param length - the entire length of the frame in bytes
  */
-int HE100_storeValidResponse (unsigned char *response, size_t length);
+int HE100_validateResponse (char *response, size_t length);
 
 /* Function to dump a given array to a given file descriptor */
-int HE100_dumpBinary (FILE *fdout, unsigned char *bytes, size_t size);
-void HE100_dumpHex (FILE *fdout, unsigned char *bytes, size_t size);
+int HE100_dumpBytes (FILE *fdout, unsigned char *bytes, size_t size);
 
 /** Provide signal handling for HE100_read **/
 //volatile sig_atomic_t stop;
@@ -114,7 +112,7 @@ int HE100_referenceByteSequence(unsigned char *response, int position);
  * @param response - the response data to interpret
  * @param length - the length of the data in bytes
  */
-int HE100_interpretResponse (unsigned char *response, size_t length);
+int HE100_interpretResponse (char *response, size_t length);
 
 /**
  * Function to return NOOP byte sequence 
@@ -127,7 +125,6 @@ int HE100_NOOP(int fdin);
  * unsigned char *beacon_message_payload message to transmit 
  */
 int HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t transmit_data_len);
-int HE100_transmitSpam (int fdin, unsigned char *transmit_data_payload, size_t transmit_data_len);
 
 /**
  * Function returning byte sequence to enable beacon on given interval 
