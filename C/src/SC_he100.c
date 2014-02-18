@@ -35,7 +35,7 @@
 
 #define LOG_FILE_PATH "/var/log/he100/he100.log"
 #define DATA_PIPE_PATH "/var/log/he100/data.log"
-static NamedPipe datapipe("/var/log/he100/data.log");
+//static NamedPipe datapipe("/var/log/he100/data.log");
 
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
 #define MAX_FRAME_LENGTH 255
@@ -105,12 +105,14 @@ static int pipe_initialized = FALSE;
  * REF: http://www.unixguide.net/unix/programming/3.6.2.shtml
  */
 
+/*
 void pipe_init(){
    if(!pipe_initialized){
       if (!datapipe.Exist()) datapipe.CreatePipe();
       pipe_initialized = TRUE;
    }
 }
+*/
 
 void
 HE100_configureInterface (int fdin)
@@ -443,8 +445,9 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     }
     
     if (r==1) {
-        pipe_init();
-        datapipe.WriteToPipe(msg, payload_length);
+        /* pipe_init();
+         datapipe.WriteToPipe(msg, payload_length);
+        */// DISABLED FOR TESTING
         //return (char*) msg; // return the stripped message so it doesn't have to be done again
         // TODO we aren't doing this because we want the incoming messages to collect even if the the netman is failing to act on them properly. Is this reason enough to continue in this way?
     }
@@ -512,7 +515,7 @@ HE100_read (int fdin, time_t timeout)
     {
         if ( ( ret_value = poll(&fds, 1, 5) ) /* TODO not nice, be explicit */ ) // if a byte is read
         { 
-	        read(fdin, &buffer, 1);
+	          read(fdin, &buffer, 1);
             //fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
             
             // set break condition based on incoming byte pattern
@@ -778,7 +781,7 @@ HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t trans
  * unsigned char *beacon_message_payload message to transmit 
  */
 int
-HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t transmit_data_len)
+HE100_transmitSpam (int fdin, unsigned char *transmit_data_payload, size_t transmit_data_len)
 {
     unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
     return HE100_spam(
