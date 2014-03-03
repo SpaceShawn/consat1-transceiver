@@ -17,6 +17,11 @@ until [  $valid_device = 1 ]; do
     fi
 done 
 
+kill_hogs () {
+    for pid in $(ps aux | grep $device | awk '{print $2}'); 
+    do sudo kill -9 $pid; done
+}
+
 he100_listen () {
     while [ 1 ]; do
        cat $device; #dump whatever is on the device
