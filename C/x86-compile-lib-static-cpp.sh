@@ -1,3 +1,3 @@
 #!/bin/bash
 make buildBinCpp
-ar rcs lib/libhe100-cpp.a lib/he100.o
+ar rcs lib/libhe100.a lib/he100.o
