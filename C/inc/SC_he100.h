@@ -18,8 +18,8 @@
  *       Revision:  none
  *       Compiler:  g++
  *
- *         Author:  SHAWN BULGER (), 
- *   Organization:  
+ *         Author:  SHAWN BULGER (),
+ *   Organization:
  *
  * =====================================================================================
  */
@@ -66,7 +66,7 @@ int HE100_write (int fdin, unsigned char *bytes, size_t size);
  */
 //typedef struct HE100_checksum {} HE100_checksum;
 
-/** Optimized Fletcher Checksum  
+/** Optimized Fletcher Checksum
  * 16-bit implementation of the Fletcher Checksum
  * returns two 8-bit sums
  * @param data - uint8_t const - data on which to perform checksum
@@ -76,8 +76,8 @@ int HE100_write (int fdin, unsigned char *bytes, size_t size);
 struct HE100_checksum HE100_fletcher16 (unsigned char *data, size_t bytes);
 
 /**
- * Function to parse a given frame, validate it, and write its payload to pipe 
- * @param response - the frame data to be validated 
+ * Function to parse a given frame, validate it, and write its payload to pipe
+ * @param response - the frame data to be validated
  * @param length - the entire length of the frame in bytes
  */
 int HE100_storeValidResponse (unsigned char *response, size_t length);
@@ -91,9 +91,9 @@ void HE100_dumpHex (FILE *fdout, unsigned char *bytes, size_t size);
 //void inthand (int signum) { stop = 1; }
 
 /**
- * Function to read bytes in single-file from the serial device and 
+ * Function to read bytes in single-file from the serial device and
  * append them to and return a response array
- * 
+ *
  * @param fdin - the file descriptor representing the serial device
  */
 int HE100_read (int fdin, time_t timeout);
@@ -107,8 +107,8 @@ unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length
 
 /* Function to ensure byte-by-byte that we are receiving a HE100 frame */
 int HE100_referenceByteSequence(unsigned char *response, int position);
-        
-/** 
+
+/**
  * Function to decode validated and extracted data from response
  * @param response - the response data to interpret
  * @param length - the length of the data in bytes
@@ -116,26 +116,26 @@ int HE100_referenceByteSequence(unsigned char *response, int position);
 int HE100_interpretResponse (unsigned char *response, size_t length);
 
 /**
- * Function to return NOOP byte sequence 
- * no arguments 
+ * Function to return NOOP byte sequence
+ * no arguments
  */
 int HE100_NOOP(int fdin);
 
 /**
- * Function returning byte sequence to set the beacon message 
- * unsigned char *beacon_message_payload message to transmit 
+ * Function returning byte sequence to set the beacon message
+ * unsigned char *beacon_message_payload message to transmit
  */
 int HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t transmit_data_len);
 
 /**
- * Function returning byte sequence to enable beacon on given interval 
- * int beacon_interval interval in seconds 
+ * Function returning byte sequence to enable beacon on given interval
+ * int beacon_interval interval in seconds
  */
 int HE100_setBeaconInterval (int fdin, int beacon_interval);
 
 /**
- * Function returning byte sequence to set the beacon message 
- * unsigned char *beacon_message_payload message to transmit 
+ * Function returning byte sequence to set the beacon message
+ * unsigned char *beacon_message_payload message to transmit
  */
 int HE100_setBeaconMessage (int fdin, unsigned char *set_beacon_message_payload, size_t beacon_message_len);
 
@@ -147,13 +147,13 @@ int HE100_setBeaconMessage (int fdin, unsigned char *set_beacon_message_payload,
 int HE100_fastSetPA (int fdin, int power_level);
 
 /**
- * Function returning byte sequence to soft reset HE100 board and restore flash settings 
+ * Function returning byte sequence to soft reset HE100 board and restore flash settings
  * no arguments
  */
 int HE100_softReset(int fdin);
 
 /**
- * Function returning byte sequence to return firmware version 
+ * Function returning byte sequence to return firmware version
  * no arguments
  */
 int HE100_readFirmwareRevision(int fdin);

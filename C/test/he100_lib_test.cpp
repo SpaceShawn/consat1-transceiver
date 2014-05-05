@@ -1,25 +1,26 @@
 #include "gtest/gtest.h"
 #include "../inc/SC_he100.h"
 #include "../inc/timer.h"
+#include "../inc/fletcher.h"
 
 class Helium_100_Test : public ::testing::Test
 {
     protected:
     virtual void SetUp() { }
 
-    const static int fdin = 1; // fake file descriptor to simulate HE100   
+    const static int fdin = 1; // fake file descriptor to simulate HE100
     size_t z; // assert loop index
 };
 
-// will be tested in following tests, but isolate some 
+// will be tested in following tests, but isolate some
 // test null bytes, passing wrong length, etc
-//struct HE100_checksum HE100_fletcher16 (char *data, size_t bytes);
+//struct fletcher_checksum fletcher_checksum16 (char *data, size_t bytes);
 
-//struct HE100_checksum HE100_KBPayloadChecksum (unsigned char *data, size_t size);
+//struct fletcher_checksum HE100_KBPayloadChecksum (unsigned char *data, size_t size);
 /**
  * Kevin Brown's Fletcher checksum, use to compare to ours
  */
-struct HE100_checksum
+struct fletcher_checksum
 HE100_KBPayloadChecksum (unsigned char *data, size_t size)
 {
     size_t i = 0;
@@ -32,8 +33,8 @@ HE100_KBPayloadChecksum (unsigned char *data, size_t size)
         ck_b += ck_a;
     }
 
-    HE100_checksum r;
-        
+    fletcher_checksum r;
+
     r.sum1 = ck_a;
     r.sum2 = ck_b;
 
@@ -49,7 +50,7 @@ TEST_F(Helium_100_Test, GoodBits)
 {
     HE100_fastSetPA (int fdin, int power_level);
     ASSERT_EQ(
-               
+
     );
 }
 */
@@ -62,19 +63,19 @@ TEST_F(Helium_100_Test, FletcherChecksum)
 {
 
     // unsigned char *checksum_bytes[97] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcedefghjklmnopqrstuvwxyz~!@#$%^&*()_+`1234567890-={}\\|:\"<>?[];',./";
-    
+
     //ACTUAL
     unsigned char checksum_bytes[56] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcedefghjklmnopqrstuvwxyz~!@";
-    HE100_checksum checksum_result = HE100_fletcher16(checksum_bytes,56);
-    
-    HE100_checksum expected_result;
+    fletcher_checksum checksum_result = fletcher_checksum16(checksum_bytes,56);
+
+    fletcher_checksum expected_result;
     expected_result.sum1 = 0x27;
     expected_result.sum2 = 0xD3;
 
     ASSERT_EQ(
         checksum_result.sum1,
-        expected_result.sum1 
-    ); 
+        expected_result.sum1
+    );
     ASSERT_EQ(
         checksum_result.sum2,
         expected_result.sum2
@@ -86,33 +87,33 @@ TEST_F(Helium_100_Test, FletcherChecksum)
 TEST_F(Helium_100_Test, BrownVsWorld)
 {
     unsigned char checksum_bytes[56] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcedefghjklmnopqrstuvwxyz~!@";
-    HE100_checksum our_result = HE100_fletcher16(checksum_bytes,56);
-    HE100_checksum his_result = HE100_KBPayloadChecksum(checksum_bytes,56);
-    
+    fletcher_checksum our_result = fletcher_checksum16(checksum_bytes,56);
+    fletcher_checksum his_result = HE100_KBPayloadChecksum(checksum_bytes,56);
+
     ASSERT_EQ(
         his_result.sum1,
         our_result.sum1
-    ); 
+    );
     ASSERT_EQ(
         his_result.sum2,
         our_result.sum2
-    );  
+    );
 }
 
 // Compare our fletcher algorithm with Kevin Brown's
 TEST_F(Helium_100_Test, TestIncomingChecksum)
 {
     unsigned char checksum_bytes[33] = {0x20,0x04,0x00,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08};
-    HE100_checksum our_result = HE100_fletcher16(checksum_bytes,33);
-    
+    fletcher_checksum our_result = fletcher_checksum16(checksum_bytes,33);
+
     ASSERT_EQ(
         0x63,
         our_result.sum1
-    ); 
+    );
     ASSERT_EQ(
         0x9f,
         our_result.sum2
-    );  
+    );
 }
 
 TEST_F(Helium_100_Test, VerifyHeliumFrame)
@@ -133,7 +134,7 @@ TEST_F(Helium_100_Test, VerifyHeliumFrame)
         );
     }
 
-    /* 
+    /*
     ASSERT_EQ(
         helium_expected[35], //0x63,
         helium_result[35]
@@ -150,9 +151,9 @@ TEST_F(Helium_100_Test, GoodWrite)
 {
     unsigned char write_test[8] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43}; // 8
     int write_result = HE100_write(fdin, write_test, 8);
-    
+
     ASSERT_EQ(
-        1,
+        0,
         write_result
     );
 }
@@ -168,12 +169,12 @@ TEST_F(Helium_100_Test, Caught)
     ASSERT_EQ(expected_reference_result,actual_reference_result);
 
     bad_sequence[0] = 0x48; bad_sequence[1] = 0x64;
-    actual_reference_result = HE100_referenceByteSequence(bad_sequence, 1); 
-    ASSERT_EQ(expected_reference_result,actual_reference_result);    
-    
+    actual_reference_result = HE100_referenceByteSequence(bad_sequence, 1);
+    ASSERT_EQ(expected_reference_result,actual_reference_result);
+
     bad_sequence[1] = 0x65; bad_sequence[2] = 0x35;
-    actual_reference_result = HE100_referenceByteSequence(bad_sequence, 1);    
-    ASSERT_EQ(expected_reference_result,actual_reference_result);    
+    actual_reference_result = HE100_referenceByteSequence(bad_sequence, 1);
+    ASSERT_EQ(expected_reference_result,actual_reference_result);
 }
 
 // verify transmit data preparation bytes - with "Test Payload" message
@@ -185,8 +186,8 @@ TEST_F(Helium_100_Test, CorrectPayloadPreparation)
     unsigned char transmit_data_command[2] = {0x10, 0x03};
     //unsigned char transmit_data_expected_value[transmit_data_payload_length+WRAPPER_LENGTH] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0,0x0,0x0,0x0,0x0,0x0};
     unsigned char transmit_data_expected[22] = {0x48,0x65,0x10,0x03,0x00,0x0C,0x1F,0x55,0x54,0x65,0x73,0x74,0x20,0x50,0x61,0x79,0x6c,0x6f,0x61,0x64,0x1D,0xD9};
-    unsigned char *prepare_result = HE100_prepareTransmission(test_payload, 12, transmit_data_command);	
-    
+    unsigned char *prepare_result = HE100_prepareTransmission(test_payload, 12, transmit_data_command);
+
     HE100_dumpHex(stdout,transmit_data_expected,22);
     HE100_dumpHex(stdout,prepare_result,22);
 
@@ -207,7 +208,7 @@ TEST_F(Helium_100_Test, CorrectNoopPayload)
     //unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
 
     unsigned char *noop_result = HE100_prepareTransmission(noop_payload, 0, noop_command);
-    
+
     HE100_dumpHex(stdout, he100_noop_expected_value, 8);
     HE100_dumpHex(stdout, noop_result, 8);
 
@@ -247,12 +248,12 @@ TEST_F(Helium_100_Test, CorrectFastSetPaPayload)
     unsigned char fast_set_pa_command[2] = {0x10, 0x20};
     unsigned char *fast_set_pa_actual_result = HE100_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command);
     unsigned char he100_fast_set_pa_expected_value[11] = {0x48,0x65,0x10,0x20,0x00,0x01,0x31,0xA1,0x03,0x06,0x0C};
-    
+
     HE100_dumpHex(stdout, fast_set_pa_actual_result, 11);
     HE100_dumpHex(stdout, he100_fast_set_pa_expected_value, 11);
 
 	for (z=0; z<fast_set_pa_payload_length+10; z++) {
-        ASSERT_EQ(    
+        ASSERT_EQ(
             he100_fast_set_pa_expected_value[z],
             fast_set_pa_actual_result[z]
         );
@@ -272,7 +273,7 @@ TEST_F(Helium_100_Test, InvalidPALevel)
 // Function should be tested for a string of bytes similar to expected but invalid
 
 /*
-// wrong length 
+// wrong length
 TEST_F(Helium_100_Test, WrongLength)
 {
     ASSERT_EQ(
@@ -298,7 +299,7 @@ TEST_F(Helium_100_Test, StoreValidResponse1)
 {
     unsigned char sv_expected[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
     ASSERT_EQ(
-        1,
+        0,
         HE100_storeValidResponse(sv_expected,36)
     );
 }
@@ -308,7 +309,7 @@ TEST_F(Helium_100_Test, StoreValidResponse2)
 {
     unsigned char sv_expected2[41] = {0x48,0x65,0x20,0x04,0x00,0x1f,0x43,0xAB,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x33,0x32,0x30,0x30,0x30,0x31,0x33,0x31,0x36,0x34,0x46,0x42,0x0a,0x37,0x05,0x9e,0xDE};
     ASSERT_EQ(
-        1,
+        0,
         HE100_storeValidResponse(sv_expected2,41)
     );
 }
@@ -318,13 +319,13 @@ TEST_F(Helium_100_Test, StoreValidResponse3)
 {
     unsigned char sv_expected3[41] = {0x48,0x65,0x20,0x04,0x00,0x1f,0x43,0xAB,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x33,0x33,0x30,0x30,0x30,0x31,0x32,0x31,0x35,0x35,0x45,0x46,0x0a,0xc4,0x96,0xbf,0x98};
     ASSERT_EQ(
-        1,
+        0,
         HE100_storeValidResponse(sv_expected3,41)
     );
 }
 
 // invalid checksum
-// 1 - pass a frame with an invalid checksum to HE100_storeValidResponse 
+// 1 - pass a frame with an invalid checksum to HE100_storeValidResponse
 // 2 - if an invalid checksum is encountered, the payload should not be persisted,
 //     and the event should be logged by shakespeare
 TEST_F(Helium_100_Test, CatchBadChecksum)
@@ -335,16 +336,16 @@ TEST_F(Helium_100_Test, CatchBadChecksum)
     int actual_svr_result = HE100_storeValidResponse(invalid_checksum_response,icr_length);
 
     ASSERT_EQ(
-        -1,
+        0,
         actual_svr_result
     );
-    
+
     invalid_checksum_response[10] = 0x0A; // payload checksum byte 11 is corrected
-    invalid_checksum_response[7] = 0x35; // header checksum byte 8 is incorrect 
-    actual_svr_result = HE100_storeValidResponse(invalid_checksum_response,icr_length);    
-    
+    invalid_checksum_response[7] = 0x35; // header checksum byte 8 is incorrect
+    actual_svr_result = HE100_storeValidResponse(invalid_checksum_response,icr_length);
+
     ASSERT_EQ(
-        -1,
+        0,
         actual_svr_result
     );
 }
@@ -358,10 +359,10 @@ TEST_F(Helium_100_Test, SetBeaconInterval)
         {0x48,0x65,0x10,0x11,0x00,0x01,0x22,0x74,0x02,0xBA,0x2A},
         {0x48,0x65,0x10,0x11,0x00,0x01,0x22,0x74,0x03,0xBB,0x2B}
     };
-    
+
     //size_t set_beacon_payload_length = 1;
-    unsigned char set_beacon_payload[1]; 
-    
+    unsigned char set_beacon_payload[1];
+
     //unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
     unsigned char set_beacon_command[2] = {0x10, 0x11};
     unsigned char *set_beacon_actual_value;
@@ -371,7 +372,7 @@ TEST_F(Helium_100_Test, SetBeaconInterval)
     {
         set_beacon_payload[0] = i;
         set_beacon_actual_value = HE100_prepareTransmission(set_beacon_payload, 1, set_beacon_command);
-        
+
         for (z=0; z<11; z++) {
             ASSERT_EQ(
                 set_beacon_expected_value[i][z],
