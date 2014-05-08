@@ -3,15 +3,15 @@
  *
  *       Filename:  fletcher.h
  *
- *    Description:  Header file for fletcher's checksum
+ *    Description:  Header file for fletcher's checksum 
  *
  *        Version:  1.0
  *        Created:  04/05/2014 05:35:53 PM
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:
- *   Organization:
+ *         Author:   
+ *   Organization:  
  *
  * =====================================================================================
  */
