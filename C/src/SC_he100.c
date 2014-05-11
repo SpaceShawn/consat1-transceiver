@@ -56,11 +56,6 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 
 #define NOPAY_COMMAND_LENGTH 8
 #define WRAPPER_LENGTH       10
-// LED config
-#define CFG_LED_BYTE 38  // 38th byte in byte array
-#define CFG_LED_PS  0x41 // 2.5 second pulse
-#define CFG_LED_TX  0x42 // flash on transmit
-#define CFG_LED_RX  0x43 // flash on receive
 // Sync and command byte values
 #define SYNC1       0x48
 #define SYNC2           0x65
@@ -102,6 +97,7 @@ int f_fdata_int; // file descriptor for pipe
 static int pipe_initialized = FALSE;
 
 // Config options
+#define CFG_FRAME_LENGTH    44
 #define CFG_PAYLOAD_LENGTH  34
 // Interface BAUD RATE config
 #define CFG_IF_BAUD_BYTE    0 // 1st byte
@@ -170,11 +166,7 @@ static int pipe_initialized = FALSE;
 #define CFG_RX_CRC_BYTE     30 // 31st byte
 #define CFG_RX_CRC_ON       0x43
 #define CFG_RX_CRC_OFF      0x03
-// LED config
-#define CFG_LED_BYTE        30  // 31st byte
-#define CFG_LED_PS          0x41 // 2.5 second pulse
-#define CFG_LED_TX          0x42 // flash on transmit
-#define CFG_LED_RX          0x43 // flash on receive
+
 // RX CRC config// DIO - Pin 13 config
 #define CFG_DIO_PIN13_BYTE  30 // 31st byte
 #define CFG_DIO_PIN13_OFF   0x43
@@ -196,7 +188,13 @@ static int pipe_initialized = FALSE;
 #define CFG_EXT_PING_ON       0x10
 #define CFG_EXT_CODEUPLOAD_ON 0x20
 #define CFG_EXT_RESET_ON      0x40
- 
+
+// LED config
+#define CFG_LED_BYTE 38  // 38th byte in byte array
+#define CFG_LED_PS  0x41 // 2.5 second pulse
+#define CFG_LED_TX  0x42 // flash on transmit
+#define CFG_LED_RX  0x43 // flash on receive
+
 
 /**
  * Function to configure interface
@@ -925,7 +923,7 @@ struct he100_settings HE100_getConfig (int fdin)
     return old_settings;
     
     if(
-        SC_write(
+        HE100_write(
             fdin,
             HE100_prepareTransmission(get_config_payload, 0, get_config_command),
             EMPTY_PAYLOAD_WRITE_LENGTH
@@ -934,9 +932,40 @@ struct he100_settings HE100_getConfig (int fdin)
     {
        if ( HE100_read(fdin, 1) ) 
        {
-            // check if is config
-            // data other than config could have been in buffer!
-            // pour data into struct
+         unsigned char buffer[44];
+         datapipe.ReadFromPipe((unsigned char*)buffer, CFG_FRAME_LENGTH);
+         if ( HE100_referenceByteSequence(buffer,3) == 0x05 ) // check if is config
+         {
+            he100_settings settings; 
+            int i=0;
+            if ( (int)buffer[5] == CFG_PAYLOAD_LENGTH) 
+            { // check that we have the expected CFG payload length
+              // pour data into struct
+              settings.interface_baud_rate = buffer[10+0]; 
+              settings.tx_power_amp_level = buffer[10+1]; 
+              settings.rx_rf_baud_rate = buffer[10+2]; 
+              settings.tx_rf_baud_rate = buffer[10+3]; 
+              settings.rx_modulation = buffer[10+4]; 
+              settings.tx_modulation = buffer[10+5]; 
+              settings.rx_freq = buffer[10+6]; 
+              //settings.rx_freq = buffer[10+7]; 
+              settings.tx_freq = buffer[10+10]; 
+              //settings.tx_freq = buffer[10+11]; 
+              
+              memcpy (settings.source_callsign,buffer[10+14],6);
+              memcpy (settings.destination_callsign,buffer[10+20],6);
+
+              settings.tx_preamble = buffer[10+26]; 
+              settings.tx_postamble = buffer[10+28]; 
+
+              //settings.dio_pin14 = buffer[10+30]; 
+              //settings.rx_crc = buffer[10+30]; 
+
+              settings.rxtx_test_cw = buffer[10+32]; 
+              settings.ext_conf_setting = buffer[10+33]; 
+              settings.led_blink_type = buffer[10+38]; 
+            }
+         }
        }
     }
 }
@@ -1021,12 +1050,12 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
         int i;
         int j=0;
         //he100_new_settings.source_callsign = CFG_SRC_CALL_DEF;
-        unsigned char SRC_CALL[6] = "VA3ORB";
+        unsigned char SRC_CALL[7] = "VA3ORB";
         for (i=CFG_SRC_CALL_BYTE;i<CFG_SRC_CALL_BYTE+6;i++)
             set_config_payload[i] = CFG_SRC_CALL_DEF[j];
 
         //he100_new_settings.destination_callsign = CFG_DST_CALL_DEF;
-        unsigned char DST_CALL[6] = "VE2CUA";
+        unsigned char DST_CALL[7] = "VE2CUA";
         j=0;
         for (i=CFG_DST_CALL_BYTE;i<CFG_DST_CALL_BYTE+6;i++)
             set_config_payload[i] = CFG_DST_CALL_DEF[j];
@@ -1099,7 +1128,7 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
 
     if (r==1) //
         if(
-            SC_write(
+            HE100_write(
                 fdin,
                 HE100_prepareTransmission(set_config_payload, CFG_PAYLOAD_LENGTH, set_config_command),
                 CFG_PAYLOAD_LENGTH+10
@@ -1121,7 +1150,7 @@ HE100_writeFlash (int fdin, unsigned char *flash_md5sum, size_t length)
     unsigned char write_flash_command[2] = {CMD_TRANSMIT, CMD_WRITE_FLASH};
     
     if(
-        SC_write(
+        HE100_write(
             fdin,
             HE100_prepareTransmission(write_flash_payload, length, write_flash_command),
             write_length
