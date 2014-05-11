@@ -938,8 +938,8 @@ struct he100_settings HE100_getConfig (int fdin)
          {
             he100_settings settings; 
             int i=0;
-            if ( (int)buffer[5] == CFG_PAYLOAD_LENGTH) 
-            { // check that we have the expected CFG payload length
+            //if ( (int)buffer[5] == CFG_PAYLOAD_LENGTH) 
+            //{ // check that we have the expected CFG payload length
               // pour data into struct
               settings.interface_baud_rate = buffer[10+0]; 
               settings.tx_power_amp_level = buffer[10+1]; 
@@ -951,9 +951,13 @@ struct he100_settings HE100_getConfig (int fdin)
               //settings.rx_freq = buffer[10+7]; 
               settings.tx_freq = buffer[10+10]; 
               //settings.tx_freq = buffer[10+11]; 
-              
-              memcpy (settings.source_callsign,buffer[10+14],6);
-              memcpy (settings.destination_callsign,buffer[10+20],6);
+             
+              unsigned char * scl[7];
+              unsigned char * dcl[7];
+              //memcpy(scl,buffer+10+14,6);
+              memcpy(settings.source_callsign,(unsigned char*)buffer+10+14,6);
+              //memcpy(dcl,buffer+10+20,6);
+              memcpy(settings.destination_callsign,(unsigned char*)buffer+10+20,6);
 
               settings.tx_preamble = buffer[10+26]; 
               settings.tx_postamble = buffer[10+28]; 
@@ -964,7 +968,7 @@ struct he100_settings HE100_getConfig (int fdin)
               settings.rxtx_test_cw = buffer[10+32]; 
               settings.ext_conf_setting = buffer[10+33]; 
               settings.led_blink_type = buffer[10+38]; 
-            }
+            //}
          }
        }
     }
@@ -1146,7 +1150,7 @@ HE100_writeFlash (int fdin, unsigned char *flash_md5sum, size_t length)
     return -1;
 
     size_t write_length = length + 10;
-    unsigned char *write_flash_payload = (char *) malloc(length);
+    unsigned char *write_flash_payload = (unsigned char *) malloc(length);
     unsigned char write_flash_command[2] = {CMD_TRANSMIT, CMD_WRITE_FLASH};
     
     if(
