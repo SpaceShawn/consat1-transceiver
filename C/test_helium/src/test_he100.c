@@ -90,15 +90,16 @@ main (int argc, char** argv)
             printf("\r\n Message written successfully!");
         else  
             printf("\r\n Problems writing to serial device");
-
+        /*
         printf("\r\n Beginning spamming! test message!");
-        while (!stop) {
+         while (!stop) {
             // sleep(0.1);
             if ( HE100_transmitSpam(fdin, message, msg_len) > 0 )
                 printf("\r\n Message written successfully!");
             else  
                 printf("\r\n Problems writing to serial device"); 
         }
+        */
 //*/
 
 /* 
@@ -155,6 +156,7 @@ main (int argc, char** argv)
 */
 
 ///*      // read continuously until SIGINT
+        printf("Attempting to read...\n");
         HE100_read(fdin, 15);
 //*/
         // close he100 device

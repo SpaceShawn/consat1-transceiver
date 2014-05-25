@@ -32,7 +32,7 @@ def ConfigSectionMap(section):
 
 ser = serial.Serial(
 #    3,# dell laptop
-  port='/dev/ttyUSB0',# toshiba laptop
+  port='/dev/ttyUSB1',# toshiba laptop
   baudrate=9600,
   parity=serial.PARITY_NONE,
   bytesize=serial.EIGHTBITS,
