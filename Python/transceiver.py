@@ -84,6 +84,7 @@ def SC_printMenu():
   print 'setledtx - sltx - set the LED to pulse on transmit\r'
   print 'setledrx - slrx - set the LED to pulse on receive\r'
   print 'setpoweramp - spa - set the power amplification based on input'
+  print 'writeflash - wf - stores the current configuration in radio flash'
   print 'exit - q - and close the serial port\r\n'
 
 #  print "error opening serial port: " + str(e)
@@ -207,6 +208,9 @@ if ser.isOpen():
       print '8-bit', SC_fletcher8(input)
 #      print SC_fletcher16(input)
       print '32-bit', SC_fletcher32(input)
+    elif ((input == "writeflash") | (input == "wf")):
+      input=SC_writeFlash()
+      SC_writeCallback(input)  
     else:
       SC_printMenu() 
 
