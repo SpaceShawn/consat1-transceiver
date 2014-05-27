@@ -20,6 +20,7 @@ GTEST_DIR = ../../../gtest-1.7.0
 USER_DIR = ../../../HE100-lib/C
 TIMER_DIR = ../../../space-timer-lib
 NAMEDPIPE_DIR = ../../../space-commander
+FLETCHER_DIR = ../../../space-lib/checksum
 SHAKES_DIR = ../../../space-lib/shakespeare
 MICROINCPATH=-I../inc/Q6/
 PCINCPATH=-I../inc/PC/
@@ -76,18 +77,21 @@ gtest_main.a : gtest-all.o gtest_main.o
 ###########################
 
 NamedPipe.o : $(NAMEDPIPE_DIR)/src/NamedPipe.cpp $(NAMEDPIPE_DIR)/include/NamedPipe.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) -I$(NAMEDPIPE_DIR)/include/ $(CXXFLAGS) -c $(NAMEDPIPE_DIR)/src/NamedPipe.cpp 
+	$(CXX) $(CPPFLAGS) -I$(NAMEDPIPE_DIR)/include/ $(CXXFLAGS) -c $(NAMEDPIPE_DIR)/src/NamedPipe.cpp
 
 timer.o : $(TIMER_DIR)/src/timer.c $(TIMER_DIR)/inc/timer.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) -I$(TIMER_DIR)/inc/ $(CXXFLAGS) -c $(TIMER_DIR)/src/timer.c 
+	$(CXX) $(CPPFLAGS) -I$(TIMER_DIR)/inc/ $(CXXFLAGS) -c $(TIMER_DIR)/src/timer.c
+
+fletcher.o : $(FLETCHER_DIR)/src/fletcher.c $(FLETCHER_DIR)/inc/fletcher.h $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(INCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(FLETCHER_DIR)/src/fletcher.c
 
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(USER_DIR)/inc/timer.h $(USER_DIR)/inc/SC_he100.h $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(INCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c
 
 shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(SHAKES_DIR)/inc/shakespeare.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) -I$(SHAKES_DIR)/inc/ $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp 
+	$(CXX) $(CPPFLAGS) -I$(SHAKES_DIR)/inc/ $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp
 
-he100_lib_test : he100_lib_test.o NamedPipe.o timer.o shakespeare.o SC_he100.o gtest_main.a
+he100_lib_test : he100_lib_test.o NamedPipe.o fletcher.o timer.o shakespeare.o SC_he100.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt
 
 he100_lib_test.o : $(USER_DIR)/test/he100_lib_test.cpp $(USER_DIR)/inc/SC_he100.h $(GTEST_HEADERS)

@@ -247,6 +247,9 @@ def SC_transmit(payload):
 def SC_setConfig():
   return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 41 00 00 00 31 70');
 
+def SC_writeFlash():
+  return bytearray.fromhex('48 65 10 08 00 10 28 68 0B 91 F1 D5 4F 93 2D C6 38 2D C6 9F 19 79 00 CF 1A 33')
+
 def SC_size(data):
   return str(sys.getsizeof(data))
 

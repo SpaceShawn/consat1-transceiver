@@ -48,7 +48,8 @@ he100_transmit_continuously () {
      while [ 1 ]; do
         echo "Transmitting message on $device ...";
         printf $'\x48\x65\x10\x03\x00\x05\x18\x4e\x48\x65\x6c\x6c\x6f\xf5\x8c' > $device;
-        trap sigint_handler 2
+        #trap sigint_handler 2
+        trap sigint_handler SIGINT 
     done       
     he100_listen;
 }

@@ -29,6 +29,7 @@
 #include <poll.h>
 // project includes
 #include "he100.h"      /*  exposes the correct serial device location */
+#include "fletcher.h"
 //#include "./Net2Com.h"
 #include "timer.h"
 #include "NamedPipe.h"
@@ -207,14 +208,12 @@ HE100_configureInterface (int fdin)
         fprintf(stderr, "\r\nHE100_configureInterface: failed to set config: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);
     }
-/*
     int flush_device = -1;
     if ( flush_device = tcsetattr(fdin, TCSAFLUSH, &settings) < 0 ) // apply attributes
     {
         fprintf(stderr, "\r\nHE100_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);
     }
-*/
     fprintf(stdout, "\r\nHE100_configureInterface: successfully applied new settings and flush device");
 }
 
@@ -285,76 +284,20 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
 
     // Write byte array
     int w = write (fdin, bytes, size);
-    int write_return = 0;
+    int write_return = 1;
 
-    //fflush(fdin);
+    fflush( NULL ); fsync(fdin); // TODO fdin, is a tty device, ineffective?
 
     // Issue a read to check for ACK/NOACK
     if ( HE100_read(fdin, 2) > 0 ) {
-       write_return = 1;
+       write_return = 0;
     }
     if (w>0) {
-        write_return = 1;
+        write_return = 0;
     }
     return write_return;
 }
 
-/**
- * Function to write a given byte sequence to the serial device
- * @param fdin - the file descriptor representing the serial device
- * @param bytes - the char array containing the byte sequence to write
- * @param size - the length of the array in bytes
- */
-int
-HE100_spam(int fdin, unsigned char *bytes, size_t size)
-{
-    // Output outgoing transmission
-    //fprintf(stdout, "\r\nWriting to device: ");
-
-    // Write byte array
-    int w = write (fdin, bytes, size);
-    int write_return = 0;
-
-    if (w>0) {
-        write_return = 1;
-    }
-    return write_return;
-}
-
-/** Optimized Fletcher Checksum
- * 16-bit implementation of the Fletcher Checksum
- * returns two 8-bit sums
- * @param data - uint8_t const - data on which to perform checksum
- * @param bytes - size_t - number of bytes to process
- * inspired by http://en.wikipedia.org/wiki/Fletcher%27s_checksum#Optimizations
- */
-struct HE100_checksum
-HE100_fletcher16 (unsigned char *data, size_t bytes)
-{
-    fprintf(stdout, "checksumming the following %d bytes\r\n", (int)bytes);
-    HE100_dumpHex(stdout,data,bytes);
-    uint8_t sum1 = 0, sum2 = 0;
-
-    while (bytes)
-    {
-        size_t tlen = bytes > 20 ? 20 : bytes;
-        bytes -= tlen;
-        do
-        {
-            sum2 += sum1 += *data++;
-        }
-        while (--tlen);
-    }
-
-    // prepare and return checksum values
-    HE100_checksum r;
-
-    // final reduction to 8 bits
-    r.sum1 = (sum1 & 0xff);
-    r.sum2 = (sum2 & 0xff);
-
-    return r;
-}
 
 /**
  * Function to parse a given frame, validate it, and return its data
@@ -365,15 +308,12 @@ HE100_fletcher16 (unsigned char *data, size_t bytes)
 int
 HE100_storeValidResponse (unsigned char *response, size_t length)
 {
-    //fprintf(stdout,"\r\n  HE100_storeValidResponse: validating %d byte message",(int)length);
     unsigned char *data = (unsigned char *) malloc(length);
-    int r=1; // return value
+    int r=0; // return value
     // prepare container for decoded data
     size_t data_length = length - 2; // response minus 2 sync bytes
     int hb1 = 6; int hb2 = 7;
     int pb1 = length-2; int pb2 = length-1;
-
-    //fprintf(stdout,"\r\nlength=%d,data_length=%d,hb1=%d,hb2=%d,pb1=%d,pb2=%d\r\n",(int)length,(int)data_length,hb1,hb2,pb1,pb2);
 
     size_t payload_length = length - 10; // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
     unsigned char *msg = (unsigned char *) malloc(data_length);
@@ -384,11 +324,10 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
         data[j] = response[i];
         j++;
     }
-    //fprintf(stdout,"\r\nj=%d\r\n",j);
     HE100_dumpHex(stdout,data,4);
 
     // generate and compare header checksum
-    HE100_checksum h_chksum = HE100_fletcher16(data,4);
+    fletcher_checksum h_chksum = fletcher_checksum16(data,4);
     uint8_t h_s1_chk = memcmp(&response[hb1], &h_chksum.sum1, 1);
     uint8_t h_s2_chk = memcmp(&response[hb2], &h_chksum.sum2, 1);
     int h_chk = h_s1_chk + h_s2_chk; // should be zero given valid chk
@@ -399,11 +338,9 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
         data[j] = response[i];
         j++;
     }
-    //HE100_dumpHex(stdout,data,data_length-2);
-    //HE100_dumpHex(stdout,response,length);
 
     // generate and compare payload checksum
-    HE100_checksum p_chksum = HE100_fletcher16(data,data_length-2); // chksum everything except 'He' and payload checksum bytes
+    fletcher_checksum p_chksum = fletcher_checksum16(data,data_length-2); // chksum everything except 'He' and payload checksum bytes
     uint8_t p_s1_chk = memcmp(&response[pb1], &p_chksum.sum1, 1);
     uint8_t p_s2_chk = memcmp(&response[pb2], &p_chksum.sum2, 1);
     int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
@@ -418,11 +355,11 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
         } else if (response[4] == 255) {
             // TODO log with shakespeare
             printf("\r\n  HE100: No-Acknowledge");
-            r = -1;
+            r = 1;
         } else {
             // TODO log with shakespeare
             printf("\r\n  HE100: Empty length? \r\n");
-            r = -1;
+            r = 1;
         }
     }
     else
@@ -444,14 +381,15 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
         }
     }
 
-    if (r==1) {
-        /* pipe_init();
-         datapipe.WriteToPipe(msg, payload_length);
-        */// DISABLED FOR TESTING
+    if (r==0) {
+        pipe_init();
+        datapipe.WriteToPipe(msg, payload_length);
         //return (char*) msg; // return the stripped message so it doesn't have to be done again
         // TODO we aren't doing this because we want the incoming messages to collect even if the the netman is failing to act on them properly. Is this reason enough to continue in this way?
     }
 
+    free(data);
+    free(msg);
     return r;
 }
 
@@ -515,8 +453,7 @@ HE100_read (int fdin, time_t timeout)
     {
         if ( ( ret_value = poll(&fds, 1, 5) ) /* TODO not nice, be explicit */ ) // if a byte is read
         {
-	          read(fdin, &buffer, 1);
-            //fprintf(stdout, "\r\n HE100_read: i:%d chars_read:%d buffer:0x%02X",i,chars_read,buffer[0]);
+	        read(fdin, &buffer, 1);
 
             // set break condition based on incoming byte pattern
             if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) // getting an ack
@@ -525,22 +462,18 @@ HE100_read (int fdin, time_t timeout)
             }
             else if ( i==5 && breakcond==255 ) // this is the length byte, set break point accordingly
             { // could be done by HE100_referenceByteSequence
-                //fprintf(stdout,"\r\n HE100_read: Got length byte");
                 breakcond = buffer[0] + 10;
             }
 
             // increment response array values based on byte pattern
             if ( HE100_referenceByteSequence(buffer,i) > 0 )
             {
-                //fprintf(stdout," >> returned 1");
                     response[i]=buffer[0];
                     buffer[0] = '\0';
-                    //fprintf(stdout,"\n  i:%d breakcondition:%d",i,breakcond);
                     i++;
             }
             else
             {
-            //fprintf(stdout," >> returned -1");
                 i=0; // restart message index
                 response[0] = '\0';
                 breakcond=255;
@@ -548,10 +481,10 @@ HE100_read (int fdin, time_t timeout)
 
             if (i==breakcond)
             {
-            //fprintf(stdout,"\n HE100_read: hit break condition!");
+
                 if (i>0) // we have a message to validate
                 {
-                    if ( HE100_storeValidResponse(response, breakcond) >= 0 )
+                    if ( HE100_storeValidResponse(response, breakcond) == 0 )
                     {
                         fprintf(stdout, "\r\n VALID MESSAGE!\r\n");
                         r = 1; // we got a frame, time to ack!
@@ -568,7 +501,6 @@ HE100_read (int fdin, time_t timeout)
                             printf("\r\n Problems with soft reset");
 */
                     }
-                    //HE100_dumpBinary(stdout, response, i+1);
                 }
 
                 i=0; // restart message index
@@ -611,7 +543,7 @@ HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *
         payload_chksum_bool = 1;
     }
 
-    unsigned char *transmission = (unsigned char *) malloc(transmission_length);
+    unsigned char *transmission = (unsigned char *) malloc(transmission_length); // TODO free me!
     unsigned char *payloadbytes = (unsigned char *) malloc(payloadbytes_length);
 
     // attach sync bytes to final transmission byte array
@@ -628,10 +560,9 @@ HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *
     payloadbytes[3] = (unsigned char) length & 0xff;
 
     // generate and attach header checksum
-    HE100_checksum header_checksum = HE100_fletcher16(payloadbytes,4);
+    fletcher_checksum header_checksum = fletcher_checksum16(payloadbytes,4);
     payloadbytes[4] = (unsigned char) header_checksum.sum1 & 0xff;
     payloadbytes[5] = (unsigned char) header_checksum.sum2 & 0xff;
-    //printf("\r\nheader_checksum: [%d,%d], [%d,%d]",header_checksum.sum1, header_checksum.sum2,payloadbytes[4],payloadbytes[5]);
 
     if( payload_chksum_bool==1 ) // real payload
     {
@@ -640,10 +571,9 @@ HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *
             payloadbytes[6+i] = payload[i];
         }
         // generate and attach payload checksum
-        HE100_checksum payload_checksum = HE100_fletcher16(payloadbytes,length+6); // chksum everything except first two bytes 'He'
+        fletcher_checksum payload_checksum = fletcher_checksum16(payloadbytes,length+6); // chksum everything except first two bytes 'He'
         payloadbytes[6+length] = payload_checksum.sum1;
         payloadbytes[6+length+1] = payload_checksum.sum2;
-        //printf ("\r\npayload_checksum: [%d,%d], [%d,%d]",payload_checksum.sum1,payload_checksum.sum2,payloadbytes[6+length],payloadbytes[6+length+1]);
     }
 
     // attach payload and return final transmission
@@ -653,6 +583,7 @@ HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *
         j++;
     }// or use memcpy with offset
 
+    free(payloadbytes);
     return (unsigned char*) transmission;
 }
 
@@ -660,7 +591,6 @@ HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *
 int
 HE100_referenceByteSequence(unsigned char *response, int position)
 {
-    //printf("\r\n  HE100_referenceByteSequence(0x%02X,%d)",*response,(int)position);
     int r = -1;
     switch ((int)position)
     {
@@ -769,6 +699,7 @@ HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t trans
     unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
     return HE100_write(
         fdin,
+<<<<<<< HEAD
         HE100_prepareTransmission(
                 transmit_data_payload,
                 transmit_data_len,
@@ -786,6 +717,8 @@ HE100_transmitSpam (int fdin, unsigned char *transmit_data_payload, size_t trans
     unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
     return HE100_spam(
         fdin,
+=======
+>>>>>>> master
         HE100_prepareTransmission(
                 transmit_data_payload,
                 transmit_data_len,
@@ -802,7 +735,7 @@ int
 HE100_setBeaconInterval (int fdin, int beacon_interval)
 {
    unsigned char beacon_interval_payload[1];
-   beacon_interval_payload[0] = beacon_interval & 0xff; 
+   beacon_interval_payload[0] = beacon_interval & 0xff;
 
    if (beacon_interval > 255 ) {
         return -1;
@@ -810,28 +743,28 @@ HE100_setBeaconInterval (int fdin, int beacon_interval)
 
    unsigned char beacon_interval_command[2] = {CMD_TRANSMIT, CMD_BEACON_CONFIG};
    return HE100_write(
-        fdin, 
+        fdin,
         HE100_prepareTransmission(
-                beacon_interval_payload, 
-                1, 
+                beacon_interval_payload,
+                1,
                 beacon_interval_command
         ), 1+10
     );
 }
 
 /**
- * Function returning byte sequence to set the beacon message 
- * unsigned char *beacon_message_payload message to transmit 
+ * Function returning byte sequence to set the beacon message
+ * unsigned char *beacon_message_payload message to transmit
  */
 int
 HE100_setBeaconMessage (int fdin, unsigned char *set_beacon_message_payload, size_t beacon_message_len)
 {
    unsigned char set_beacon_message_command[2] = {CMD_TRANSMIT, CMD_BEACON_DATA};
    return HE100_write(
-        fdin, 
+        fdin,
         HE100_prepareTransmission(
-                set_beacon_message_payload, 
-                beacon_message_len, 
+                set_beacon_message_payload,
+                beacon_message_len,
                 set_beacon_message_command
         ), beacon_message_len+10
     );
@@ -853,48 +786,48 @@ HE100_fastSetPA (int fdin, int power_level)
 
    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
    return HE100_write(
-        fdin, 
+        fdin,
         HE100_prepareTransmission(
-                fast_set_pa_payload, 
-                1, 
+                fast_set_pa_payload,
+                1,
                 fast_set_pa_command
         ), 1+10
     );
 }
 
 /**
- * Function returning byte sequence to soft reset HE100 board and restore flash settings 
+ * Function returning byte sequence to soft reset HE100 board and restore flash settings
  * no arguments
  */
 int
 HE100_softReset(int fdin)
 {
-   unsigned char soft_reset_payload[1] = {0}; 
+   unsigned char soft_reset_payload[1] = {0};
    unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
    return HE100_write(
-        fdin, 
+        fdin,
         HE100_prepareTransmission(
-                soft_reset_payload, 
-                0, 
+                soft_reset_payload,
+                0,
                 soft_reset_command
         ), 10
     );
 }
 
 /**
- * Function returning byte sequence to return firmware version 
+ * Function returning byte sequence to return firmware version
  * no arguments
  */
 int
 HE100_readFirmwareRevision(int fdin)
 {
-   unsigned char read_firmware_revision_payload[1] = {0}; 
+   unsigned char read_firmware_revision_payload[1] = {0};
    unsigned char read_firmware_revision_command[2] = {CMD_TRANSMIT, CMD_READ_FIRMWARE_V};
    return HE100_write(
-        fdin, 
+        fdin,
         HE100_prepareTransmission(
-                read_firmware_revision_payload, 
-                0, 
+                read_firmware_revision_payload,
+                0,
                 read_firmware_revision_command
         ), 10
     );
