@@ -166,8 +166,12 @@ int HE100_softReset(int fdin);
  */
 int HE100_readFirmwareRevision(int fdin);
 
+
 /* Function to return an array of config struct from Helium 100 */
+struct he100_settings HE100_prepareConfig (unsigned char * buffer);
 struct he100_settings HE100_getConfig (int fdin);
+
+unsigned char * HE100_validateConfig (struct he100_settings he100_new_settings);
 
 /* Function to configure the Helium board based on altered input struct he100_settings */
 /* validation will occur here, and if valid values have passed constraints, apply the settings */
