@@ -20,7 +20,7 @@ done
 
 he100_listen () {
     while [ 1 ]; do
-       #cat $device; #dump whatever is on the device
+       cat $device; #dump whatever is on the device
        #READ=`dd if=$device count=1`; echo $READ; #dump one character at a time
        echo "Listening on $device ..."; 
        sleep 1;
@@ -30,20 +30,20 @@ he100_listen () {
 
 he100_noop () {
     echo "Transmitting noop on $device";
-    #printf $'\x48\x65\x10\x01\x00\x00\x11\x43' > $device;
+    printf $'\x48\x65\x10\x01\x00\x00\x11\x43' > $device;
     he100_listen;
 }
 
 he100_transmit () {
     echo "Transmitting message on $device";
-    #printf $'\x48\x65\x10\x03\x00\x05\x18\x4e\x48\x65\x6c\x6c\x6f\xf5\x8c' > $device;
+    printf $'\x48\x65\x10\x03\x00\x05\x18\x4e\x48\x65\x6c\x6c\x6f\xf5\x8c' > $device;
     he100_listen;
 }
 
 he100_transmit_continuously () {
      while [ 1 ]; do
         echo "Transmitting message on $device ...";
-        #printf $'\x48\x65\x10\x03\x00\x05\x18\x4e\x48\x65\x6c\x6c\x6f\xf5\x8c' > $device;
+        printf $'\x48\x65\x10\x03\x00\x05\x18\x4e\x48\x65\x6c\x6c\x6f\xf5\x8c' > $device;
         trap sigint_handler SIGINT 
     done       
     he100_listen;
