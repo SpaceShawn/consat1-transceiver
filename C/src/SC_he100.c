@@ -156,7 +156,7 @@ HE100_configureInterface (int fdin)
     );
     settings.c_iflag |= (
           IXON
-        | IXOFF
+        //| IXOFF
         | IGNPAR // ignore bytes with parity errors
         | ICRNL  // map CR to NL (otherwise CR input on other computer will not terminate input)
     //    | INLCR  // map NL to CR (otherwise CR input on other computer will not terminate input)
