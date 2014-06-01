@@ -208,7 +208,7 @@ HE100_configureInterface (int fdin)
     }
 
     int flush_device = -1;
-    if ( flush_device = tcsetattr(fdin, TCSAFLUSH, &settings) < 0 ) // apply attributes
+    if ( (flush_device = tcsetattr(fdin, TCSAFLUSH, &settings)) < 0 ) // apply attributes
     {
         fprintf(stderr, "\r\nHE100_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);
@@ -278,24 +278,15 @@ HE100_closePort(int fdin)
 int
 HE100_write(int fdin, unsigned char *bytes, size_t size)
 {
-    // Output outgoing transmission
-    //fprintf(stdout, "\r\nWriting to device: ");
-
     // Write byte array
     int w = write (fdin, bytes, size);
     int write_return = 1;
-
-    //size_t j=0;
-    //for (j=0; j<size; j++)
-    //    printf("%02X ",bytes[j]);
-    //fprintf(stdout, "\r\nWrite size: %d\n",w);
-
     fflush( NULL ); fsync(fdin); // TODO fdin, is a tty device, ineffective?
-
     // Issue a read to check for ACK/NOACK
     if ( HE100_read(fdin, 2) > 0 ) {
        write_return = 0;
     }
+    // Check if number of bytes written is greater than zero
     if (w>0) {
         write_return = 0;
     }
@@ -311,6 +302,7 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
 int
 HE100_storeValidResponse (unsigned char *response, size_t length)
 {
+    if ( HE100_referenceByteSequence(&response[3],3) == 1 ) return 1; 
     unsigned char *data = (unsigned char *) malloc(length);
     int r=0; // return value
     // prepare container for decoded data
@@ -469,7 +461,8 @@ HE100_read (int fdin, time_t timeout)
             }
 
             // increment response array values based on byte pattern
-            if ( HE100_referenceByteSequence(buffer,i) > 0 )
+            // if byte is referenced correctly, continue
+            if ( HE100_referenceByteSequence(buffer,i) == 0 )
             {
                     response[i]=buffer[0];
                     buffer[0] = '\0';
@@ -593,17 +586,17 @@ HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *
 int
 HE100_referenceByteSequence(unsigned char *response, int position)
 {
-    int r = -1;
+    int r = 1;
     switch ((int)position)
     {
         case 0   : // first position should be 0x48 : 72
-                if ((int)*response==72) r=1;
+                if ((int)*response==72) r=0;
                 break;
         case 1   : // second position should be 0x65 : 101
-                if ((int)*response==101) r=1;
+                if ((int)*response==101) r=0;
                 break;
         case 2   : // response tx/rx command should be 0x20
-                if ((int)*response==32) r=1; // CMD_RECEIVE  0x20
+                if ((int)*response==32) r=0; // CMD_RECEIVE  0x20
                 break;
         case 3   : // response command could be between 1-20
                 if (*response > 0x00 && *response <= 0x20) r=(int)*response;
@@ -613,18 +606,21 @@ HE100_referenceByteSequence(unsigned char *response, int position)
                        *response == 0x00 // start of length byte
                     || *response == 0x0A // start of ack, should match 5
                     || *response == 0xFF // start of noack, should match 5
-                   ) r=1;
+                   ) r=0;
                 break;
         //case 5   : // real length byte
                 //if ((int)*response<MAX_FRAME_LENGTH) r=(int)*response;
                 //break;
-        default  : r=1; break;
+        default  : r=0; break;
     }
     return r;
 }
 
 /**
- * Function to decode validated and extracted data from response
+ * TODO COMPLETE AND INTEGRATE
+ * Function to decode validated and extracted data from response for 
+ * nice outputting or logging
+ *
  * @param response - the response data to interpret
  * @param length - the length of the data in bytes
  *
