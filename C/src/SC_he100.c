@@ -305,7 +305,7 @@ HE100_configureInterface (int fdin)
     }
 
     int flush_device = -1;
-    if ( flush_device = tcsetattr(fdin, TCSAFLUSH, &settings) < 0 ) // apply attributes
+    if ( (flush_device = tcsetattr(fdin, TCSAFLUSH, &settings)) < 0 ) // apply attributes
     {
         fprintf(stderr, "\r\nHE100_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);
@@ -912,7 +912,49 @@ HE100_readFirmwareRevision(int fdin)
     );
 }
 
-struct he100_settings HE100_getConfig (int fdin)
+// TODO these settings are not clearly defined in documentation and need to be confirmed
+struct he100_settings
+HE100_prepareConfig (unsigned char * buffer)
+{
+    he100_settings settings; 
+    //if ( (int)buffer[5] == CFG_PAYLOAD_LENGTH) 
+    //{ // check that we have the expected CFG payload length
+      // pour data into struct
+      settings.interface_baud_rate = buffer[10+0]; 
+      settings.tx_power_amp_level = buffer[10+1]; 
+      settings.rx_rf_baud_rate = buffer[10+2]; 
+      settings.tx_rf_baud_rate = buffer[10+3]; 
+      settings.rx_modulation = buffer[10+4]; 
+      settings.tx_modulation = buffer[10+5]; 
+      settings.rx_freq = buffer[10+6]; 
+      //settings.rx_freq = buffer[10+7]; 
+      settings.tx_freq = buffer[10+10]; 
+      //settings.tx_freq = buffer[10+11]; 
+     
+      //unsigned char * scl[7];
+      //unsigned char * dcl[7];
+      //memcpy(scl,buffer+10+14,6);
+      memcpy(settings.source_callsign,(unsigned char*)buffer+10+14,6);
+      //memcpy(dcl,buffer+10+20,6);
+      memcpy(settings.destination_callsign,(unsigned char*)buffer+10+20,6);
+
+      settings.tx_preamble = buffer[10+26]; 
+      settings.tx_postamble = buffer[10+28]; 
+
+      //settings.dio_pin14 = buffer[10+30]; 
+      //settings.rx_crc = buffer[10+30]; 
+
+      settings.rxtx_test_cw = buffer[10+32]; 
+      settings.ext_conf_setting = buffer[10+33]; 
+      settings.led_blink_type = buffer[10+38]; 
+    //}
+
+    return settings;
+}
+
+// TODO redundant to call two structs. What do we want to DO with these settings? Perhaps write to file.
+struct he100_settings 
+HE100_getConfig (int fdin)
 {//48 65 10 05 00 00 15 4F
     unsigned char get_config_payload[1] = {0};
     unsigned char get_config_command[2] = {CMD_TRANSMIT, CMD_GET_CONFIG};
@@ -933,55 +975,28 @@ struct he100_settings HE100_getConfig (int fdin)
        if ( HE100_read(fdin, 1) ) 
        {
          unsigned char buffer[44];
-         datapipe.ReadFromPipe((unsigned char*)buffer, CFG_FRAME_LENGTH);
+         datapipe.ReadFromPipe((char*)buffer, CFG_FRAME_LENGTH);
          if ( HE100_referenceByteSequence(buffer,3) == 0x05 ) // check if is config
          {
-            he100_settings settings; 
-            int i=0;
-            //if ( (int)buffer[5] == CFG_PAYLOAD_LENGTH) 
-            //{ // check that we have the expected CFG payload length
-              // pour data into struct
-              settings.interface_baud_rate = buffer[10+0]; 
-              settings.tx_power_amp_level = buffer[10+1]; 
-              settings.rx_rf_baud_rate = buffer[10+2]; 
-              settings.tx_rf_baud_rate = buffer[10+3]; 
-              settings.rx_modulation = buffer[10+4]; 
-              settings.tx_modulation = buffer[10+5]; 
-              settings.rx_freq = buffer[10+6]; 
-              //settings.rx_freq = buffer[10+7]; 
-              settings.tx_freq = buffer[10+10]; 
-              //settings.tx_freq = buffer[10+11]; 
-             
-              unsigned char * scl[7];
-              unsigned char * dcl[7];
-              //memcpy(scl,buffer+10+14,6);
-              memcpy(settings.source_callsign,(unsigned char*)buffer+10+14,6);
-              //memcpy(dcl,buffer+10+20,6);
-              memcpy(settings.destination_callsign,(unsigned char*)buffer+10+20,6);
-
-              settings.tx_preamble = buffer[10+26]; 
-              settings.tx_postamble = buffer[10+28]; 
-
-              //settings.dio_pin14 = buffer[10+30]; 
-              //settings.rx_crc = buffer[10+30]; 
-
-              settings.rxtx_test_cw = buffer[10+32]; 
-              settings.ext_conf_setting = buffer[10+33]; 
-              settings.led_blink_type = buffer[10+38]; 
-            //}
+            he100_settings settings = HE100_prepareConfig(buffer); 
+            return settings;   
          }
+         else return old_settings;
        }
     }
 }
 
-int 
-HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
-{
-    int r = -1;
- 
+/**  
+ *  This function validates a he100_settings struct
+ *  and converts to char array for safe deployment
+ **/ 
+// TODO currently idea is to set a value in the array that is impossible to 
+// represent a false result. Clearly there is a better way to do this     
+unsigned char * 
+HE100_validateConfig (struct he100_settings he100_new_settings)
+{ 
     // initiate config payload array
-    unsigned char set_config_payload[22];
-    unsigned char set_config_command[2] = {CMD_TRANSMIT, CMD_SET_CONFIG};
+    unsigned char * set_config_payload = (unsigned char *) malloc (CFG_PAYLOAD_LENGTH);
 
     // validate new interface baud rate setting
     if (
@@ -990,10 +1005,11 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
         &&  he100_new_settings.interface_baud_rate != CFG_DEF_IF_BAUD 
     ) 
     {
-        // this would have to be changed with the serial connection as well
-        // setttings_array[CFG_IF_BAUD_BYTE] = he100_new_settings.interface_baud_rate;
-        return -1;
+         // TODO this SHOULD changed with the serial connection as well?
+         set_config_payload[CFG_IF_BAUD_BYTE] = he100_new_settings.interface_baud_rate;
     }
+    //else set_config_payload[CFG_IF_BAUD_BYTE]=-1;
+    else set_config_payload[0]=255;
 
     // validate new power amplification level
     if (
@@ -1002,7 +1018,9 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
        ) 
     {
         set_config_payload[CFG_PA_BYTE] = he100_new_settings.tx_power_amp_level;
-    }
+    } 
+    //else set_config_payload[CFG_PA_BYTE]=-1;
+    else set_config_payload[0]=255;
 
     // validate new rf baud rates
     if (
@@ -1015,6 +1033,10 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
         set_config_payload[CFG_RF_RX_BAUD_BYTE] = he100_new_settings.rx_rf_baud_rate;
         set_config_payload[CFG_RF_TX_BAUD_BYTE] = he100_new_settings.tx_rf_baud_rate;
     }
+    else {
+        set_config_payload[CFG_RF_RX_BAUD_BYTE]=-1;
+        set_config_payload[CFG_RF_TX_BAUD_BYTE]=-1;
+    }
    
     // validate modulation (USE DEFAULTS)
     if (
@@ -1022,9 +1044,10 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
          && he100_new_settings.tx_modulation == CFG_TX_DEF_MOD        
     )
     {
-        set_config_payload[CFG_RX_MOD_BYTE] == he100_new_settings.rx_modulation;
-        set_config_payload[CFG_TX_MOD_BYTE] == he100_new_settings.tx_modulation;
+        set_config_payload[CFG_RX_MOD_BYTE] = he100_new_settings.rx_modulation;
+        set_config_payload[CFG_TX_MOD_BYTE] = he100_new_settings.tx_modulation;
     }
+    else set_config_payload[0]=255;
 
     // validate new RX setting
     if ( 
@@ -1034,6 +1057,7 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
     {
        // don't know how to set this yet
     }
+    else set_config_payload[0]=255;
 
     // validate new TX setting
     if ( 
@@ -1043,6 +1067,7 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
     {
        // don't know how to set this yet
     }
+    else set_config_payload[0]=255;
 
     // validate callsigns (USE DEFAULTS) 
     if ( 1
@@ -1054,17 +1079,19 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
         int i;
         int j=0;
         //he100_new_settings.source_callsign = CFG_SRC_CALL_DEF;
-        unsigned char SRC_CALL[7] = "VA3ORB";
+        //unsigned char SRC_CALL[7] = "VA3ORB";
         for (i=CFG_SRC_CALL_BYTE;i<CFG_SRC_CALL_BYTE+6;i++)
             set_config_payload[i] = CFG_SRC_CALL_DEF[j];
 
         //he100_new_settings.destination_callsign = CFG_DST_CALL_DEF;
-        unsigned char DST_CALL[7] = "VE2CUA";
+        //unsigned char DST_CALL[7] = "VE2CUA";
         j=0;
         for (i=CFG_DST_CALL_BYTE;i<CFG_DST_CALL_BYTE+6;i++)
             set_config_payload[i] = CFG_DST_CALL_DEF[j];
     }
-   
+    else set_config_payload[0]=255;
+
+  
 /***   DIO PIN 13, RX CRC, LED, this doesn't make much sense yet:  *******************/
 /* the following settings are in conflict because they are set by the same byte */
 /* CFG_RX_CRC_BYTE == CFG_LED_BYTE == CFG_DIO_PIN13_BYTE == 30 */
@@ -1078,7 +1105,8 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
     {
         set_config_payload[CFG_RX_CRC_BYTE] = he100_new_settings.rx_crc;
     }
- 
+    else set_config_payload[0]=255;
+
     // validate new LED setting
     if (
             he100_new_settings.led_blink_type == CFG_LED_PS
@@ -1088,7 +1116,8 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
     {
         set_config_payload[CFG_LED_BYTE] = he100_new_settings.led_blink_type;
     }
-    
+    else set_config_payload[0]=255;
+
     // validate new LED setting
     if (
             he100_new_settings.dio_pin13 == CFG_DIO_PIN13_OFF
@@ -1099,13 +1128,15 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
     {
         set_config_payload[CFG_DIO_PIN13_BYTE] = he100_new_settings.dio_pin13;
     }
+    else set_config_payload[0]=255;
 
 /*************************************************************************************/
     // validate TX Test CW (USE DEFAULTS) 
     if ( he100_new_settings.rxtx_test_cw == CFG_RXTX_TEST_CW_DEF )
     {
-        set_config_payload[CFG_RXTX_TEST_CW_BYTE] == he100_new_settings.rxtx_test_cw;
+        set_config_payload[CFG_RXTX_TEST_CW_BYTE] = he100_new_settings.rxtx_test_cw;
     }
+    else set_config_payload[0]=255;
 
     // validate EXT functions
     switch (he100_new_settings.ext_conf_setting)
@@ -1125,12 +1156,25 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
         default : 
            set_config_payload[CFG_EXT_BYTE] = CFG_EXT_DEF;
            break;
-    }
+    } // if no valid option, go with default
 
+    return set_config_payload;
+}
+
+/**
+ *  Function to persist a given he100_settings struct after it passes validation
+ */   
+int 
+HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
+{
     fprintf(stdout, "config function not yet implemented, try again later");
     return -1;
 
-    if (r==1) //
+    unsigned char *set_config_payload = HE100_validateConfig(he100_new_settings);
+    unsigned char set_config_command[2] = {CMD_TRANSMIT, CMD_SET_CONFIG};
+
+    // TODO expand to check all parameters and display all errors present 
+    if (set_config_payload[0] != 255) // we have valid array
         if(
             HE100_write(
                 fdin,
@@ -1138,8 +1182,10 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
                 CFG_PAYLOAD_LENGTH+10
             ) > 0
         )
+            free(set_config_payload);
             return 1; // Successfully wrote config
         
+    free(set_config_payload);
     return -1; // failed to set and/or write config
 }
 
@@ -1148,6 +1194,8 @@ HE100_writeFlash (int fdin, unsigned char *flash_md5sum, size_t length)
 {
     // not ready yet
     return -1;
+
+    HE100_dumpHex (stdout,flash_md5sum,24); // TODO handle this properly, see docs
 
     size_t write_length = length + 10;
     unsigned char *write_flash_payload = (unsigned char *) malloc(length);
