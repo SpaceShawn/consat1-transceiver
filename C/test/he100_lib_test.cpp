@@ -12,138 +12,30 @@ class Helium_100_Test : public ::testing::Test
     size_t z; // assert loop index
 };
 
-// will be tested in following tests, but isolate some
-// test null bytes, passing wrong length, etc
-//struct fletcher_checksum fletcher_checksum16 (char *data, size_t bytes);
-
-//struct fletcher_checksum HE100_KBPayloadChecksum (unsigned char *data, size_t size);
-/**
- * Kevin Brown's Fletcher checksum, use to compare to ours
- */
-struct fletcher_checksum
-HE100_KBPayloadChecksum (unsigned char *data, size_t size)
-{
-    size_t i = 0;
-    uint8_t ck_a = 0;
-    uint8_t ck_b = 0;
-
-    for( i = 0; i < size; i++ )
-    {
-        ck_a += data[i];
-        ck_b += ck_a;
-    }
-
-    fletcher_checksum r;
-
-    r.sum1 = ck_a;
-    r.sum2 = ck_b;
-
-    return r;
-}
-
 // Pass the function some data and check against expected result
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
-// Test the various bitshifting operations occuring in the library
-/*
-TEST_F(Helium_100_Test, GoodBits)
-{
-    HE100_fastSetPA (int fdin, int power_level);
-    ASSERT_EQ(
 
-    );
-}
-*/
-
-/*
-// Test the fletcher checksum
-// NOTE: reality on the HE100 is subjective and unexpected
-//EXPECTED http://www.lammertbies.nl/comm/info/crc-calculation.html
-TEST_F(Helium_100_Test, FletcherChecksum)
-{
-
-    // unsigned char *checksum_bytes[97] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcedefghjklmnopqrstuvwxyz~!@#$%^&*()_+`1234567890-={}\\|:\"<>?[];',./";
-
-    //ACTUAL
-    unsigned char checksum_bytes[56] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcedefghjklmnopqrstuvwxyz~!@";
-    fletcher_checksum checksum_result = fletcher_checksum16(checksum_bytes,56);
-
-    fletcher_checksum expected_result;
-    expected_result.sum1 = 0x27;
-    expected_result.sum2 = 0xD3;
-
-    ASSERT_EQ(
-        checksum_result.sum1,
-        expected_result.sum1
-    );
-    ASSERT_EQ(
-        checksum_result.sum2,
-        expected_result.sum2
-    );
-}
-*/
-
-// Compare our fletcher algorithm with Kevin Brown's
-TEST_F(Helium_100_Test, BrownVsWorld)
-{
-    unsigned char checksum_bytes[56] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcedefghjklmnopqrstuvwxyz~!@";
-    fletcher_checksum our_result = fletcher_checksum16(checksum_bytes,56);
-    fletcher_checksum his_result = HE100_KBPayloadChecksum(checksum_bytes,56);
-
-    ASSERT_EQ(
-        his_result.sum1,
-        our_result.sum1
-    );
-    ASSERT_EQ(
-        his_result.sum2,
-        our_result.sum2
-    );
-}
-
-// Compare our fletcher algorithm with Kevin Brown's
-TEST_F(Helium_100_Test, TestIncomingChecksum)
-{
-    unsigned char checksum_bytes[33] = {0x20,0x04,0x00,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08};
-    fletcher_checksum our_result = fletcher_checksum16(checksum_bytes,33);
-
-    ASSERT_EQ(
-        0x63,
-        our_result.sum1
-    );
-    ASSERT_EQ(
-        0x9f,
-        our_result.sum2
-    );
-}
-
+// TODO regenerate sample bytes from latest HE100 boards
 TEST_F(Helium_100_Test, VerifyHeliumFrame)
 {
-    unsigned char helium_expected[37] = {0x48,0x65,0x20,0x04,0x00,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
+    unsigned char helium_expected[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
 
-    unsigned char helium_payload_bytes[27] = {0xA6,0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
+    unsigned char helium_payload_bytes[26] = {0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
     unsigned char helium_receive_command[2] = {0x20, 0x04};
     unsigned char *helium_result = HE100_prepareTransmission(helium_payload_bytes, 27, helium_receive_command);
 
-    HE100_dumpHex(stdout, helium_result, 36);
-    HE100_dumpHex(stdout, helium_payload_bytes, 36);
+    HE100_dumpHex(stdout, helium_expected, 37);
+    HE100_dumpHex(stdout, helium_result, 37);
+    HE100_dumpHex(stdout, helium_payload_bytes, 26);
 
-    for (z=0; z<37; z++) {
+    for (z=0; z<36; z++) {
+        printf("z=%d\n",z);
         ASSERT_EQ(
             helium_expected[z],
             helium_result[z]
         );
     }
-
-    /*
-    ASSERT_EQ(
-        helium_expected[35], //0x63,
-        helium_result[35]
-    );
-    ASSERT_EQ(
-        helium_expected[36], //0x9f,
-        helium_result[36]
-    );
-    */
 }
 
 // Test writing to the helium device
@@ -161,7 +53,7 @@ TEST_F(Helium_100_Test, GoodWrite)
 // Test a bogus byte sequence
 TEST_F(Helium_100_Test, Caught)
 {
-    int expected_reference_result = -1;
+    int expected_reference_result = 1;
     int actual_reference_result;
 
     unsigned char bad_sequence[8] = {0x47,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
@@ -180,18 +72,16 @@ TEST_F(Helium_100_Test, Caught)
 // verify transmit data preparation bytes - with "Test Payload" message
 TEST_F(Helium_100_Test, CorrectPayloadPreparation)
 {
-    //memset ( test_payload, "Test Payload", transmit_data_payload_length*sizeof(unsigned char) );
     size_t transmit_data_payload_length = 12;
     unsigned char test_payload[13] = "Test Payload"; // 12
     unsigned char transmit_data_command[2] = {0x10, 0x03};
-    //unsigned char transmit_data_expected_value[transmit_data_payload_length+WRAPPER_LENGTH] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0,0x0,0x0,0x0,0x0,0x0};
     unsigned char transmit_data_expected[22] = {0x48,0x65,0x10,0x03,0x00,0x0C,0x1F,0x55,0x54,0x65,0x73,0x74,0x20,0x50,0x61,0x79,0x6c,0x6f,0x61,0x64,0x1D,0xD9};
     unsigned char *prepare_result = HE100_prepareTransmission(test_payload, 12, transmit_data_command);
 
     HE100_dumpHex(stdout,transmit_data_expected,22);
     HE100_dumpHex(stdout,prepare_result,22);
 
-	for (z=0; z<transmit_data_payload_length+10; z++) {
+	  for (z=0; z<transmit_data_payload_length+10; z++) {
         ASSERT_EQ(
             transmit_data_expected[z],
             prepare_result[z]
@@ -212,7 +102,7 @@ TEST_F(Helium_100_Test, CorrectNoopPayload)
     HE100_dumpHex(stdout, he100_noop_expected_value, 8);
     HE100_dumpHex(stdout, noop_result, 8);
 
-	for (z=0; z<8; z++) {
+	  for (z=0; z<8; z++) {
         ASSERT_EQ(
             he100_noop_expected_value[z],
             noop_result[z]
@@ -231,7 +121,7 @@ TEST_F(Helium_100_Test, CorrectSoftResetPayload)
 
     unsigned char *soft_reset_actual_result = HE100_prepareTransmission(soft_reset_payload, soft_reset_payload_length, soft_reset_command);
 
-	for (z=0; z<soft_reset_payload_length+8; z++) {
+	  for (z=0; z<soft_reset_payload_length+8; z++) {
         ASSERT_EQ(
             he100_soft_reset_expected_value[z],
             soft_reset_actual_result[z]
@@ -252,7 +142,7 @@ TEST_F(Helium_100_Test, CorrectFastSetPaPayload)
     HE100_dumpHex(stdout, fast_set_pa_actual_result, 11);
     HE100_dumpHex(stdout, he100_fast_set_pa_expected_value, 11);
 
-	for (z=0; z<fast_set_pa_payload_length+10; z++) {
+	  for (z=0; z<fast_set_pa_payload_length+10; z++) {
         ASSERT_EQ(
             he100_fast_set_pa_expected_value[z],
             fast_set_pa_actual_result[z]
@@ -272,27 +162,40 @@ TEST_F(Helium_100_Test, InvalidPALevel)
 
 // Function should be tested for a string of bytes similar to expected but invalid
 
-/*
+// TODO length check not yet implemented in function
 // wrong length
+/* 
 TEST_F(Helium_100_Test, WrongLength)
 {
+    unsigned char response[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f}; // real payload
+    // first verify with correct length
     ASSERT_EQ(
-        -1,
-        HE100_storeValidResponse(response,length)
+        0,
+        HE100_storeValidResponse(response,36)
+    );
+    // then verify incorrect length is caught
+    ASSERT_EQ(
+        1,
+        HE100_storeValidResponse(response,37)
     );
 }
 */
 
-/*
 // invalid command
 TEST_F(Helium_100_Test, InvalidCommand)
 {
+    unsigned char good_response[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f}; // fourth byte is incorrect
+    unsigned char bad_response[36] = {0x48,0x65,0x20,0x63,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f}; // fourth byte is incorrect
+    int length = 36; // Should be correct length
     ASSERT_EQ(
-        -1,
-        HE100_storeValidResponse(response,length)
+        0,
+        HE100_storeValidResponse(good_response,length)
+    );    ASSERT_EQ(
+        1,
+        HE100_storeValidResponse(bad_response,length)
     );
 }
-*/
+
 
 // store valid response, should return 1
 TEST_F(Helium_100_Test, StoreValidResponse1)
@@ -388,6 +291,19 @@ Send Beacon Data
 He[16][16][1][0]!r1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111[180][232]
 */
 
-// test pipe operations
+// TODO test pipe operations
 
-// test log operations
+// TODO test log operations
+
+// TODO Test the various bitshifting operations occuring in the library
+/*
+TEST_F(Helium_100_Test, GoodBits)
+{
+    HE100_fastSetPA (int fdin, int power_level);
+    ASSERT_EQ(
+
+    );
+}
+*/
+
+// TODO test null bytes, passing wrong length, etc
