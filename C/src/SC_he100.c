@@ -312,6 +312,7 @@ int
 HE100_storeValidResponse (unsigned char *response, size_t length)
 {
     unsigned char *data = (unsigned char *) malloc(length);
+    if (data==NULL) return 7;
     int r=0; // return value
     // prepare container for decoded data
     size_t data_length = length - 2; // response minus 2 sync bytes
@@ -320,6 +321,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
 
     size_t payload_length = length - 10; // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
     unsigned char *msg = (unsigned char *) malloc(data_length);
+    if (msg==NULL) return 7;
 
     // copy the header into the new response array minus sync bytes
     size_t i; size_t j=0;
@@ -486,11 +488,16 @@ HE100_read (int fdin, time_t timeout)
             {
                 if (i>0) // we have a message to validate
                 {
-                    if ( HE100_storeValidResponse(response, breakcond) == 0 )
+		    int SVR_result = HE100_storeValidResponse(response, breakcond);
+                    if ( SVR_result == 0 )
                     {
                         fprintf(stdout, "\r\n VALID MESSAGE!\r\n");
-                        r = 1; // we got a frame, time to ack!
+                        r = 1; // we got a frame, time to ack! // TODO change to exit status
                     }
+		    else if (SVR_result == 7) {
+			fprintf(stderr, "\r\n Memory allocation problem!\r\n");
+                        r=-1;
+		    }
                     else
                     {
                         fprintf(stderr, "\r\n Invalid data!\r\n");
@@ -546,7 +553,9 @@ HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *
     }
 
     unsigned char *transmission = (unsigned char *) malloc(transmission_length); // TODO free me!
+    if (transmission==NULL) exit(EXIT_FAILURE);
     unsigned char *payloadbytes = (unsigned char *) malloc(payloadbytes_length);
+    if (payloadbytes==NULL) exit(EXIT_FAILURE);
 
     // attach sync bytes to final transmission byte array
     transmission[0] = SYNC1; //0x48;
