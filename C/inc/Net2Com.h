@@ -11,7 +11,7 @@ typedef enum {
 
 class Net2Com{
     private :
-        const static int NULL_CHAR_LENGTH = 1;
+        static const int NULL_CHAR_LENGTH = 1;
         static const int NUMBER_OF_PIPES = 4;
         static const char* pipe_str[];
          
@@ -21,9 +21,11 @@ class Net2Com{
         NamedPipe* dataPipe_r;
         NamedPipe* infoPipe_w;
         NamedPipe* infoPipe_r;
-
+    
     public :
-        Net2Com(pipe_num_t dataw, pipe_num_t datar, pipe_num_t infow, pipe_num_t infor);        // ORDER : DATA_WRITE, DATA_READ, INFO_WRITE, INFO_READ
+        // ORDER : DATA_WRITE, DATA_READ, INFO_WRITE, INFO_READ
+        Net2Com(pipe_num_t dataw, pipe_num_t datar, pipe_num_t infow, pipe_num_t infor);
+        
         ~Net2Com();
         int WriteToDataPipe(const char* str);
         int WriteToDataPipe(unsigned char);

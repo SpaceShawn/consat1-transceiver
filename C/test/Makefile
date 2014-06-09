@@ -36,7 +36,7 @@ CXXFLAGS += -g -Wall -Wextra -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = he100_lib_test
+TESTS = he100_lib_test he100_live_radio_test
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -96,3 +96,9 @@ he100_lib_test : he100_lib_test.o NamedPipe.o fletcher.o timer.o shakespeare.o S
 
 he100_lib_test.o : $(USER_DIR)/test/he100_lib_test.cpp $(USER_DIR)/inc/SC_he100.h $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/test/he100_lib_test.cpp
+
+he100_live_radio_test : he100_live_radio_test.o NamedPipe.o fletcher.o timer.o shakespeare.o SC_he100.o gtest_main.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt
+
+he100_live_radio_test.o : $(USER_DIR)/test/he100_live_radio_test.cpp $(USER_DIR)/inc/SC_he100.h $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/test/he100_live_radio_test.cpp

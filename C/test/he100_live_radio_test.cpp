@@ -6,9 +6,13 @@
 class Helium_100_Live_Radio_Test : public ::testing::Test
 {
     protected:
-    virtual void SetUp() { }
-
-    const static int fdin = 1; // fake file descriptor to simulate HE100
+    virtual void SetUp() {
+    }
+    int fdin = HE100_openPort();
+    virtual void TearDown() {
+      HE100_closePort(fdin);
+    }
+    //if (fdin==0) exit(EXIT_FAILURE);
     size_t z; // assert loop index
 };
 
@@ -57,17 +61,15 @@ TEST_F(Helium_100_Live_Radio_Test, NOOP)
 // Test transmitData
 TEST_F(Helium_100_Live_Radio_Test, TransmitData)
 {
-    unsigned char * payload = {0x48,0x65,0x6c,0x6c,0x6f};
+    unsigned char payload[5] = {0x48,0x65,0x6c,0x6c,0x6f};
     int transmit_result = HE100_transmitData(fdin,payload,5);
 
     ASSERT_EQ(
         0,
-        noop_result
+        transmit_result
     );
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
-
-
 
 // Test setBeaconInterval
 TEST_F(Helium_100_Live_Radio_Test, SetBeaconInterval)
@@ -84,7 +86,8 @@ TEST_F(Helium_100_Live_Radio_Test, SetBeaconInterval)
 // Test setBeaconMessage
 TEST_F(Helium_100_Live_Radio_Test, SetBeaconMessage)
 {
-    int beacon_message_result = HE100_setBeaconMessage(fdin,3);
+    unsigned char payload[7] = {0x62,0x65,0x61,0x63,0x6F,0x6E,0x0A};
+    int beacon_message_result = HE100_setBeaconMessage(fdin,payload,7);
 
     ASSERT_EQ(
         0,
@@ -108,11 +111,11 @@ TEST_F(Helium_100_Live_Radio_Test, FastSetPA)
 // Test softReset
 TEST_F(Helium_100_Live_Radio_Test, SoftReset)
 {
-    int soft_reset_result = HE100_softReset(fdin,7);
+    int soft_reset_result = HE100_softReset(fdin);
 
     ASSERT_EQ(
         0,
-        fast_set_pa_result 
+        soft_reset_result
     );
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
@@ -120,7 +123,7 @@ TEST_F(Helium_100_Live_Radio_Test, SoftReset)
 // test readFirmwareRevision
 TEST_F(Helium_100_Live_Radio_Test, ReadFirmwareRevision)
 {
-    int read_firmware_result = HE100_readFirmwareRevision(fdin,7);
+    int read_firmware_result = HE100_readFirmwareRevision(fdin);
 
     ASSERT_EQ(
         0,
@@ -140,7 +143,7 @@ TEST_F(Helium_100_Live_Radio_Test, InvalidPALevel)
 }
 
 // BEACON TESTING
-TEST_F(Helium_100_Live_Radio_Test, SetBeaconInterval)
+TEST_F(Helium_100_Live_Radio_Test, SetBeaconThorough)
 {
     unsigned char set_beacon_expected_value[4][11] = {
         {0x48,0x65,0x10,0x11,0x00,0x01,0x22,0x74,0x00,0xB8,0x28},

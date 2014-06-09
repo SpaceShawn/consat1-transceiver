@@ -283,12 +283,9 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
     int write_return = 1;
     fflush( NULL ); fsync(fdin); // TODO fdin, is a tty device, ineffective?
     // Issue a read to check for ACK/NOACK
-    if ( HE100_read(fdin, 2) > 0 ) {
-       write_return = 0;
-    }
     // Check if number of bytes written is greater than zero
-    if (w>0) {
-        write_return = 0;
+    if ( ( HE100_read(fdin, 2) == 0 ) && w>0 ) {
+       write_return = 0;
     }
     return write_return;
 }
@@ -432,7 +429,7 @@ HE100_read (int fdin, time_t timeout)
     unsigned char buffer[1];
     unsigned char response[255];
     int i=0;
-    int r=0; // return value for HE100_read
+    int r=1; // return value for HE100_read
     int breakcond=255;
     timer_t read_timer = timer_get();
     timer_start(&read_timer,timeout,0);
@@ -445,13 +442,15 @@ HE100_read (int fdin, time_t timeout)
     struct pollfd fds;
     fds.fd = fdin;
     fds.events = POLLIN;
+   
+    if (fdin==0) return 1;
 
     while (!timer_complete(&read_timer))
     {
         if ( ( ret_value = poll(&fds, 1, 5) ) /* TODO not nice, be explicit */ ) // if a byte is read
         {
-	        read(fdin, &buffer, 1);
-
+            read(fdin, &buffer, 1);
+            HE100_dumpHex(stdout,buffer,1);
             // set break condition based on incoming byte pattern
             if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) // getting an ack
             {
@@ -479,18 +478,19 @@ HE100_read (int fdin, time_t timeout)
 
             if (i==breakcond)
             {
+                printf("Hit Break Condition");
                 if (i>0) // we have a message to validate
                 {
-		    int SVR_result = HE100_storeValidResponse(response, breakcond);
+                    int SVR_result = HE100_storeValidResponse(response, breakcond);
                     if ( SVR_result == 0 )
                     {
                         fprintf(stdout, "\r\n VALID MESSAGE!\r\n");
-                        r = 1; // we got a frame, time to ack! // TODO change to exit status
+                        r = 0; // we got a frame, time to ack! 
                     }
-		    else if (SVR_result == 7) {
-			fprintf(stderr, "\r\n Memory allocation problem!\r\n");
+                    else if (SVR_result == 7) {
+                        fprintf(stderr, "\r\n Memory allocation problem!\r\n");
                         r=-1;
-		    }
+                    }
                     else
                     {
                         fprintf(stderr, "\r\n Invalid data!\r\n");
@@ -514,7 +514,7 @@ HE100_read (int fdin, time_t timeout)
         else if (ret_value == -1)
         {
             // bad or no read
-	        printf("Oh dear, something went wrong with select()! %s\n", strerror(errno));
+            printf("Oh dear, something went wrong with select()! %s\n", strerror(errno));
             r = -1;
         }
     }
