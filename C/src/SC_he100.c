@@ -62,6 +62,7 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 // Sync and command byte values
 #define SYNC1       0x48
 #define SYNC2           0x65
+#define CMD_BYTE            3
 #define CMD_TRANSMIT        0x10
 #define CMD_RECEIVE         0x20
 #define CMD_TELEMETRY_DUMP  0x30 // pending??
@@ -92,6 +93,12 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 #define CMD_FIRMWARE_UPDATE     0x14
 #define CMD_FIRMWARE_PACKET     0x15
 #define CMD_FAST_SET_PA         0x20
+
+#define NULL_MALLOC             7
+#define FAILED_OPEN_PORT        8
+#define FAILED_CLOSE_PORT       9
+#define NOT_A_TTY               10
+#define INVALID_BYTE_SEQUENCE   13
 
 FILE *fdlog; // library log file
 FILE *fdata; // pipe to send valid payloads for external use
@@ -236,7 +243,7 @@ HE100_openPort(void)
             stderr,
             "\r\nHE100_openPort: Unable to open port: %s Errno:%s\n Line:%d", port_address, strerror(errno), __LINE__
         );
-        return -1;
+        return FAILED_OPEN_PORT;
     }
 
     if ( !isatty(fdin) ) {
@@ -244,7 +251,7 @@ HE100_openPort(void)
             stderr,
             "\r\nHE100_openPort: Not a serial device: %s Errno: %s\n Line:%d\r\n", port_address, strerror(errno), __LINE__
         );
-        return -1;
+        return NOT_A_TTY;
     }
 
     fprintf(stdout, "\r\nSuccessfully opened port: %s",port_address);
@@ -257,16 +264,17 @@ HE100_openPort(void)
 int
 HE100_closePort(int fdin)
 {
+    // TODO: Setting the speed to B0 instructs the modem to "hang up".
     if (close(fdin) == -1)
     {
         fprintf(
             stderr,
             "\r\nHE100_closePort: Unable to close the serial device connection! Line:%d", __LINE__
         );
-        return -1;
+        return FAILED_CLOSE_PORT;
     }
     fprintf(stdout, "\r\nHE100_closePort: Closed device %s successfully!\r\n",port_address);
-    return 1;
+    return 0;
 }
 
 /**
@@ -280,10 +288,13 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
 {
     // Write byte array
     int w = write (fdin, bytes, size);
+    // TODO // free(bytes); // bytes is always allocated on the stack!
+
     int write_return = 1;
     fflush( NULL ); fsync(fdin); // TODO fdin, is a tty device, ineffective?
     // Issue a read to check for ACK/NOACK
     // Check if number of bytes written is greater than zero
+    
     if ( ( HE100_read(fdin, 2) == 0 ) && w>0 ) {
        write_return = 0;
     }
@@ -299,9 +310,9 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
 int
 HE100_storeValidResponse (unsigned char *response, size_t length)
 {
-    if ( HE100_referenceByteSequence(&response[3],3) == 1 ) return 1; 
+    if ( HE100_referenceByteSequence(&response[CMD_BYTE],CMD_BYTE) == INVALID_BYTE_SEQUENCE ) return INVALID_BYTE_SEQUENCE; 
     unsigned char *data = (unsigned char *) malloc(length);
-    if (data==NULL) return 7;
+    if (data==NULL) return NULL_MALLOC;
     int r=0; // return value
     // prepare container for decoded data
     size_t data_length = length - 2; // response minus 2 sync bytes
@@ -310,7 +321,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
 
     size_t payload_length = length - 10; // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
     unsigned char *msg = (unsigned char *) malloc(data_length);
-    if (msg==NULL) return 7;
+    if (msg==NULL) return NULL_MALLOC;
 
     // copy the header into the new response array minus sync bytes
     size_t i; size_t j=0;
@@ -452,32 +463,28 @@ HE100_read (int fdin, time_t timeout)
             read(fdin, &buffer, 1);
             HE100_dumpHex(stdout,buffer,1);
             // set break condition based on incoming byte pattern
-            if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) // getting an ack
-            {
+            if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) { // getting an ack
+                // could be done by HE100_referenceByteSequence
                 breakcond=8; // ack is 8 bytes
-            }
-            else if ( i==5 && breakcond==255 ) // this is the length byte, set break point accordingly
-            { // could be done by HE100_referenceByteSequence
+            } else if ( i==5 && breakcond==255 ) { 
+                // this is the length byte, and we haven't already set the break point. Set break point accordingly
+                // could be done by HE100_referenceByteSequence
                 breakcond = buffer[0] + 10;
             }
 
             // increment response array values based on byte pattern
             // if byte is referenced correctly, continue
-            if ( HE100_referenceByteSequence(buffer,i) == 0 )
-            {
-                    response[i]=buffer[0];
-                    buffer[0] = '\0';
-                    i++;
-            }
-            else
-            {
+            if ( HE100_referenceByteSequence(buffer,i) == 0 )             {
+                response[i]=buffer[0];
+                buffer[0] = '\0';
+                i++;
+            } else {
                 i=0; // restart message index
                 response[0] = '\0';
                 breakcond=255;
             }
 
-            if (i==breakcond)
-            {
+            if (i==breakcond) {
                 printf("Hit Break Condition");
                 if (i>0) // we have a message to validate
                 {
@@ -495,13 +502,9 @@ HE100_read (int fdin, time_t timeout)
                     {
                         fprintf(stderr, "\r\n Invalid data!\r\n");
                         r=-1;
-/*  TODO
                         // soft reset the transceiver
-                        if ( HE100_softReset(fdin) > 0 )
-                            printf("\r\n Soft Reset written successfully!");
-                        else
-                            printf("\r\n Problems with soft reset");
-*/
+                        if ( HE100_softReset(fdin) > 0 ) printf("\r\n Soft Reset written successfully!");
+                        else printf("\r\n Problems with soft reset");
                     }
                 }
 
@@ -511,8 +514,7 @@ HE100_read (int fdin, time_t timeout)
             }
             buffer[0] = '\0'; // wipe buffer each time
         }
-        else if (ret_value == -1)
-        {
+        else if (ret_value == -1) {
             // bad or no read
             printf("Oh dear, something went wrong with select()! %s\n", strerror(errno));
             r = -1;
@@ -526,6 +528,7 @@ HE100_read (int fdin, time_t timeout)
  * @param char payload - data to be transmitted
  * @param size_t length - length of incoming data
  */
+// TODO //int* HE100_prepareTransmission(unsigned char *payload, unsigned char *prepared_transmission, size_t length, unsigned char *command)
 unsigned char*
 HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *command)
 {
@@ -595,7 +598,7 @@ HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *
 int
 HE100_referenceByteSequence(unsigned char *response, int position)
 {
-    int r = 1;
+    int r = INVALID_BYTE_SEQUENCE;
     switch ((int)position)
     {
         case 0   : // first position should be 0x48 : 72

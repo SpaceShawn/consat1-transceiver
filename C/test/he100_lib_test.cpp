@@ -6,15 +6,15 @@
 class Helium_100_Test : public ::testing::Test
 {
     protected:
-    virtual void SetUp() { }
-
+    virtual void SetUp() { 
+        printf("SETUP");
+    }
+    virtual void TearDown() {
+        printf("TEARDOWN");
+    }
     const static int fdin = 1; // fake file descriptor to simulate HE100
     size_t z; // assert loop index
 };
-
-// Pass the function some data and check against expected result
-unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
-
 
 // TODO regenerate sample bytes from latest HE100 boards
 TEST_F(Helium_100_Test, VerifyHeliumFrame)
@@ -30,7 +30,7 @@ TEST_F(Helium_100_Test, VerifyHeliumFrame)
     HE100_dumpHex(stdout, helium_payload_bytes, 26);
 
     for (z=0; z<36; z++) {
-        printf("z=%d\n",z);
+        printf("z=%zu\n",z);
         ASSERT_EQ(
             helium_expected[z],
             helium_result[z]
@@ -164,8 +164,7 @@ TEST_F(Helium_100_Test, InvalidPALevel)
 
 // TODO length check not yet implemented in function
 // wrong length
-/* 
-TEST_F(Helium_100_Test, WrongLength)
+TEST_F(Helium_100_Test, StoreValidResponse_WrongLength)
 {
     unsigned char response[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f}; // real payload
     // first verify with correct length
@@ -178,6 +177,13 @@ TEST_F(Helium_100_Test, WrongLength)
         1,
         HE100_storeValidResponse(response,37)
     );
+}
+/* TODO after refecactoring of function
+TEST_F(Helium_100_Test, PrepareTransmission_WrongLength)
+{
+    unsigned char helium_payload_bytes[26] = {0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
+    unsigned char helium_receive_command[2] = {0x20, 0x04};
+    ASSERT_EQ(WRONG_LENGTH,HE100_prepareTransmission(helium_payload_bytes, 28, helium_receive_command));
 }
 */
 

@@ -5,14 +5,16 @@
 
 class Helium_100_Live_Radio_Test : public ::testing::Test
 {
+    public:
+        int fdin;
     protected:
     virtual void SetUp() {
+        fdin = HE100_openPort(); 
+        if (fdin==0) exit(EXIT_FAILURE);
     }
-    int fdin = HE100_openPort();
     virtual void TearDown() {
-      HE100_closePort(fdin);
+        HE100_closePort(fdin);
     }
-    //if (fdin==0) exit(EXIT_FAILURE);
     size_t z; // assert loop index
 };
 
