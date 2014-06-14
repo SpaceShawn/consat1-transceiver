@@ -25,6 +25,8 @@ class Net2Com{
     public :
         // ORDER : DATA_WRITE, DATA_READ, INFO_WRITE, INFO_READ
         Net2Com(pipe_num_t dataw, pipe_num_t datar, pipe_num_t infow, pipe_num_t infor);
+        static Net2Com* create_netman();
+        static Net2Com* create_commander();
         
         ~Net2Com();
         int WriteToDataPipe(const char* str);

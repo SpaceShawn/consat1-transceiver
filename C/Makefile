@@ -7,7 +7,7 @@ BEAGLECC=arm-linux-gnueabi-g++
 #CFLAGS=-static
 MICROCFLAGS=-mcpu=v8.40.b -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-compare -mno-xl-soft-mul -mno-xl-soft-div -mxl-float-sqrt -mhard-float -mxl-float-convert -mlittle-endian -Wall
 DEBUGFLAGS=-ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provides macro info to gdb
-INCPATH=-I./inc/
+INCPATH=-I./inc/ -I../../space-lib/include/
 MICROINCPATH=-I./inc/Q6/
 PCINCPATH=-I./inc/PC/
 BBINCPATH=-I./inc/BB/

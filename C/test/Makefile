@@ -24,7 +24,7 @@ FLETCHER_DIR = ../../../space-lib/checksum
 SHAKES_DIR = ../../../space-lib/shakespeare
 MICROINCPATH=-I../inc/Q6/
 PCINCPATH=-I../inc/PC/
-INCPATH=-I../inc/
+INCPATH=-I../inc/ -I../../../space-lib/include/
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that

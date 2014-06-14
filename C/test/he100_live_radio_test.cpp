@@ -10,7 +10,7 @@ class Helium_100_Live_Radio_Test : public ::testing::Test
     protected:
     virtual void SetUp() {
         fdin = HE100_openPort(); 
-        if (fdin==0) exit(EXIT_FAILURE);
+        if (fdin==-1) exit(EXIT_FAILURE);
     }
     virtual void TearDown() {
         HE100_closePort(fdin);
@@ -25,17 +25,6 @@ class Helium_100_Live_Radio_Test : public ::testing::Test
 // Pass the function some data and check against expected result
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
-// Test the various bitshifting operations occuring in the library
-/*
-TEST_F(Helium_100_Live_Radio_Test, GoodBits)
-{
-    HE100_fastSetPA (int fdin, int power_level);
-    ASSERT_EQ(
-
-    );
-}
-*/
-
 // Test writing to the helium device
 TEST_F(Helium_100_Live_Radio_Test, GoodWrite)
 {
@@ -46,6 +35,7 @@ TEST_F(Helium_100_Live_Radio_Test, GoodWrite)
         0,
         write_result
     );
+    // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
 
 // Test NOOP

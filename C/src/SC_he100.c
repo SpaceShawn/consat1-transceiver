@@ -33,6 +33,7 @@
 //#include "./Net2Com.h"
 #include "timer.h"
 #include "NamedPipe.h"
+#include "SpaceDecl.h"
 
 #define LOG_FILE_PATH "/var/log/he100/he100.log"
 #define DATA_PIPE_PATH "/var/log/he100/data.log"
@@ -54,6 +55,17 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 
 #define NOPAY_COMMAND_LENGTH 8
 #define WRAPPER_LENGTH       10
+
+// HELIUM HEADER FRAME BYTES
+#define HE_SYNC_BYTE_1             0
+#define HE_SYNC_BYTE_2             1
+#define HE_TX_RX_BYTE              2
+#define HE_CMD_BYTE                3
+#define HE_LENGTH_BYTE_0           4 // will never be filled
+#define HE_LENGTH_BYTE             5 
+#define HE_HEADER_CHECKSUM_BYTE_1  6
+#define HE_HEADER_CHECKSUM_BYTE_2  7
+
 // LED config
 #define CFG_LED_BYTE 38  // 38th byte in byte array
 #define CFG_LED_PS  0x41 // 2.5 second pulse
@@ -62,7 +74,6 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 // Sync and command byte values
 #define SYNC1       0x48
 #define SYNC2           0x65
-#define CMD_BYTE            3
 #define CMD_TRANSMIT        0x10
 #define CMD_RECEIVE         0x20
 #define CMD_TELEMETRY_DUMP  0x30 // pending??
@@ -93,12 +104,6 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 #define CMD_FIRMWARE_UPDATE     0x14
 #define CMD_FIRMWARE_PACKET     0x15
 #define CMD_FAST_SET_PA         0x20
-
-#define NULL_MALLOC             7
-#define FAILED_OPEN_PORT        8
-#define FAILED_CLOSE_PORT       9
-#define NOT_A_TTY               10
-#define INVALID_BYTE_SEQUENCE   13
 
 FILE *fdlog; // library log file
 FILE *fdata; // pipe to send valid payloads for external use
@@ -310,16 +315,16 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
 int
 HE100_storeValidResponse (unsigned char *response, size_t length)
 {
-    if ( HE100_referenceByteSequence(&response[CMD_BYTE],CMD_BYTE) == INVALID_BYTE_SEQUENCE ) return INVALID_BYTE_SEQUENCE; 
-    unsigned char *data = (unsigned char *) malloc(length);
-    if (data==NULL) return NULL_MALLOC;
+    if ( HE100_referenceByteSequence(&response[HE_CMD_BYTE],HE_CMD_BYTE) == INVALID_COMMAND ) return INVALID_COMMAND; 
     int r=0; // return value
     // prepare container for decoded data
     size_t data_length = length - 2; // response minus 2 sync bytes
     int hb1 = 6; int hb2 = 7;
     int pb1 = length-2; int pb2 = length-1;
-
     size_t payload_length = length - 10; // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
+    if ( response[HE_LENGTH_BYTE] != payload_length ) return WRONG_LENGTH;    unsigned char *data = (unsigned char *) malloc(length);
+
+    if (data==NULL) return NULL_MALLOC;
     unsigned char *msg = (unsigned char *) malloc(data_length);
     if (msg==NULL) return NULL_MALLOC;
 
@@ -612,6 +617,7 @@ HE100_referenceByteSequence(unsigned char *response, int position)
                 break;
         case 3   : // response command could be between 1-20
                 if (*response > 0x00 && *response <= 0x20) r=(int)*response;
+                else r=INVALID_COMMAND;
                 break;
         case 4   : // first length byte
                 if (
