@@ -62,7 +62,7 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 #define HE_SYNC_BYTE_2             1
 #define HE_TX_RX_BYTE              2
 #define HE_CMD_BYTE                3
-#define HE_LENGTH_BYTE_0           4 // will never be filled
+#define HE_LENGTH_BYTE_0           4 // will never be filled, except by ACK/NOACK
 #define HE_LENGTH_BYTE             5 
 #define HE_HEADER_CHECKSUM_BYTE_1  6
 #define HE_HEADER_CHECKSUM_BYTE_2  7
@@ -214,15 +214,13 @@ HE100_configureInterface (int fdin)
     tcflush(fdin, TCIFLUSH); // flush port before persisting changes
 
     int apply_settings = -1;
-    if ( (apply_settings = tcsetattr(fdin, TCSANOW, &settings)) < 0 ) // apply attributes
-    {
+    if ( (apply_settings = tcsetattr(fdin, TCSANOW, &settings)) < 0 ) { // apply attributes
         fprintf(stderr, "\r\nHE100_configureInterface: failed to set config: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     int flush_device = -1;
-    if ( (flush_device = tcsetattr(fdin, TCSAFLUSH, &settings)) < 0 ) // apply attributes
-    {
+    if ( (flush_device = tcsetattr(fdin, TCSAFLUSH, &settings)) < 0 ) { // apply attributes
         fprintf(stderr, "\r\nHE100_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -260,7 +258,7 @@ HE100_openPort(void)
         return HE_NOT_A_TTY;
     }
 
-
+    // TODO issue NOOP and check device is on
 
     fprintf(stdout, "\r\nSuccessfully opened port: %s",port_address);
     HE100_configureInterface(fdin);
@@ -318,7 +316,6 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
  * @param response - the frame data to be validated
  * @param length - the entire length of the frame in bytes
  */
-//unsigned char*
 int
 HE100_storeValidResponse (unsigned char *response, size_t length)
 {
@@ -446,6 +443,7 @@ HE100_dumpHex(FILE *fdout, unsigned char *bytes, size_t size)
  * @param fdin - the file descriptor representing the serial device
  */
 int
+//HE100_read (int fdin, time_t timeout, unsigned char * data_buffer)
 HE100_read (int fdin, time_t timeout)
 {
     // Read response
@@ -470,25 +468,24 @@ HE100_read (int fdin, time_t timeout)
 
     while (!timer_complete(&read_timer))
     {
-        if ( ( ret_value = poll(&fds, 1, 5) ) /* TODO not nice, be explicit */ ) // if a byte is read
+        if ( ( ret_value = poll(&fds, 1, 5) > -1 ) ) // if a byte is read
         {
             read(fdin, &buffer, 1);
             HE100_dumpHex(stdout,buffer,1);
+
             // set break condition based on incoming byte pattern
-            if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) { 
+            if ( i==HE_LENGTH_BYTE_0 && (buffer[0] == 0x0A || buffer[0] == 0xFF) ) { 
                 // TODO could this EVER also be a large length > 255? 
                 // COULD BE getting an ack
-                // could be done by HE100_referenceByteSequence
                 breakcond=8; // ack is 8 bytes
             } else if ( i==5 && breakcond==255 ) { 
                 // this is the length byte, and we haven't already set the break point. Set break point accordingly
-                // could be done by HE100_referenceByteSequence
-                breakcond = buffer[0] + 10;
+                breakcond = buffer[0] + WRAPPER_LENGTH;
             }
 
             // increment response array values based on byte pattern
             // if byte is referenced correctly, continue
-            if ( HE100_referenceByteSequence(buffer,i) == 0 )             {
+            if ( HE100_referenceByteSequence(buffer,i) == 0 ) {
                 response[i]=buffer[0];
                 buffer[0] = '\0';
                 i++;
@@ -498,24 +495,23 @@ HE100_read (int fdin, time_t timeout)
                 breakcond=255;
             }
 
-            if (i==breakcond) {
-                printf("Hit Break Condition");
-                if (i>0) // we have a message to validate
+            if (i==breakcond) 
+            {
+                if (i>0) // we are at the expected end of our message, time to validate
                 {
                     int SVR_result = HE100_storeValidResponse(response, breakcond);
                     if ( SVR_result == 0 )
                     {
-                        fprintf(stdout, "\r\n VALID MESSAGE!\r\n");
                         r = 0; // we got a frame, time to ack! 
                     }
-                    else if (SVR_result == 7) {
+                    else if (SVR_result == CS1_NULL_MALLOC) {
                         fprintf(stderr, "\r\n Memory allocation problem!\r\n");
-                        r=-1;
+                        r=CS1_NULL_MALLOC;
                     }
                     else
                     {
                         fprintf(stderr, "\r\n Invalid data!\r\n");
-                        r=-1;
+                        r=CS1_INVALID_BYTE_SEQUENCE;
                         // soft reset the transceiver
                         if ( HE100_softReset(fdin) > 0 ) printf("\r\n Soft Reset written successfully!");
                         else printf("\r\n Problems with soft reset");
