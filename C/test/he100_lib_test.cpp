@@ -42,7 +42,7 @@ TEST_F(Helium_100_Test, VerifyHeliumFrame)
 // Test a bogus byte sequence
 TEST_F(Helium_100_Test, Caught)
 {
-    int expected_reference_result = INVALID_BYTE_SEQUENCE;
+    int expected_reference_result = CS1_INVALID_BYTE_SEQUENCE;
     int actual_reference_result;
 
     unsigned char bad_sequence[8] = {0x47,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
@@ -163,7 +163,7 @@ TEST_F(Helium_100_Test, StoreValidResponse_WrongLength)
     );
     // then verify incorrect length is caught
     ASSERT_EQ(
-        WRONG_LENGTH,
+        CS1_WRONG_LENGTH,
         HE100_storeValidResponse(response,37)
     );
 }
@@ -173,7 +173,7 @@ TEST_F(Helium_100_Test, DISABLE_PrepareTransmission_WrongLength)
 {
     //unsigned char helium_payload_bytes[26] = {0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
     //unsigned char helium_receive_command[2] = {0x20, 0x04};
-    ASSERT_EQ(14,1);//TODO import h file, then -> //ASSERT_EQ(WRONG_LENGTH,HE100_prepareTransmission(helium_payload_bytes, 28, helium_receive_command));
+    ASSERT_EQ(14,1);//TODO import h file, then -> //ASSERT_EQ(CS1_WRONG_LENGTH,HE100_prepareTransmission(helium_payload_bytes, 28, helium_receive_command));
 }
 */
 

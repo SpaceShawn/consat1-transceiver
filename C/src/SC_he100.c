@@ -248,7 +248,7 @@ HE100_openPort(void)
             stderr,
             "\r\nHE100_openPort: Unable to open port: %s Errno:%s\n Line:%d", port_address, strerror(errno), __LINE__
         );
-        return FAILED_OPEN_PORT;
+        return HE_FAILED_OPEN_PORT;
     }
 
     if ( !isatty(fdin) ) {
@@ -256,7 +256,7 @@ HE100_openPort(void)
             stderr,
             "\r\nHE100_openPort: Not a serial device: %s Errno: %s\n Line:%d\r\n", port_address, strerror(errno), __LINE__
         );
-        return NOT_A_TTY;
+        return HE_NOT_A_TTY;
     }
 
     fprintf(stdout, "\r\nSuccessfully opened port: %s",port_address);
@@ -276,7 +276,7 @@ HE100_closePort(int fdin)
             stderr,
             "\r\nHE100_closePort: Unable to close the serial device connection! Line:%d", __LINE__
         );
-        return FAILED_CLOSE_PORT;
+        return HE_FAILED_CLOSE_PORT;
     }
     fprintf(stdout, "\r\nHE100_closePort: Closed device %s successfully!\r\n",port_address);
     return 0;
@@ -291,16 +291,20 @@ HE100_closePort(int fdin)
 int
 HE100_write(int fdin, unsigned char *bytes, size_t size)
 {
-    // Write byte array
-    int w = write (fdin, bytes, size);
+    int write_return = 1; // return value 
+    int w; // to count bytes written
+    if (fdin!=0) w = write (fdin, bytes, size); // Write byte array
+    else return HE_FAILED_OPEN_PORT;
+
     // TODO // free(bytes); // bytes is always allocated on the stack!
 
-    int write_return = 1;
     fflush( NULL ); fsync(fdin); // TODO fdin, is a tty device, ineffective?
     // Issue a read to check for ACK/NOACK
+    int read_check = HE100_read(fdin, 2);
+
     // Check if number of bytes written is greater than zero
-    
-    if ( ( HE100_read(fdin, 2) == 0 ) && w>0 ) {
+    // and if read returns a valid message
+    if ( read_check == 0 && w>0 ) {
        write_return = 0;
     }
     return write_return;
@@ -315,18 +319,18 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
 int
 HE100_storeValidResponse (unsigned char *response, size_t length)
 {
-    if ( HE100_referenceByteSequence(&response[HE_CMD_BYTE],HE_CMD_BYTE) == INVALID_COMMAND ) return INVALID_COMMAND; 
+    if ( HE100_referenceByteSequence(&response[HE_CMD_BYTE],HE_CMD_BYTE) == HE_INVALID_COMMAND ) return HE_INVALID_COMMAND; 
     int r=0; // return value
     // prepare container for decoded data
     size_t data_length = length - 2; // response minus 2 sync bytes
     int hb1 = 6; int hb2 = 7;
     int pb1 = length-2; int pb2 = length-1;
     size_t payload_length = length - 10; // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
-    if ( response[HE_LENGTH_BYTE] != payload_length ) return WRONG_LENGTH;    unsigned char *data = (unsigned char *) malloc(length);
+    if ( response[HE_LENGTH_BYTE] != payload_length ) return CS1_WRONG_LENGTH;    unsigned char *data = (unsigned char *) malloc(length);
 
-    if (data==NULL) return NULL_MALLOC;
+    if (data==NULL) return CS1_NULL_MALLOC;
     unsigned char *msg = (unsigned char *) malloc(data_length);
-    if (msg==NULL) return NULL_MALLOC;
+    if (msg==NULL) return CS1_NULL_MALLOC;
 
     // copy the header into the new response array minus sync bytes
     size_t i; size_t j=0;
@@ -359,7 +363,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     {
         if (response[4] == 10) {
             // TODO log with shakespeare
-            //fprintf(stdout,"\r\n  HE100: Acknowledge");
+            fprintf(stdout,"\r\n  HE100: Acknowledge");
             /* TODO Check the header checksum here, a bit different than payload responses */
             r = 0;
         } else if (response[4] == 255) {
@@ -376,12 +380,12 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     {
         if (h_chk != 0) {
             fprintf(stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[hb1],(uint8_t)response[hb2],(uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2);
-            // DISABLED FOR TESTING, TODO, FIX! r=-1;
+            // DISABLED FOR TESTING, TODO, FIX! r=1;
         }
 
         if (p_chk != 0) {
             fprintf(stdout,"\r\nInvalid payload checksum \r\n   Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[pb1],(uint8_t)response[pb2],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2);
-            // DISABLED FOR TESTING, TODO, FIX! // r=-1;
+            // DISABLED FOR TESTING, TODO, FIX! // r=1;
         }
 
         j=0; // fill payload message array
@@ -468,7 +472,9 @@ HE100_read (int fdin, time_t timeout)
             read(fdin, &buffer, 1);
             HE100_dumpHex(stdout,buffer,1);
             // set break condition based on incoming byte pattern
-            if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) { // getting an ack
+            if ( i==4 && (buffer[0] == 0x0A || buffer[0] == 0xFF ) ) { 
+                // TODO could this EVER also be a large length > 255? 
+                // COULD BE getting an ack
                 // could be done by HE100_referenceByteSequence
                 breakcond=8; // ack is 8 bytes
             } else if ( i==5 && breakcond==255 ) { 
@@ -603,7 +609,7 @@ HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *
 int
 HE100_referenceByteSequence(unsigned char *response, int position)
 {
-    int r = INVALID_BYTE_SEQUENCE;
+    int r = CS1_INVALID_BYTE_SEQUENCE;
     switch ((int)position)
     {
         case 0   : // first position should be 0x48 : 72
@@ -617,7 +623,7 @@ HE100_referenceByteSequence(unsigned char *response, int position)
                 break;
         case 3   : // response command could be between 1-20
                 if (*response > 0x00 && *response <= 0x20) r=(int)*response;
-                else r=INVALID_COMMAND;
+                else r=HE_INVALID_COMMAND;
                 break;
         case 4   : // first length byte
                 if (
