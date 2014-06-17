@@ -41,6 +41,7 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
 #define MAX_FRAME_LENGTH 255
+#define MAX_TESTED_PAYLOAD 190
 #define BAUDRATE B9600
 #define TTYDEVICE "/dev/ttyS2"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
@@ -200,7 +201,7 @@ HE100_configureInterface (int fdin)
         //| CLOCAL  // set local mode
     );
 
-    // ONLY non-canonical read control behaviour
+    // ONLY for non-canonical read control behaviour
     settings.c_cc[VMIN]  = 1;     // min bytes to return read
     settings.c_cc[VTIME] = 30;    // read timeout in 1/10 seconds
 
@@ -258,6 +259,8 @@ HE100_openPort(void)
         );
         return HE_NOT_A_TTY;
     }
+
+
 
     fprintf(stdout, "\r\nSuccessfully opened port: %s",port_address);
     HE100_configureInterface(fdin);
@@ -619,6 +622,11 @@ HE100_referenceByteSequence(unsigned char *response, int position)
                 if ((int)*response==101) r=0;
                 break;
         case 2   : // response tx/rx command should be 0x20
+                // if response == transmission, He100 device is off!
+                if ((int)*response==16) {
+                    fprintf(stderr,"HE100_read: He100 is off! Line:%d", __LINE__);
+                    return HE_POWER_OFF;
+                }
                 if ((int)*response==32) r=0; // CMD_RECEIVE  0x20
                 break;
         case 3   : // response command could be between 1-20
