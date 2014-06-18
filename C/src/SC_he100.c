@@ -542,6 +542,12 @@ HE100_read (int fdin, time_t timeout)
 unsigned char*
 HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *command)
 {
+    // TODO how to check if length is not accurate?
+    //if (command[length-1]==0xFF) {
+    //    printf("Wrong length");
+    //    exit(EXIT_FAILURE);
+    //}
+
     size_t transmission_length;
     size_t payloadbytes_length;
     size_t i; // payload index
@@ -549,19 +555,25 @@ HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *
 
     // set the array bounds based on command
     if (command[1] == 0x01 || command[1] == 0x02 || command[1] == 0x12 || command[1] == 0x05) /* empty payload */ {
-        transmission_length = 8;
+        transmission_length = NOPAY_COMMAND_LENGTH;
         payloadbytes_length = 6;
         payload_chksum_bool = 0;
     } else {
-        transmission_length = length+10;
+        transmission_length = length+WRAPPER_LENGTH;
         payloadbytes_length = length+8;
         payload_chksum_bool = 1;
     }
 
+    // transmission will contain the entire byte sequence to be sent
     unsigned char *transmission = (unsigned char *) malloc(transmission_length); // TODO free me!
     if (transmission==NULL) exit(EXIT_FAILURE);
+
+    // payloadbytes will contain the byte sequence to be sent minus the sync bytes which are not checksummed
     unsigned char *payloadbytes = (unsigned char *) malloc(payloadbytes_length);
     if (payloadbytes==NULL) exit(EXIT_FAILURE);
+    
+    // TODO consider that leaving the first two bytes of the transmission empty would not affect
+    // the checksum values, and would clarify the code
 
     // attach sync bytes to final transmission byte array
     transmission[0] = SYNC1; //0x48;
