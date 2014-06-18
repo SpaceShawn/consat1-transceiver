@@ -468,10 +468,11 @@ HE100_read (int fdin, time_t timeout)
 
     while (!timer_complete(&read_timer))
     {
+        //if ( ( ret_value = poll(&fds, 1, 5) > -1 ) ) // if a byte is read
         if ( ( ret_value = poll(&fds, 1, 5) > -1 ) ) // if a byte is read
         {
             read(fdin, &buffer, 1);
-            HE100_dumpHex(stdout,buffer,1);
+            if (buffer[0] != 0) printf("i=%u breakcond=%u response=%u buffer=%u \n",i,breakcond,response[i], buffer[0]);
 
             // set break condition based on incoming byte pattern
             if ( i==HE_LENGTH_BYTE_0 && (buffer[0] == 0x0A || buffer[0] == 0xFF) ) { 
@@ -638,8 +639,12 @@ HE100_referenceByteSequence(unsigned char *response, int position)
                 if ((int)*response==32) r=0; // CMD_RECEIVE  0x20
                 break;
         case 3   : // response command could be between 1-20
-                if (*response > 0x00 && *response <= 0x20) r=(int)*response;
-                else r=HE_INVALID_COMMAND;
+                if (*response > 0x00 && *response <= 0x20) { 
+                  r=0;
+                  //r=(int)*response; // wanted to return response, but breaks exit status convention
+                } else {
+                  r=HE_INVALID_COMMAND;
+                } 
                 break;
         case 4   : // first length byte
                 if (
