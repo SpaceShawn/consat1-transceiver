@@ -10,3 +10,5 @@ C/he100Q6_compile_transfer.sh
 *.a
 *.o
 *.x
+he100_lib_test
+he100_live_radio_test
