@@ -20,21 +20,27 @@ TEST_F(Helium_100_Test, ReadTest) {
     unsigned char mock_bytes[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
 
     // set up our mock serial device
-    int fd;
-    fd = open("/dev/ptmx", O_RDWR | O_NOCTTY);
-    ASSERT_EQ(3,fd);
-    grantpt(fd);
-    unlockpt(fd);
+    int pdm; // the master pseudo tty to write to
+    int pds; // the slave pseudo tty to read from
+
+    // set up master
+    pdm = open("/dev/ptmx", O_RDWR | O_NOCTTY);
+    if (pdm < 0) ASSERT_EQ(1,pdm);
+
+    // assign slave
+    grantpt(pdm);
+    unlockpt(pdm);
+    pds = open(ptsname(pdm), O_RDWR | O_NOCTTY);
 
     // write series of bytes to mock serial device, intended to be our incoming transmission
     int w;
-    w = write (fd, mock_bytes, 36);
+    w = write (pdm, mock_bytes, 36);
     ASSERT_EQ(w,36);
 
     // invoke HE100_read
     int r;
     unsigned char payload[255] = {0};
-    r = HE100_read(fd, 2, payload); // TODO ptr-ptr
+    r = HE100_read(pds, 2, payload); // TODO ptr-ptr
     
     // analyse the payload, ASSERT (all_expected_bytes, all_actual_bytes)
     int y=8;
@@ -45,9 +51,9 @@ TEST_F(Helium_100_Test, ReadTest) {
         );
     }
 
-    // flush and close the mock serial device
-    fsync(fd);
-    close(fd);
+    // flush and close the pseudo serial devices
+    fsync(pdm);fsync(pds);
+    close(pdm);close(pds);
 
     // final check to make sure read returns successfully
     ASSERT_EQ(26,r);
