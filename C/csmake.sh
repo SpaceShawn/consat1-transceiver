@@ -62,10 +62,7 @@ bb-static-cpp () {
 
 make-run-test () {
   cd test
-  make clean
-  make 
-  ./he100_lib_test
-  #./he100-live_test
+  bash csmaketest.sh
   cd ..
 }
 

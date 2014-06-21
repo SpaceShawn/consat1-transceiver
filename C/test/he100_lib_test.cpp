@@ -1,4 +1,6 @@
 #include "gtest/gtest.h"
+#include <stdio.h>
+#include <fcntl.h>
 #include "../inc/SC_he100.h"
 #include "../inc/timer.h"
 #include "../inc/fletcher.h"
@@ -7,15 +9,49 @@
 class Helium_100_Test : public ::testing::Test
 {
     protected:
-    virtual void SetUp() { 
-        
-    }
-    virtual void TearDown() {
-        
-    }
+    virtual void SetUp() { }
+    virtual void TearDown() { }
     const static int fdin = 1; // fake file descriptor to simulate HE100
     size_t z; // assert loop index
 };
+
+TEST_F(Helium_100_Test, ReadTest) {
+    // prepare mock bytes to test with
+    unsigned char mock_bytes[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
+
+    // set up our mock serial device
+    int fd;
+    fd = open("/dev/ptmx", O_RDWR | O_NOCTTY);
+    ASSERT_EQ(3,fd);
+    grantpt(fd);
+    unlockpt(fd);
+
+    // write series of bytes to mock serial device, intended to be our incoming transmission
+    int w;
+    w = write (fd, mock_bytes, 36);
+    ASSERT_EQ(w,36);
+
+    // invoke HE100_read
+    int r;
+    unsigned char payload[255] = {0};
+    r = HE100_read(fd, 2, payload); // TODO ptr-ptr
+    
+    // analyse the payload, ASSERT (all_expected_bytes, all_actual_bytes)
+    int y=8;
+    for (z=0; z<26; z++) {
+        ASSERT_EQ(
+            mock_bytes[y],
+            payload[z]
+        );
+    }
+
+    // flush and close the mock serial device
+    fsync(fd);
+    close(fd);
+
+    // final check to make sure read returns successfully
+    ASSERT_EQ(26,r);
+}
 
 // TODO regenerate sample bytes from latest HE100 boards
 TEST_F(Helium_100_Test, VerifyHeliumFrame)
@@ -144,18 +180,18 @@ TEST_F(Helium_100_Test, InvalidPALevel)
 
 // TODO length check not yet implemented in function
 // wrong length
-TEST_F(Helium_100_Test, StoreValidResponse_WrongLength)
+TEST_F(Helium_100_Test, ValidateFrame_WrongLength)
 {
     unsigned char response[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f}; // real payload
     // first verify with correct length
     ASSERT_EQ(
         0,
-        HE100_storeValidResponse(response,36)
+        HE100_validateFrame(response,36)
     );
     // then verify incorrect length is caught
     ASSERT_EQ(
         CS1_WRONG_LENGTH,
-        HE100_storeValidResponse(response,37)
+        HE100_validateFrame(response,37)
     );
 }
 
@@ -208,34 +244,34 @@ TEST_F(Helium_100_Test, InvalidCommand)
     int length = 36; // Should be correct length
     ASSERT_EQ(
         0,
-        HE100_storeValidResponse(good_response,length)
+        HE100_validateFrame(good_response,length)
     );    ASSERT_EQ(
         15,
-        HE100_storeValidResponse(bad_response,length)
+        HE100_validateFrame(bad_response,length)
     );
 }
 
-TEST_F(Helium_100_Test, StoreValidResponse)
+TEST_F(Helium_100_Test, ValidateFrame)
 {
     unsigned char sv_expected[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
     ASSERT_EQ(
         0,
-        HE100_storeValidResponse(sv_expected,36)
+        HE100_validateFrame(sv_expected,36)
     );
     unsigned char sv_expected2[41] = {0x48,0x65,0x20,0x04,0x00,0x1f,0x43,0xAB,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x33,0x32,0x30,0x30,0x30,0x31,0x33,0x31,0x36,0x34,0x46,0x42,0x0a,0x37,0x05,0x9e,0xDE};
     ASSERT_EQ(
         0,
-        HE100_storeValidResponse(sv_expected2,41)
+        HE100_validateFrame(sv_expected2,41)
     );
     unsigned char sv_expected3[41] = {0x48,0x65,0x20,0x04,0x00,0x1f,0x43,0xAB,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x33,0x33,0x30,0x30,0x30,0x31,0x32,0x31,0x35,0x35,0x45,0x46,0x0a,0xc4,0x96,0xbf,0x98};
     ASSERT_EQ(
         0,
-        HE100_storeValidResponse(sv_expected3,41)
+        HE100_validateFrame(sv_expected3,41)
     );
 }
 
 // invalid checksum
-// 1 - pass a frame with an invalid checksum to HE100_storeValidResponse
+// 1 - pass a frame with an invalid checksum to HE100_validateFrame
 // 2 - if an invalid checksum is encountered, the payload should not be persisted,
 //     and the event should be logged by shakespeare
 TEST_F(Helium_100_Test, CatchBadChecksum)
@@ -243,7 +279,7 @@ TEST_F(Helium_100_Test, CatchBadChecksum)
     unsigned char invalid_checksum_response[11] = {0x48,0x65,0x10,0x20,0x00,0x01,0x31,0xA1,0x03,0x06,0x0B}; // payload checksum byte 11 is incorrect
     size_t icr_length = 11;
 
-    int actual_svr_result = HE100_storeValidResponse(invalid_checksum_response,icr_length);
+    int actual_svr_result = HE100_validateFrame(invalid_checksum_response,icr_length);
 
     ASSERT_EQ(
         0,
@@ -252,7 +288,7 @@ TEST_F(Helium_100_Test, CatchBadChecksum)
 
     invalid_checksum_response[10] = 0x0A; // payload checksum byte 11 is corrected
     invalid_checksum_response[7] = 0x35; // header checksum byte 8 is incorrect
-    actual_svr_result = HE100_storeValidResponse(invalid_checksum_response,icr_length);
+    actual_svr_result = HE100_validateFrame(invalid_checksum_response,icr_length);
 
     ASSERT_EQ(
         0,

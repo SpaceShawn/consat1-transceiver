@@ -66,6 +66,7 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 #define HE_LENGTH_BYTE             5 
 #define HE_HEADER_CHECKSUM_BYTE_1  6
 #define HE_HEADER_CHECKSUM_BYTE_2  7
+#define HE_FIRST_PAYLOAD_BYTE      8
 
 // LED config
 #define CFG_LED_BYTE 38  // 38th byte in byte array
@@ -290,7 +291,7 @@ HE100_closePort(int fdin)
  * @param size - the length of the array in bytes
  */
 int
-HE100_write(int fdin, unsigned char *bytes, size_t size)
+HE100_write (int fdin, unsigned char *bytes, size_t size)
 {
     int write_return = 1; // return value 
     int w; // to count bytes written
@@ -301,7 +302,9 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
 
     fflush( NULL ); fsync(fdin); // TODO fdin, is a tty device, ineffective?
     // Issue a read to check for ACK/NOACK
-    int read_check = HE100_read(fdin, 2);
+
+    unsigned char response_buffer[MAX_FRAME_LENGTH]; // TODO this will not be used, fault of refactoring decision
+    int read_check = HE100_read(fdin, 2, response_buffer);
 
     // Check if number of bytes written is greater than zero
     // and if read returns a valid message
@@ -317,18 +320,30 @@ HE100_write(int fdin, unsigned char *bytes, size_t size)
  * @param length - the entire length of the frame in bytes
  */
 int
-HE100_storeValidResponse (unsigned char *response, size_t length)
+HE100_validateFrame (unsigned char *response, size_t length)
 {
-    if ( HE100_referenceByteSequence(&response[HE_CMD_BYTE],HE_CMD_BYTE) == HE_INVALID_COMMAND ) return HE_INVALID_COMMAND; 
-    int r=0; // return value
-    // prepare container for decoded data
-    size_t data_length = length - 2; // response minus 2 sync bytes
-    int hb1 = 6; int hb2 = 7;
-    int pb1 = length-2; int pb2 = length-1;
-    size_t payload_length = length - 10; // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
-    if ( response[HE_LENGTH_BYTE] != payload_length ) return CS1_WRONG_LENGTH;    unsigned char *data = (unsigned char *) malloc(length);
+    int r=1; // return value
 
+    // Check first if command byte is a valid command
+    if ( HE100_referenceByteSequence(&response[HE_CMD_BYTE],HE_CMD_BYTE) == HE_INVALID_COMMAND ) 
+        return HE_INVALID_COMMAND;
+    else r = 0; // so far so good
+
+    // calculate positions for payload and checksums
+    size_t data_length = length - 2; // response minus 2 sync bytes
+    int pb1 = length-2; int pb2 = length-1;
+    size_t payload_length = length - WRAPPER_LENGTH; // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
+
+    // validate length
+    if ( response[HE_LENGTH_BYTE] != payload_length ) return CS1_WRONG_LENGTH;    
+
+/*  TODO memory should not need to be allocated to apply checksum   */
+/*  simply pass the range of bytes to the checksum function!!       */
+    // assign memory to hold transmission minus sync bytes 
+    unsigned char *data = (unsigned char *) malloc(length);
     if (data==NULL) return CS1_NULL_MALLOC;
+
+    // assign memory to hold message (transmission minus all meta data)
     unsigned char *msg = (unsigned char *) malloc(data_length);
     if (msg==NULL) return CS1_NULL_MALLOC;
 
@@ -338,12 +353,11 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
         data[j] = response[i];
         j++;
     }
-    HE100_dumpHex(stdout,data,4);
 
     // generate and compare header checksum
     fletcher_checksum h_chksum = fletcher_checksum16(data,4);
-    uint8_t h_s1_chk = memcmp(&response[hb1], &h_chksum.sum1, 1);
-    uint8_t h_s2_chk = memcmp(&response[hb2], &h_chksum.sum2, 1);
+    uint8_t h_s1_chk = memcmp(&response[HE_HEADER_CHECKSUM_BYTE_1], &h_chksum.sum1, 1);
+    uint8_t h_s2_chk = memcmp(&response[HE_HEADER_CHECKSUM_BYTE_2], &h_chksum.sum2, 1);
     int h_chk = h_s1_chk + h_s2_chk; // should be zero given valid chk
 
     // pick up where j left off
@@ -358,6 +372,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     uint8_t p_s1_chk = memcmp(&response[pb1], &p_chksum.sum1, 1);
     uint8_t p_s2_chk = memcmp(&response[pb2], &p_chksum.sum2, 1);
     int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
+/*  END TODO    */
 
     if (response[4] == response[5] ) /* ACK or NOACK or EMPTY length */
     {
@@ -379,7 +394,7 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
     else
     {
         if (h_chk != 0) {
-            fprintf(stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[hb1],(uint8_t)response[hb2],(uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2);
+            fprintf(stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[HE_HEADER_CHECKSUM_BYTE_1],(uint8_t)response[HE_HEADER_CHECKSUM_BYTE_2],(uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2);
             // DISABLED FOR TESTING, TODO, FIX! r=1;
         }
 
@@ -387,23 +402,9 @@ HE100_storeValidResponse (unsigned char *response, size_t length)
             fprintf(stdout,"\r\nInvalid payload checksum \r\n   Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[pb1],(uint8_t)response[pb2],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2);
             // DISABLED FOR TESTING, TODO, FIX! // r=1;
         }
-
-        j=0; // fill payload message array
-        for (i=10;i<length;i++) {
-            msg[j] = response[i];
-            j++;
-        }
-    }
-
-    if (r==0) {
-        pipe_init();
-        datapipe.WriteToPipe(msg, payload_length);
-        //return (char*) msg; // return the stripped message so it doesn't have to be done again
-        // TODO we aren't doing this because we want the incoming messages to collect even if the the netman is failing to act on them properly. Is this reason enough to continue in this way?
     }
 
     free(data);
-    free(msg);
     return r;
 }
 
@@ -441,19 +442,25 @@ HE100_dumpHex(FILE *fdout, unsigned char *bytes, size_t size)
  * append them to and return a response array
  *
  * @param fdin - the file descriptor representing the serial device
+ * @param response - a buffer you pass with 255 bytes of memory in which to place
+ *  the response data
+ * @return - the length of the payload read
  */
 int
-//HE100_read (int fdin, time_t timeout, unsigned char * data_buffer)
-HE100_read (int fdin, time_t timeout)
+HE100_read (int fdin, time_t timeout, unsigned char * response)
 {
+    if (response==NULL) return -1;
+
     // Read response
-    unsigned char buffer[1];
-    unsigned char response[255];
+    unsigned char buffer[1]; // to hold each byte as device is read
     int i=0;
-    int r=1; // return value for HE100_read
-    int breakcond=255;
+    int r=-1; // return value for HE100_read
+    int breakcond=MAX_FRAME_LENGTH;
+
+    // start timer from call
     timer_t read_timer = timer_get();
     timer_start(&read_timer,timeout,0);
+
     // Variables for select
     int ret_value;
 
@@ -468,8 +475,7 @@ HE100_read (int fdin, time_t timeout)
 
     while (!timer_complete(&read_timer))
     {
-        //if ( ( ret_value = poll(&fds, 1, 5) > -1 ) ) // if a byte is read
-        if ( ( ret_value = poll(&fds, 1, 5) > -1 ) ) // if a byte is read
+        if ( ( ret_value = poll(&fds, 1, 5) > -1 ) ) // if a byte is ready to be read
         {
             read(fdin, &buffer, 1);
             if (buffer[0] != 0) printf("i=%u breakcond=%u response=%u buffer=%u \n",i,breakcond,response[i], buffer[0]);
@@ -500,19 +506,27 @@ HE100_read (int fdin, time_t timeout)
             {
                 if (i>0) // we are at the expected end of our message, time to validate
                 {
-                    int SVR_result = HE100_storeValidResponse(response, breakcond);
+                    int SVR_result = HE100_validateFrame(response, breakcond);
                     if ( SVR_result == 0 )
                     {
                         r = 0; // we got a frame, time to ack! 
+                        size_t payload_length = breakcond - WRAPPER_LENGTH;
+                        unsigned char *payload = (unsigned char*) malloc(payload_length);
+                        if (payload==NULL) return CS1_NULL_MALLOC;
+                        memcpy (payload, response+HE_FIRST_PAYLOAD_BYTE, payload_length);
+                        r=payload_length;
                     }
                     else if (SVR_result == CS1_NULL_MALLOC) {
                         fprintf(stderr, "\r\n Memory allocation problem!\r\n");
-                        r=CS1_NULL_MALLOC;
+                        //r=CS1_NULL_MALLOC;
+                        r=-1;
                     }
                     else
                     {
                         fprintf(stderr, "\r\n Invalid data!\r\n");
-                        r=CS1_INVALID_BYTE_SEQUENCE;
+                        //r=CS1_INVALID_BYTE_SEQUENCE;
+                        r=-1;
+
                         // soft reset the transceiver
                         if ( HE100_softReset(fdin) > 0 ) printf("\r\n Soft Reset written successfully!");
                         else printf("\r\n Problems with soft reset");

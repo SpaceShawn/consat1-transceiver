@@ -74,19 +74,19 @@ void test_fastSetPA_HE100_prepareTransmission()
 // Function should be tested for a string of bytes similar to expected but invalid
 
 // wrong length 
-void test_HE100_storeValidResponse(response, length)
+void test_HE100_validateFrame(response, length)
 {
 
 }
 
 // invalid checksum
-void test_HE100_storeValidResponse(response, length)
+void test_HE100_validateFrame(response, length)
 {
 
 }
 
 // invalid command
-void test_HE100_storeValidResponse(response, length)
+void test_HE100_validateFrame(response, length)
 {
 
 }

@@ -80,7 +80,7 @@ struct HE100_checksum HE100_fletcher16 (unsigned char *data, size_t bytes);
  * @param response - the frame data to be validated
  * @param length - the entire length of the frame in bytes
  */
-int HE100_storeValidResponse (unsigned char *response, size_t length);
+int HE100_validateFrame (unsigned char *response, size_t length);
 
 /* Function to dump a given array to a given file descriptor */
 int HE100_dumpBinary (FILE *fdout, unsigned char *bytes, size_t size);
@@ -96,7 +96,8 @@ void HE100_dumpHex (FILE *fdout, unsigned char *bytes, size_t size);
  *
  * @param fdin - the file descriptor representing the serial device
  */
-int HE100_read (int fdin, time_t timeout);
+int HE100_read (int fdin, time_t timeout, unsigned char * response);
+//int HE100_read (int fdin, time_t timeout);
 
 /**
  * Function to prepare data for transmission
