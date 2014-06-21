@@ -34,10 +34,13 @@
 #include "timer.h"
 #include "NamedPipe.h"
 #include "SpaceDecl.h"
+#include "shakespeare.h"
 
-#define LOG_FILE_PATH "/var/log/he100/he100.log"
+#define LOG_PATH "/home/logs/HE100"
 #define DATA_PIPE_PATH "/var/log/he100/data.log"
 static NamedPipe datapipe("/var/log/he100/data.log");
+
+#define PROCESS "HE100"
 
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
 #define MAX_FRAME_LENGTH 255
@@ -111,6 +114,7 @@ FILE *fdlog; // library log file
 FILE *fdata; // pipe to send valid payloads for external use
 int f_fdata_int; // file descriptor for pipe
 
+
 static int pipe_initialized = FALSE;
 
 /**
@@ -136,23 +140,24 @@ HE100_configureInterface (int fdin)
     int get_settings = -1;
     if ( ( get_settings = tcgetattr(fdin, &settings) ) < 0 )
     {
-        fprintf(
-            stderr,
-            "\r\nHE100_configureInterface: failed to get config: %d, %s\n",
-            fdin,
-            strerror(errno)
-        );
+        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+        char error[255];
+        sprintf (error, "config failed: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+        fclose(fdlog);
         exit(EXIT_FAILURE);
     }
-    fprintf(stdout, "\r\nHE100_configureInterface: successfully acquired old settings");
 
     // attempt to set input and output baud rate to 9600
     if (cfsetispeed(&settings, B9600) < 0 || cfsetospeed(&settings, B9600) < 0)
     {
-        fprintf(stderr, "\r\nHE100_configureInterface: failed set BAUD rate: %d, %s\n", fdin, strerror(errno));
+        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+        char error[255];
+        sprintf (error, "failed set BAUD rate: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+        fclose(fdlog);
         exit(EXIT_FAILURE);
     }
-    fprintf(stdout, "\r\nHE100_configureInterface: successfully set new baud rate");
 
     // Input flags
     //settings.c_iflag = 0; // disable input processing
@@ -216,7 +221,11 @@ HE100_configureInterface (int fdin)
 
     int apply_settings = -1;
     if ( (apply_settings = tcsetattr(fdin, TCSANOW, &settings)) < 0 ) { // apply attributes
-        fprintf(stderr, "\r\nHE100_configureInterface: failed to set config: %d, %s\n", fdin, strerror(errno));
+        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+        char error[255];
+        sprintf (error, "failed set config: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+        fclose(fdlog);
         exit(EXIT_FAILURE);
     }
 
@@ -225,7 +234,6 @@ HE100_configureInterface (int fdin)
         fprintf(stderr, "\r\nHE100_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
         exit(EXIT_FAILURE);
     }
-    fprintf(stdout, "\r\nHE100_configureInterface: successfully applied new settings and flush device");
 }
 
 int
@@ -243,25 +251,26 @@ HE100_openPort(void)
     );
 
     if (fdin == -1) {
-        // Could not open port
-        fprintf(
-            stderr,
-            "\r\nHE100_openPort: Unable to open port: %s Errno:%s\n Line:%d", port_address, strerror(errno), __LINE__
-        );
+        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+        char error[255];
+        sprintf (error, "Unable to open port: %s, %s, %s, %d", port_address, strerror(errno), __func__, __LINE__);
+        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+        fclose(fdlog);        
         return HE_FAILED_OPEN_PORT;
     }
 
     if ( !isatty(fdin) ) {
-        fprintf(
-            stderr,
-            "\r\nHE100_openPort: Not a serial device: %s Errno: %s\n Line:%d\r\n", port_address, strerror(errno), __LINE__
-        );
+        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+        char error[255];
+        sprintf (error, "Not a serial device: %s, %s, %s, %d", port_address, strerror(errno), __func__, __LINE__);
+        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+        fclose(fdlog); 
+
         return HE_NOT_A_TTY;
     }
 
     // TODO issue NOOP and check device is on
 
-    fprintf(stdout, "\r\nSuccessfully opened port: %s",port_address);
     HE100_configureInterface(fdin);
 
     return(fdin);
@@ -274,13 +283,13 @@ HE100_closePort(int fdin)
     // TODO: Setting the speed to B0 instructs the modem to "hang up".
     if (close(fdin) == -1)
     {
-        fprintf(
-            stderr,
-            "\r\nHE100_closePort: Unable to close the serial device connection! Line:%d", __LINE__
-        );
+        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+        char error[255];
+        sprintf (error, "Unable to close serial connection: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+        fclose(fdlog);
         return HE_FAILED_CLOSE_PORT;
     }
-    fprintf(stdout, "\r\nHE100_closePort: Closed device %s successfully!\r\n",port_address);
     return 0;
 }
 
@@ -315,9 +324,10 @@ HE100_write (int fdin, unsigned char *bytes, size_t size)
 }
 
 /**
- * Function to parse a given frame, validate it, and return its data
+ * Function to validate a given frame
  * @param response - the frame data to be validated
  * @param length - the entire length of the frame in bytes
+ * @return int - 0 if valid, else error code
  */
 int
 HE100_validateFrame (unsigned char *response, size_t length)
@@ -377,29 +387,52 @@ HE100_validateFrame (unsigned char *response, size_t length)
     if (response[4] == response[5] ) /* ACK or NOACK or EMPTY length */
     {
         if (response[4] == 10) {
-            // TODO log with shakespeare
             fprintf(stdout,"\r\n  HE100: Acknowledge");
             /* TODO Check the header checksum here, a bit different than payload responses */
             r = 0;
         } else if (response[4] == 255) {
-            // TODO log with shakespeare
-            printf("\r\n  HE100: No-Acknowledge");
+            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+            char error[255];
+            sprintf (error, "NACK: %s, %d", __func__, __LINE__);
+            if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+            fclose(fdlog); 
             r = 1;
         } else {
-            // TODO log with shakespeare
-            printf("\r\n  HE100: Empty length? \r\n");
+            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+            char error[255];
+            sprintf (error, "Unknown byte sequence: %s, %d", __func__, __LINE__);
+            if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+            fclose(fdlog);
             r = 1;
         }
     }
     else
     {
         if (h_chk != 0) {
-            fprintf(stdout,"\r\nInvalid header checksum \r\n    Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[HE_HEADER_CHECKSUM_BYTE_1],(uint8_t)response[HE_HEADER_CHECKSUM_BYTE_2],(uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2);
+            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+            char error[255];
+            sprintf (
+                    error, 
+                    "Invalid header checksum. Incoming: [%d,%d] Calculated: [%d,%d] %s, %d", 
+                    (uint8_t)response[HE_HEADER_CHECKSUM_BYTE_1],(uint8_t)response[HE_HEADER_CHECKSUM_BYTE_2],
+                    (uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2, 
+                    __func__, __LINE__
+            );
+            if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+            fclose(fdlog);
             // DISABLED FOR TESTING, TODO, FIX! r=1;
         }
 
         if (p_chk != 0) {
-            fprintf(stdout,"\r\nInvalid payload checksum \r\n   Incoming: [%d,%d] Calculated: [%d,%d]",(uint8_t)response[pb1],(uint8_t)response[pb2],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2);
+            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+            char error[255];
+            sprintf (
+                    error, 
+                    "Invalid payload checksum. Incoming: [%d,%d] Calculated: [%d,%d] %s, %d", 
+                    (uint8_t)response[pb1],(uint8_t)response[pb2],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2,
+                    __func__, __LINE__
+            );
+            if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
             // DISABLED FOR TESTING, TODO, FIX! // r=1;
         }
     }
@@ -447,12 +480,13 @@ HE100_dumpHex(FILE *fdout, unsigned char *bytes, size_t size)
  * @return - the length of the payload read
  */
 int
-HE100_read (int fdin, time_t timeout, unsigned char * response)
+HE100_read (int fdin, time_t timeout, unsigned char * payload)
 {
-    if (response==NULL) return -1;
+    if (payload==NULL) return -1;
 
     // Read response
     unsigned char buffer[1]; // to hold each byte as device is read
+    unsigned char response[MAX_FRAME_LENGTH] = {0}; // initialize empty response buffer
     int i=0;
     int r=-1; // return value for HE100_read
     int breakcond=MAX_FRAME_LENGTH;
@@ -507,23 +541,28 @@ HE100_read (int fdin, time_t timeout, unsigned char * response)
                 if (i>0) // we are at the expected end of our message, time to validate
                 {
                     int SVR_result = HE100_validateFrame(response, breakcond);
-                    if ( SVR_result == 0 )
-                    {
-                        r = 0; // we got a frame, time to ack! 
+                    if ( SVR_result == 0 ) 
+                    {   // valid frame
+                        r = 0; 
                         size_t payload_length = breakcond - WRAPPER_LENGTH;
-                        unsigned char *payload = (unsigned char*) malloc(payload_length);
-                        if (payload==NULL) return CS1_NULL_MALLOC;
                         memcpy (payload, response+HE_FIRST_PAYLOAD_BYTE, payload_length);
                         r=payload_length;
                     }
-                    else if (SVR_result == CS1_NULL_MALLOC) {
-                        fprintf(stderr, "\r\n Memory allocation problem!\r\n");
-                        //r=CS1_NULL_MALLOC;
-                        r=-1;
+                    else if (SVR_result == CS1_NULL_MALLOC) 
+                    {   // memory allocation problem in validateFrame()
+                        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+                        char error[255];
+                        sprintf (error, "Memory allocation problem: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+                        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+                        r=-1;//r=CS1_NULL_MALLOC;
                     }
                     else
-                    {
-                        fprintf(stderr, "\r\n Invalid data!\r\n");
+                    {   // something unaccounted for
+                        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+                        char error[255];
+                        sprintf (error, "Invalid Data: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+                        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+
                         //r=CS1_INVALID_BYTE_SEQUENCE;
                         r=-1;
 
@@ -531,6 +570,7 @@ HE100_read (int fdin, time_t timeout, unsigned char * response)
                         if ( HE100_softReset(fdin) > 0 ) printf("\r\n Soft Reset written successfully!");
                         else printf("\r\n Problems with soft reset");
                     }
+                    break; // TODO why is this break needed?
                 }
 
                 i=0; // restart message index
@@ -541,7 +581,10 @@ HE100_read (int fdin, time_t timeout, unsigned char * response)
         }
         else if (ret_value == -1) {
             // bad or no read
-            printf("Oh dear, something went wrong with select()! %s\n", strerror(errno));
+            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+            char error[255];
+            sprintf (error, "Problem with poll(): %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+            if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
             r = -1;
         }
     }

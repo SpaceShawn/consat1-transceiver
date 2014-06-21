@@ -96,7 +96,7 @@ void HE100_dumpHex (FILE *fdout, unsigned char *bytes, size_t size);
  *
  * @param fdin - the file descriptor representing the serial device
  */
-int HE100_read (int fdin, time_t timeout, unsigned char * response);
+int HE100_read (int fdin, time_t timeout, unsigned char * payload);
 //int HE100_read (int fdin, time_t timeout);
 
 /**

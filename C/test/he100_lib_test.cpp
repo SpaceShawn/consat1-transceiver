@@ -25,22 +25,23 @@ TEST_F(Helium_100_Test, ReadTest) {
 
     // set up master
     pdm = open("/dev/ptmx", O_RDWR | O_NOCTTY);
-    if (pdm < 0) ASSERT_EQ(1,pdm);
+    if (pdm < 0) ASSERT_EQ(0,pdm);
 
     // assign slave
     grantpt(pdm);
     unlockpt(pdm);
     pds = open(ptsname(pdm), O_RDWR | O_NOCTTY);
 
+    if (pds < 0) ASSERT_EQ(0,pds);
     // write series of bytes to mock serial device, intended to be our incoming transmission
     int w;
-    w = write (pdm, mock_bytes, 36);
+    w = write (pds, mock_bytes, 36);
     ASSERT_EQ(w,36);
 
     // invoke HE100_read
     int r;
     unsigned char payload[255] = {0};
-    r = HE100_read(pds, 2, payload); // TODO ptr-ptr
+    r = HE100_read(pdm, 2, payload); // TODO ptr-ptr
     
     // analyse the payload, ASSERT (all_expected_bytes, all_actual_bytes)
     int y=8;
@@ -49,6 +50,7 @@ TEST_F(Helium_100_Test, ReadTest) {
             mock_bytes[y],
             payload[z]
         );
+        y++;
     }
 
     // flush and close the pseudo serial devices
