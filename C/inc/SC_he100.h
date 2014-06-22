@@ -49,8 +49,14 @@ typedef struct HE100_checksum {
     uint8_t sum2;
 } HE100_checksum;
 
-/* Function to apply configuration to HE100 on configured serial port address */
-void HE100_configureInterface (int);
+/**
+ * Function to configure serial interface
+ * @param fdin - the file descriptor representing the serial device
+ * @return int - exit status 
+ * REF: http://man7.org/linux/man-pages/man3/termios.3.html
+ * REF: http://www.unixguide.net/unix/programming/3.6.2.shtml
+ */
+int HE100_configureInterface (int);
 
 /* Function to open HE100 device on configured seial port address */
 int HE100_openPort (void);
@@ -95,9 +101,11 @@ void HE100_dumpHex (FILE *fdout, unsigned char *bytes, size_t size);
  * append them to and return a response array
  *
  * @param fdin - the file descriptor representing the serial device
+ * @param payload - a buffer you pass with 255 bytes of memory in which to place
+ *  the response data
+ * @return - the length of the payload read
  */
 int HE100_read (int fdin, time_t timeout, unsigned char * payload);
-//int HE100_read (int fdin, time_t timeout);
 
 /**
  * Function to prepare data for transmission

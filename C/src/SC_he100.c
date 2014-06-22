@@ -30,36 +30,32 @@
 // project includes
 #include "he100.h"      /*  exposes the correct serial device location */
 #include "fletcher.h"
-//#include "./Net2Com.h"
 #include "timer.h"
 #include "NamedPipe.h"
 #include "SpaceDecl.h"
 #include "shakespeare.h"
 
-#define LOG_PATH "/home/logs/HE100"
-#define DATA_PIPE_PATH "/var/log/he100/data.log"
-static NamedPipe datapipe("/var/log/he100/data.log");
-
+#define _POSIX_SOURCE 1 /* POSIX compliant source */
+// logging 
 #define PROCESS "HE100"
-
+#define LOG_PATH "/home/logs/HE100"
+#define MAX_LOG_BUFFER_LEN 255
+// TTY settings
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
-#define MAX_FRAME_LENGTH 255
-#define MAX_TESTED_PAYLOAD 190
 #define BAUDRATE B9600
 #define TTYDEVICE "/dev/ttyS2"
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
-#define FALSE 0
-#define TRUE 1
 #define PARITYBIT ~PARENB // no parity bit
 #define BYTESIZE CS8 // 8 data bits
 #define STOPBITS ~CSTOPB // 1 stop bit
 #define HWFLWCTL ~CRTSCTS // disable hardware flow control
-
-#define CFG_OFF_LOGIC LOW   0x00
-
-#define NOPAY_COMMAND_LENGTH 8
-#define WRAPPER_LENGTH       10
-
+// HELIUM VALUES
+#define NOPAY_COMMAND_LENGTH    8
+#define WRAPPER_LENGTH          10
+#define MAX_POWER_LEVEL         255
+#define MAX_FRAME_LENGTH        255
+#define MAX_TESTED_PAYLOAD      190
+#define HE_ACK                  0x0a
+#define HE_NOACK                0xff
 // HELIUM HEADER FRAME BYTES
 #define HE_SYNC_BYTE_1             0
 #define HE_SYNC_BYTE_2             1
@@ -70,7 +66,6 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 #define HE_HEADER_CHECKSUM_BYTE_1  6
 #define HE_HEADER_CHECKSUM_BYTE_2  7
 #define HE_FIRST_PAYLOAD_BYTE      8
-
 // LED config
 #define CFG_LED_BYTE 38  // 38th byte in byte array
 #define CFG_LED_PS  0x41 // 2.5 second pulse
@@ -90,11 +85,7 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 #define CMD_TRANSMIT_DATA       0x03 // send N number of bytes
 #define CMD_RECEIVE_DATA        0x04 // receive N number of bytes
 #define CMD_GET_CONFIG          0x05 // 20 05 prepends actual config data
-// EX {48 65 10 05 ... } request config
-// EX {48 65 20 05 ... } actual config
 #define CMD_SET_CONFIG          0x06 // followed by config bytes
-// EX {48 65 10 06 ... checksum }
-// EX {48 65 20 06 ... } -> ACK
 #define CMD_TELEMETRY           0x07 // query a telemetry frame
 // EX {48 65 10 06 ... } query a telemetry frame
 // EX {48 65 20 06 ... } receive a telemetry frame
@@ -109,29 +100,15 @@ static NamedPipe datapipe("/var/log/he100/data.log");
 #define CMD_FIRMWARE_UPDATE     0x14
 #define CMD_FIRMWARE_PACKET     0x15
 #define CMD_FAST_SET_PA         0x20
+#define CFG_OFF_LOGIC LOW   0x00
 
 FILE *fdlog; // library log file
-FILE *fdata; // pipe to send valid payloads for external use
-int f_fdata_int; // file descriptor for pipe
 
+/** Provide signal handling for read **/
+//volatile sig_atomic_t stop;
+//void inthand (int signum) { stop = 1; }
 
-static int pipe_initialized = FALSE;
-
-/**
- * Function to configure interface
- * @param fdin - the file descriptor representing the serial device
- * REF: http://man7.org/linux/man-pages/man3/termios.3.html
- * REF: http://www.unixguide.net/unix/programming/3.6.2.shtml
- */
-
-void pipe_init(){
-   if(!pipe_initialized){
-      if (!datapipe.Exist()) datapipe.CreatePipe();
-      pipe_initialized = TRUE;
-   }
-}
-
-void
+int
 HE100_configureInterface (int fdin)
 {
     struct termios settings;
@@ -141,22 +118,21 @@ HE100_configureInterface (int fdin)
     if ( ( get_settings = tcgetattr(fdin, &settings) ) < 0 )
     {
         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-        char error[255];
-        sprintf (error, "config failed: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        char error[MAX_LOG_BUFFER_LEN];
+        sprintf (error, "get config failed: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
         if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
         fclose(fdlog);
-        exit(EXIT_FAILURE);
+        return HE_FAILED_TTY_CONFIG; 
     }
-
     // attempt to set input and output baud rate to 9600
     if (cfsetispeed(&settings, B9600) < 0 || cfsetospeed(&settings, B9600) < 0)
     {
         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-        char error[255];
+        char error[MAX_LOG_BUFFER_LEN];
         sprintf (error, "failed set BAUD rate: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
         if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
         fclose(fdlog);
-        exit(EXIT_FAILURE);
+        return HE_FAILED_SET_BAUD;
     }
 
     // Input flags
@@ -177,7 +153,7 @@ HE100_configureInterface (int fdin)
         | IGNPAR // ignore bytes with parity errors
         | ICRNL  // map CR to NL (otherwise CR input on other computer will not terminate input)
     //    | INLCR  // map NL to CR (otherwise CR input on other computer will not terminate input)
-        );
+    );
 
     // Output flags
     settings.c_oflag = 0; // disable output processing, raw output
@@ -222,18 +198,22 @@ HE100_configureInterface (int fdin)
     int apply_settings = -1;
     if ( (apply_settings = tcsetattr(fdin, TCSANOW, &settings)) < 0 ) { // apply attributes
         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-        char error[255];
+        char error[MAX_LOG_BUFFER_LEN];
         sprintf (error, "failed set config: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
         if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
         fclose(fdlog);
-        exit(EXIT_FAILURE);
+        return HE_FAILED_TTY_CONFIG;
     }
-
     int flush_device = -1;
     if ( (flush_device = tcsetattr(fdin, TCSAFLUSH, &settings)) < 0 ) { // apply attributes
-        fprintf(stderr, "\r\nHE100_configureInterface: failed to flush device: %d, %s\n", fdin, strerror(errno));
-        exit(EXIT_FAILURE);
+        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+        char error[MAX_LOG_BUFFER_LEN];
+        sprintf (error, "failed flush device: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+        fclose(fdlog);
+        return HE_FAILED_FLUSH;
     }
+    return 0;
 }
 
 int
@@ -252,7 +232,7 @@ HE100_openPort(void)
 
     if (fdin == -1) {
         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-        char error[255];
+        char error[MAX_LOG_BUFFER_LEN];
         sprintf (error, "Unable to open port: %s, %s, %s, %d", port_address, strerror(errno), __func__, __LINE__);
         if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
         fclose(fdlog);        
@@ -261,18 +241,16 @@ HE100_openPort(void)
 
     if ( !isatty(fdin) ) {
         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-        char error[255];
+        char error[MAX_LOG_BUFFER_LEN];
         sprintf (error, "Not a serial device: %s, %s, %s, %d", port_address, strerror(errno), __func__, __LINE__);
         if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
         fclose(fdlog); 
-
         return HE_NOT_A_TTY;
     }
 
     // TODO issue NOOP and check device is on
 
-    HE100_configureInterface(fdin);
-
+    if ( HE100_configureInterface(fdin) != 0 ) fdin = -1;
     return(fdin);
 }
 
@@ -284,7 +262,7 @@ HE100_closePort(int fdin)
     if (close(fdin) == -1)
     {
         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-        char error[255];
+        char error[MAX_LOG_BUFFER_LEN];
         sprintf (error, "Unable to close serial connection: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
         if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
         fclose(fdlog);
@@ -386,20 +364,20 @@ HE100_validateFrame (unsigned char *response, size_t length)
 
     if (response[4] == response[5] ) /* ACK or NOACK or EMPTY length */
     {
-        if (response[4] == 10) {
+        if (response[4] == HE_ACK) {
             fprintf(stdout,"\r\n  HE100: Acknowledge");
             /* TODO Check the header checksum here, a bit different than payload responses */
             r = 0;
-        } else if (response[4] == 255) {
+        } else if (response[4] == HE_NOACK) {
             fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-            char error[255];
+            char error[MAX_LOG_BUFFER_LEN];
             sprintf (error, "NACK: %s, %d", __func__, __LINE__);
             if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
             fclose(fdlog); 
             r = 1;
         } else {
             fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-            char error[255];
+            char error[MAX_LOG_BUFFER_LEN];
             sprintf (error, "Unknown byte sequence: %s, %d", __func__, __LINE__);
             if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
             fclose(fdlog);
@@ -410,7 +388,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
     {
         if (h_chk != 0) {
             fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-            char error[255];
+            char error[MAX_LOG_BUFFER_LEN];
             sprintf (
                     error, 
                     "Invalid header checksum. Incoming: [%d,%d] Calculated: [%d,%d] %s, %d", 
@@ -425,7 +403,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
 
         if (p_chk != 0) {
             fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-            char error[255];
+            char error[MAX_LOG_BUFFER_LEN];
             sprintf (
                     error, 
                     "Invalid payload checksum. Incoming: [%d,%d] Calculated: [%d,%d] %s, %d", 
@@ -466,19 +444,7 @@ HE100_dumpHex(FILE *fdout, unsigned char *bytes, size_t size)
     return;
 }
 
-/** Provide signal handling for SC_read **/
-//volatile sig_atomic_t stop;
-//void inthand (int signum) { stop = 1; }
 
-/**
- * Function to read bytes in single-file from the serial device and
- * append them to and return a response array
- *
- * @param fdin - the file descriptor representing the serial device
- * @param response - a buffer you pass with 255 bytes of memory in which to place
- *  the response data
- * @return - the length of the payload read
- */
 int
 HE100_read (int fdin, time_t timeout, unsigned char * payload)
 {
@@ -512,8 +478,7 @@ HE100_read (int fdin, time_t timeout, unsigned char * payload)
         if ( ( ret_value = poll(&fds, 1, 5) > -1 ) ) // if a byte is ready to be read
         {
             read(fdin, &buffer, 1);
-            if (buffer[0] != 0) printf("i=%u breakcond=%u response=%u buffer=%u \n",i,breakcond,response[i], buffer[0]);
-
+            //if (buffer[0] != 0) printf("i=%u breakcond=%u response=%u buffer=%u \n",i,breakcond,response[i], buffer[0]);
             // set break condition based on incoming byte pattern
             if ( i==HE_LENGTH_BYTE_0 && (buffer[0] == 0x0A || buffer[0] == 0xFF) ) { 
                 // TODO could this EVER also be a large length > 255? 
@@ -523,7 +488,6 @@ HE100_read (int fdin, time_t timeout, unsigned char * payload)
                 // this is the length byte, and we haven't already set the break point. Set break point accordingly
                 breakcond = buffer[0] + WRAPPER_LENGTH;
             }
-
             // increment response array values based on byte pattern
             // if byte is referenced correctly, continue
             if ( HE100_referenceByteSequence(buffer,i) == 0 ) {
@@ -535,11 +499,10 @@ HE100_read (int fdin, time_t timeout, unsigned char * payload)
                 response[0] = '\0';
                 breakcond=255;
             }
-
             if (i==breakcond) 
             {
-                if (i>0) // we are at the expected end of our message, time to validate
-                {
+                if (i>0) 
+                {   // we are at the expected end of our message, time to validate
                     int SVR_result = HE100_validateFrame(response, breakcond);
                     if ( SVR_result == 0 ) 
                     {   // valid frame
@@ -551,15 +514,15 @@ HE100_read (int fdin, time_t timeout, unsigned char * payload)
                     else if (SVR_result == CS1_NULL_MALLOC) 
                     {   // memory allocation problem in validateFrame()
                         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-                        char error[255];
+                        char error[MAX_LOG_BUFFER_LEN];
                         sprintf (error, "Memory allocation problem: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
                         if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
                         r=-1;//r=CS1_NULL_MALLOC;
                     }
                     else
-                    {   // something unaccounted for
+                    {   // something unexpected
                         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-                        char error[255];
+                        char error[MAX_LOG_BUFFER_LEN];
                         sprintf (error, "Invalid Data: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
                         if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
 
@@ -567,12 +530,11 @@ HE100_read (int fdin, time_t timeout, unsigned char * payload)
                         r=-1;
 
                         // soft reset the transceiver
-                        if ( HE100_softReset(fdin) > 0 ) printf("\r\n Soft Reset written successfully!");
+                        if ( HE100_softReset(fdin) == 0 ) printf("\r\n Soft Reset written successfully!");
                         else printf("\r\n Problems with soft reset");
                     }
                     break; // TODO why is this break needed?
                 }
-
                 i=0; // restart message index
                 response[0] = '\0';
                 breakcond=255;
@@ -582,7 +544,7 @@ HE100_read (int fdin, time_t timeout, unsigned char * payload)
         else if (ret_value == -1) {
             // bad or no read
             fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-            char error[255];
+            char error[MAX_LOG_BUFFER_LEN];
             sprintf (error, "Problem with poll(): %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
             if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
             r = -1;
@@ -591,11 +553,6 @@ HE100_read (int fdin, time_t timeout, unsigned char * payload)
     return r;
 }
 
-/**
- * Function to prepare data for transmission
- * @param char payload - data to be transmitted
- * @param size_t length - length of incoming data
- */
 // TODO //int* HE100_prepareTransmission(unsigned char *payload, unsigned char *prepared_transmission, size_t length, unsigned char *command)
 unsigned char*
 HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *command)
@@ -725,12 +682,6 @@ HE100_referenceByteSequence(unsigned char *response, int position)
  *
  * @param response - the response data to interpret
  * @param length - the length of the data in bytes
- *
- * Most responses are 8 bytes ack or no ack
- * noop_ack         486520010a0a35a1
- * noop_noack       48652001ffff1f80
- * setconfig_ack    486520060a0a3ab0
- * tx_ac            486520030a0a37a7
  */
 int
 HE100_interpretResponse (unsigned char *response, size_t length)
@@ -785,7 +736,7 @@ HE100_NOOP (int fdin)
                 noop_payload,
                 0,
                 noop_command
-        ), 10
+        ), WRAPPER_LENGTH
     );
 }
 
@@ -803,7 +754,7 @@ HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t trans
                 transmit_data_payload,
                 transmit_data_len,
                 transmit_data_command
-        ), transmit_data_len+10
+        ), transmit_data_len+WRAPPER_LENGTH
     );
 }
 
@@ -828,7 +779,7 @@ HE100_setBeaconInterval (int fdin, int beacon_interval)
                 beacon_interval_payload,
                 1,
                 beacon_interval_command
-        ), 1+10
+        ), 1+WRAPPER_LENGTH
     );
 }
 
@@ -846,7 +797,7 @@ HE100_setBeaconMessage (int fdin, unsigned char *set_beacon_message_payload, siz
                 set_beacon_message_payload,
                 beacon_message_len,
                 set_beacon_message_command
-        ), beacon_message_len+10
+        ), beacon_message_len+WRAPPER_LENGTH
     );
 }
 
@@ -860,8 +811,8 @@ HE100_fastSetPA (int fdin, int power_level)
 {
    unsigned char fast_set_pa_payload[1];
    fast_set_pa_payload[0] = power_level & 0xff;
-   if (power_level > 255) {
-      return -1;
+   if (power_level > MAX_POWER_LEVEL) {
+      return 1;
    }
 
    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
@@ -871,7 +822,7 @@ HE100_fastSetPA (int fdin, int power_level)
                 fast_set_pa_payload,
                 1,
                 fast_set_pa_command
-        ), 1+10
+        ), 1+WRAPPER_LENGTH
     );
 }
 
@@ -890,7 +841,7 @@ HE100_softReset(int fdin)
                 soft_reset_payload,
                 0,
                 soft_reset_command
-        ), 10
+        ), WRAPPER_LENGTH
     );
 }
 
@@ -909,6 +860,6 @@ HE100_readFirmwareRevision(int fdin)
                 read_firmware_revision_payload,
                 0,
                 read_firmware_revision_command
-        ), 10
+        ), WRAPPER_LENGTH
     );
 }

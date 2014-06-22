@@ -13,6 +13,9 @@ class Helium_100_Test : public ::testing::Test
     virtual void TearDown() { }
     const static int fdin = 1; // fake file descriptor to simulate HE100
     size_t z; // assert loop index
+    //unsigned char noop_ack[8]       = {0x48,0x65,0x20,0x01,0x0a,0x0a,0x35,0xa1};
+    //unsigned char tx_ack[8]         = {0x48,0x65,0x20,0x03,0x0a,0x0a,0x37,0xa7};
+    //unsigned char setcfg_ack[8]     = {0x48,0x65,0x20,0x06,0x0A,0x0A,0x3A,0xB0};
 };
 
 TEST_F(Helium_100_Test, ReadTest) {
@@ -62,10 +65,11 @@ TEST_F(Helium_100_Test, ReadTest) {
 }
 
 // TODO regenerate sample bytes from latest HE100 boards
+// This test verifies the preparation of a transmission frame, and compares
+// with a previously captured transmission from the Radio itself
 TEST_F(Helium_100_Test, VerifyHeliumFrame)
 {
     unsigned char helium_expected[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
-
     unsigned char helium_payload_bytes[26] = {0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
     unsigned char helium_receive_command[2] = {0x20, 0x04};
     unsigned char *helium_result = HE100_prepareTransmission(helium_payload_bytes, 26, helium_receive_command);
@@ -78,7 +82,7 @@ TEST_F(Helium_100_Test, VerifyHeliumFrame)
     }
 }
 
-// Test a bogus byte sequence
+// This test catches a bogus byte sequence
 TEST_F(Helium_100_Test, Caught)
 {
     int expected_reference_result = CS1_INVALID_BYTE_SEQUENCE;
@@ -116,7 +120,7 @@ TEST_F(Helium_100_Test, CorrectPayloadPreparation)
     }
 }
 
-// verify NOOP preparation bytes
+// This test verifies the preparation of a NOOP transmission
 TEST_F(Helium_100_Test, CorrectNoopPayload)
 {
     unsigned char noop_payload[1] = {0};
@@ -135,7 +139,7 @@ TEST_F(Helium_100_Test, CorrectNoopPayload)
     }
 }
 
-// verify Soft Reset preparation bytes
+// This test verifies the preparation of a Soft Reset transmission
 TEST_F(Helium_100_Test, CorrectSoftResetPayload)
 {
     size_t soft_reset_payload_length = 0;
@@ -153,7 +157,8 @@ TEST_F(Helium_100_Test, CorrectSoftResetPayload)
     }
 }
 
-// verify Fast Set PA preparation bytes
+// This test verifies the preparation of a Fast Set PA transmission, and
+// catches an invalid power level setting
 TEST_F(Helium_100_Test, CorrectFastSetPaPayload)
 {
     size_t fast_set_pa_payload_length = 1;
