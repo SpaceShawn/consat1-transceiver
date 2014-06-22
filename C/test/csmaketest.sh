@@ -32,26 +32,32 @@ quit () {
     exit 0
 }
 
-usage="usage: csmaketest.sh [options] "
-if [ $# -eq 0 ]; then echo "No arguments supplied... $usage"; fi 
-
 make-clean-gtest () {
+    confirm "Would you like to run the live test (requires radio to be present and active)?" && live=1
     make clean
     make 
-    ./he100_lib_test
-    confirm "Would you like to run the live test (requires radio)?" && ./he100-live_test
+    $1 ./he100_lib_test
+    [ $live ] && ./he100-live_test
 }
 
 for arg in "$@"; do
     case $arg in
         "test")
-            make-clean-gtest
+            make-clean-gtest    
+        ;;
+        "gdb")
+            make-clean-gtest gdb
     esac
 done
 
 CURRENT_DIR="${PWD##*/}"
 if [ "$CURRENT_DIR" != "test" ]; then fail "This script must be run from HE100_lib/C, not $CURRENT_DIR"; fi;
 
-make-clean-gtest
+usage="usage: csmaketest.sh [options] "
+if [ $# -eq 0 ]; then 
+    echo "No arguments supplied... $usage"; 
+    echo "Running default conditions..."
+    make-clean-gtest
+fi
 
 quit # exit cleanly

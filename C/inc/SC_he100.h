@@ -112,7 +112,8 @@ int HE100_read (int fdin, time_t timeout, unsigned char * payload);
  * @param char payload - data to be transmitted
  * @param size_t length - length of data stream
  */
-unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
+int HE100_prepareTransmission(unsigned char *payload, unsigned char *prepared_transmission, size_t length, unsigned char *command);
+//unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
 /* Function to ensure byte-by-byte that we are receiving a HE100 frame */
 int HE100_referenceByteSequence(unsigned char *response, int position);

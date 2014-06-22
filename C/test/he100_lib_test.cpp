@@ -72,7 +72,8 @@ TEST_F(Helium_100_Test, VerifyHeliumFrame)
     unsigned char helium_expected[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
     unsigned char helium_payload_bytes[26] = {0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
     unsigned char helium_receive_command[2] = {0x20, 0x04};
-    unsigned char *helium_result = HE100_prepareTransmission(helium_payload_bytes, 26, helium_receive_command);
+    unsigned char helium_result[255] = {0};
+    int r = HE100_prepareTransmission(helium_payload_bytes, helium_result, 26, helium_receive_command);
 
     for (z=0; z<36; z++) {
         ASSERT_EQ(
@@ -80,8 +81,9 @@ TEST_F(Helium_100_Test, VerifyHeliumFrame)
             helium_result[z]
         );
     }
+    ASSERT_EQ(CS1_SUCCESS,r);
 }
-
+  
 // This test catches a bogus byte sequence
 TEST_F(Helium_100_Test, Caught)
 {
@@ -108,7 +110,8 @@ TEST_F(Helium_100_Test, CorrectPayloadPreparation)
     unsigned char test_payload[13] = "Test Payload"; // 12
     unsigned char transmit_data_command[2] = {0x10, 0x03};
     unsigned char transmit_data_expected[22] = {0x48,0x65,0x10,0x03,0x00,0x0C,0x1F,0x55,0x54,0x65,0x73,0x74,0x20,0x50,0x61,0x79,0x6c,0x6f,0x61,0x64,0x1D,0xD9};
-    unsigned char *prepare_result = HE100_prepareTransmission(test_payload, 12, transmit_data_command);
+    unsigned char prepare_result[255] = {0}; 
+    int r = HE100_prepareTransmission(test_payload, prepare_result, 12, transmit_data_command);
     //HE100_dumpHex(stdout,transmit_data_expected,22);
     //HE100_dumpHex(stdout,prepare_result,22);
 
@@ -118,6 +121,7 @@ TEST_F(Helium_100_Test, CorrectPayloadPreparation)
             prepare_result[z]
         );
     }
+    ASSERT_EQ(CS1_SUCCESS,r);
 }
 
 // This test verifies the preparation of a NOOP transmission
@@ -127,7 +131,8 @@ TEST_F(Helium_100_Test, CorrectNoopPayload)
     unsigned char he100_noop_expected_value[8] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
     unsigned char noop_command[2] = {0x10, 0x01};
     //unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
-    unsigned char *noop_result = HE100_prepareTransmission(noop_payload, 0, noop_command);
+    unsigned char noop_result[255] = {0};
+    int r = HE100_prepareTransmission(noop_payload, noop_result, 0, noop_command);
     //HE100_dumpHex(stdout, he100_noop_expected_value, 8);
     //HE100_dumpHex(stdout, noop_result, 8);
 
@@ -137,6 +142,7 @@ TEST_F(Helium_100_Test, CorrectNoopPayload)
             noop_result[z]
         );
     }
+    ASSERT_EQ(CS1_SUCCESS,r);
 }
 
 // This test verifies the preparation of a Soft Reset transmission
@@ -147,7 +153,8 @@ TEST_F(Helium_100_Test, CorrectSoftResetPayload)
     //unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
     unsigned char soft_reset_command[2] = {0x10, 0x02};
     unsigned char he100_soft_reset_expected_value[8] = {0x48,0x65,0x10,0x02,0x00,0x00,0x12,0x46};
-    unsigned char *soft_reset_actual_result = HE100_prepareTransmission(soft_reset_payload, soft_reset_payload_length, soft_reset_command);
+    unsigned char soft_reset_actual_result[255] = {0};
+    int r = HE100_prepareTransmission(soft_reset_payload, soft_reset_actual_result, soft_reset_payload_length, soft_reset_command);
 
 	  for (z=0; z<soft_reset_payload_length+8; z++) {
         ASSERT_EQ(
@@ -155,6 +162,7 @@ TEST_F(Helium_100_Test, CorrectSoftResetPayload)
             soft_reset_actual_result[z]
         );
     }
+    ASSERT_EQ(CS1_SUCCESS,r);
 }
 
 // This test verifies the preparation of a Fast Set PA transmission, and
@@ -165,7 +173,8 @@ TEST_F(Helium_100_Test, CorrectFastSetPaPayload)
     unsigned char fast_set_pa_payload[1] = {3};
     //unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
     unsigned char fast_set_pa_command[2] = {0x10, 0x20};
-    unsigned char *fast_set_pa_actual_result = HE100_prepareTransmission(fast_set_pa_payload, 1, fast_set_pa_command);
+    unsigned char fast_set_pa_actual_result[255] = {0};
+    int r = HE100_prepareTransmission(fast_set_pa_payload, fast_set_pa_actual_result, 1, fast_set_pa_command);
     unsigned char he100_fast_set_pa_expected_value[11] = {0x48,0x65,0x10,0x20,0x00,0x01,0x31,0xA1,0x03,0x06,0x0C};
 
     //HE100_dumpHex(stdout, fast_set_pa_actual_result, 11);
@@ -177,6 +186,7 @@ TEST_F(Helium_100_Test, CorrectFastSetPaPayload)
             fast_set_pa_actual_result[z]
         );
     }
+    ASSERT_EQ(CS1_SUCCESS,r);
 }
 
 // test passing invalid PA level
@@ -184,14 +194,12 @@ TEST_F(Helium_100_Test, InvalidPALevel)
 {
     int ipl_actual_value = HE100_fastSetPA (fdin, 300);
     ASSERT_EQ(
-        -1,
+        1,
         ipl_actual_value
     );
 }
 
 // Function should be tested for a string of bytes similar to expected but invalid
-
-// TODO length check not yet implemented in function
 // wrong length
 TEST_F(Helium_100_Test, ValidateFrame_WrongLength)
 {
@@ -207,20 +215,20 @@ TEST_F(Helium_100_Test, ValidateFrame_WrongLength)
         HE100_validateFrame(response,37)
     );
 }
-
 /* 
-// TODO after refecactoring of function
+// TODO length check not yet implemented in function
 TEST_F(Helium_100_Test, DISABLE_PrepareTransmission_WrongLength)
 {
-    //unsigned char helium_payload_bytes[26] = {0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
-    //unsigned char helium_receive_command[2] = {0x20, 0x04};
-    ASSERT_EQ(14,1);//TODO import h file, then -> //ASSERT_EQ(CS1_WRONG_LENGTH,HE100_prepareTransmission(helium_payload_bytes, 28, helium_receive_command));
+    unsigned char helium_payload_bytes[26] = {0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
+    unsigned char helium_receive_command[2] = {0x20, 0x04};
+    unsigned char transmission[255] = {0};
+    ASSERT_EQ(CS1_WRONG_LENGTH,HE100_prepareTransmission(helium_payload_bytes,transmission,28,helium_receive_command));
 }
 */
-
 // BEACON TESTING
 TEST_F(Helium_100_Test, PrepareBeacon)
 {
+    int r=1; // return value
     unsigned char set_beacon_expected_value[4][11] = {
         {0x48,0x65,0x10,0x11,0x00,0x01,0x22,0x74,0x00,0xB8,0x28},
         {0x48,0x65,0x10,0x11,0x00,0x01,0x22,0x74,0x01,0xB9,0x29},
@@ -232,13 +240,13 @@ TEST_F(Helium_100_Test, PrepareBeacon)
     unsigned char set_beacon_payload[1];
     //unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
     unsigned char set_beacon_command[2] = {0x10, 0x11};
-    unsigned char *set_beacon_actual_value;
+    unsigned char set_beacon_actual_value[255];
 
     int i;
     for (i=0;i<4;i++)
     {
         set_beacon_payload[0] = i;
-        set_beacon_actual_value = HE100_prepareTransmission(set_beacon_payload, 1, set_beacon_command);
+        r = HE100_prepareTransmission(set_beacon_payload, set_beacon_actual_value, 1, set_beacon_command);
 
         for (z=0; z<11; z++) {
             ASSERT_EQ(
@@ -246,6 +254,7 @@ TEST_F(Helium_100_Test, PrepareBeacon)
                 set_beacon_actual_value[z]
             );
         }
+        ASSERT_EQ(CS1_SUCCESS, r);
     }
 }
 
@@ -308,10 +317,11 @@ TEST_F(Helium_100_Test, CatchBadChecksum)
         actual_svr_result
     );
 }
-
+ 
 // BEACON TESTING
 TEST_F(Helium_100_Test, SetBeaconInterval)
 {
+    int r=1;
     unsigned char set_beacon_expected_value[4][11] = {
         {0x48,0x65,0x10,0x11,0x00,0x01,0x22,0x74,0x00,0xB8,0x28},
         {0x48,0x65,0x10,0x11,0x00,0x01,0x22,0x74,0x01,0xB9,0x29},
@@ -324,13 +334,13 @@ TEST_F(Helium_100_Test, SetBeaconInterval)
 
     //unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
     unsigned char set_beacon_command[2] = {0x10, 0x11};
-    unsigned char *set_beacon_actual_value;
+    unsigned char set_beacon_actual_value[255] = {0};
 
     int i;
     for (i=0;i<4;i++)
     {
         set_beacon_payload[0] = i;
-        set_beacon_actual_value = HE100_prepareTransmission(set_beacon_payload, 1, set_beacon_command);
+        r = HE100_prepareTransmission(set_beacon_payload, set_beacon_actual_value, 1, set_beacon_command);
 
         for (z=0; z<11; z++) {
             ASSERT_EQ(
@@ -338,6 +348,7 @@ TEST_F(Helium_100_Test, SetBeaconInterval)
                 set_beacon_actual_value[z]
             );
         }
+        ASSERT_EQ(CS1_SUCCESS,r);
     }
 }
 

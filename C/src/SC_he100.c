@@ -52,8 +52,8 @@
 #define NOPAY_COMMAND_LENGTH    8
 #define WRAPPER_LENGTH          10
 #define MAX_POWER_LEVEL         255
+#define MAX_TESTED_FRAME        190
 #define MAX_FRAME_LENGTH        255
-#define MAX_TESTED_PAYLOAD      190
 #define HE_ACK                  0x0a
 #define HE_NOACK                0xff
 // HELIUM HEADER FRAME BYTES
@@ -444,7 +444,6 @@ HE100_dumpHex(FILE *fdout, unsigned char *bytes, size_t size)
     return;
 }
 
-
 int
 HE100_read (int fdin, time_t timeout, unsigned char * payload)
 {
@@ -553,82 +552,58 @@ HE100_read (int fdin, time_t timeout, unsigned char * payload)
     return r;
 }
 
-// TODO //int* HE100_prepareTransmission(unsigned char *payload, unsigned char *prepared_transmission, size_t length, unsigned char *command)
-unsigned char*
-HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *command)
+int 
+HE100_prepareTransmission(unsigned char *payload, unsigned char *prepared_transmission, size_t length, unsigned char *command)
+//unsigned char* HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *command)
 {
-    // TODO how to check if length is not accurate?
-    //if (command[length-1]==0xFF) {
-    //    printf("Wrong length");
-    //    exit(EXIT_FAILURE);
-    //}
-
-    size_t transmission_length;
-    size_t payloadbytes_length;
-    size_t i; // payload index
-    int payload_chksum_bool;
+    int has_payload; // bool to define whether the transmission has payload or not
 
     // set the array bounds based on command
     if (command[1] == 0x01 || command[1] == 0x02 || command[1] == 0x12 || command[1] == 0x05) /* empty payload */ {
-        transmission_length = NOPAY_COMMAND_LENGTH;
-        payloadbytes_length = 6;
-        payload_chksum_bool = 0;
+        has_payload = 0;
     } else {
-        transmission_length = length+WRAPPER_LENGTH;
-        payloadbytes_length = length+8;
-        payload_chksum_bool = 1;
+        has_payload = 1;
     }
 
-    // transmission will contain the entire byte sequence to be sent
-    unsigned char *transmission = (unsigned char *) malloc(transmission_length); // TODO free me!
-    if (transmission==NULL) exit(EXIT_FAILURE);
-
-    // payloadbytes will contain the byte sequence to be sent minus the sync bytes which are not checksummed
-    unsigned char *payloadbytes = (unsigned char *) malloc(payloadbytes_length);
-    if (payloadbytes==NULL) exit(EXIT_FAILURE);
-    
-    // TODO consider that leaving the first two bytes of the transmission empty would not affect
-    // the checksum values, and would clarify the code
+    // TODO how to better check if length is not accurate?
+    /*
+    size_t count,i; // integer to count and verify payload length
+    count=0;
+    for (i=0; i<MAX_FRAME_LENGTH; i++) {
+        if (payload[i] == '\0') break;
+        count++;
+    }
+    if (count != length) return CS1_WRONG_LENGTH; 
+    */
 
     // attach sync bytes to final transmission byte array
-    transmission[0] = SYNC1; //0x48;
-    transmission[1] = SYNC2; //0x65;
+    prepared_transmission[HE_SYNC_BYTE_1] = SYNC1; //0x48;
+    prepared_transmission[HE_SYNC_BYTE_2] = SYNC2; //0x65;
 
     // attach command bytes to intermediary payload byte array
-    payloadbytes[0] = (unsigned char) command[0];
-    payloadbytes[1] = (unsigned char) command[1];
+    prepared_transmission[HE_TX_RX_BYTE] = (unsigned char) command[0];
+    prepared_transmission[HE_CMD_BYTE] = (unsigned char) command[1];
 
     // attach length bytes
-    //payloadbytes[2] = 0x00;
-    payloadbytes[2] = length >> 8;
-    payloadbytes[3] = (unsigned char) length & 0xff;
+    prepared_transmission[HE_LENGTH_BYTE_0] = length >> 8;
+    prepared_transmission[HE_LENGTH_BYTE] = (unsigned char) length & 0xff;
 
     // generate and attach header checksum
-    fletcher_checksum header_checksum = fletcher_checksum16(payloadbytes,4);
-    payloadbytes[4] = (unsigned char) header_checksum.sum1 & 0xff;
-    payloadbytes[5] = (unsigned char) header_checksum.sum2 & 0xff;
-
-    if( payload_chksum_bool==1 ) // real payload
+    fletcher_checksum header_checksum = fletcher_checksum16(prepared_transmission+2,4);
+    prepared_transmission[HE_HEADER_CHECKSUM_BYTE_1] = (unsigned char) header_checksum.sum1 & 0xff;
+    prepared_transmission[HE_HEADER_CHECKSUM_BYTE_2] = (unsigned char) header_checksum.sum2 & 0xff;
+   
+    memcpy (prepared_transmission+HE_FIRST_PAYLOAD_BYTE,payload,length);
+    
+    if( has_payload==1 ) // real payload
     {
-        // attach data to payload
-        for (i=0;i<length;i++) { /* or use memcpy with offset */
-            payloadbytes[6+i] = payload[i];
-        }
         // generate and attach payload checksum
-        fletcher_checksum payload_checksum = fletcher_checksum16(payloadbytes,length+6); // chksum everything except first two bytes 'He'
-        payloadbytes[6+length] = payload_checksum.sum1;
-        payloadbytes[6+length+1] = payload_checksum.sum2;
+        fletcher_checksum payload_checksum = fletcher_checksum16(prepared_transmission+HE_TX_RX_BYTE,length+6); // chksum everything except first two bytes 'He'
+        prepared_transmission[HE_FIRST_PAYLOAD_BYTE+length] = payload_checksum.sum1;
+        prepared_transmission[HE_FIRST_PAYLOAD_BYTE+length+1] = payload_checksum.sum2;
     }
 
-    // attach payload and return final transmission
-    size_t j=0;
-    for ( i=2; i<transmission_length; i++ ) {
-        transmission[i] = payloadbytes[j];
-        j++;
-    }// or use memcpy with offset
-
-    free(payloadbytes);
-    return (unsigned char*) transmission;
+    return 0;
 }
 
 /* Function to ensure byte-by-byte that we are receiving a HE100 frame */
@@ -730,14 +705,9 @@ HE100_NOOP (int fdin)
 {
    unsigned char noop_payload[1] = {0};
    unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
-   return HE100_write(
-        fdin,
-        HE100_prepareTransmission(
-                noop_payload,
-                0,
-                noop_command
-        ), WRAPPER_LENGTH
-    );
+   unsigned char noop_transmission[MAX_FRAME_LENGTH] = {0};
+   HE100_prepareTransmission(noop_payload,noop_transmission,0,noop_command);
+   return HE100_write(fdin, noop_transmission, WRAPPER_LENGTH);
 }
 
 /**
@@ -748,13 +718,9 @@ int
 HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t transmit_data_len)
 {
     unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
-    return HE100_write(
-        fdin,
-        HE100_prepareTransmission(
-                transmit_data_payload,
-                transmit_data_len,
-                transmit_data_command
-        ), transmit_data_len+WRAPPER_LENGTH
+    unsigned char transmission[MAX_FRAME_LENGTH] = {0};
+    HE100_prepareTransmission(transmit_data_payload,transmission,transmit_data_len,transmit_data_command);
+    return HE100_write(fdin,transmission,transmit_data_len+WRAPPER_LENGTH
     );
 }
 
@@ -767,20 +733,14 @@ HE100_setBeaconInterval (int fdin, int beacon_interval)
 {
    unsigned char beacon_interval_payload[1];
    beacon_interval_payload[0] = beacon_interval & 0xff;
+   unsigned char transmission[MAX_FRAME_LENGTH] = {0};
 
    if (beacon_interval > 255 ) {
         return -1;
    }
-
    unsigned char beacon_interval_command[2] = {CMD_TRANSMIT, CMD_BEACON_CONFIG};
-   return HE100_write(
-        fdin,
-        HE100_prepareTransmission(
-                beacon_interval_payload,
-                1,
-                beacon_interval_command
-        ), 1+WRAPPER_LENGTH
-    );
+   HE100_prepareTransmission(beacon_interval_payload,transmission,1,beacon_interval_command);
+   return HE100_write(fdin,transmission,1+WRAPPER_LENGTH);
 }
 
 /**
@@ -791,14 +751,9 @@ int
 HE100_setBeaconMessage (int fdin, unsigned char *set_beacon_message_payload, size_t beacon_message_len)
 {
    unsigned char set_beacon_message_command[2] = {CMD_TRANSMIT, CMD_BEACON_DATA};
-   return HE100_write(
-        fdin,
-        HE100_prepareTransmission(
-                set_beacon_message_payload,
-                beacon_message_len,
-                set_beacon_message_command
-        ), beacon_message_len+WRAPPER_LENGTH
-    );
+   unsigned char transmission[MAX_FRAME_LENGTH] = {0};
+   HE100_prepareTransmission(set_beacon_message_payload,transmission,beacon_message_len,set_beacon_message_command);
+   return HE100_write(fdin,transmission,beacon_message_len+WRAPPER_LENGTH);
 }
 
 /**
@@ -816,14 +771,9 @@ HE100_fastSetPA (int fdin, int power_level)
    }
 
    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
-   return HE100_write(
-        fdin,
-        HE100_prepareTransmission(
-                fast_set_pa_payload,
-                1,
-                fast_set_pa_command
-        ), 1+WRAPPER_LENGTH
-    );
+   unsigned char transmission[MAX_FRAME_LENGTH] = {0};
+   HE100_prepareTransmission(fast_set_pa_payload,transmission,1,fast_set_pa_command);
+   return HE100_write(fdin,transmission,1+WRAPPER_LENGTH);
 }
 
 /**
@@ -835,14 +785,9 @@ HE100_softReset(int fdin)
 {
    unsigned char soft_reset_payload[1] = {0};
    unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
-   return HE100_write(
-        fdin,
-        HE100_prepareTransmission(
-                soft_reset_payload,
-                0,
-                soft_reset_command
-        ), WRAPPER_LENGTH
-    );
+   unsigned char transmission[MAX_FRAME_LENGTH] = {0};
+   HE100_prepareTransmission(soft_reset_payload,transmission,0,soft_reset_command);
+   return HE100_write(fdin,transmission,WRAPPER_LENGTH);
 }
 
 /**
@@ -854,12 +799,7 @@ HE100_readFirmwareRevision(int fdin)
 {
    unsigned char read_firmware_revision_payload[1] = {0};
    unsigned char read_firmware_revision_command[2] = {CMD_TRANSMIT, CMD_READ_FIRMWARE_V};
-   return HE100_write(
-        fdin,
-        HE100_prepareTransmission(
-                read_firmware_revision_payload,
-                0,
-                read_firmware_revision_command
-        ), WRAPPER_LENGTH
-    );
+   unsigned char transmission[MAX_FRAME_LENGTH] = {0};
+   HE100_prepareTransmission(read_firmware_revision_payload,transmission,0,read_firmware_revision_command);
+   return HE100_write(fdin,transmission,WRAPPER_LENGTH);
 }
