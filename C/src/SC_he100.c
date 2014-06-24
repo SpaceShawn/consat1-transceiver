@@ -444,8 +444,10 @@ HE100_dumpHex(FILE *fdout, unsigned char *bytes, size_t size)
     return;
 }
 
+// @param payload - the buffered bytes returned parsed from the radio
+// @returns int - # of bytes read
 int
-HE100_read (int fdin, time_t timeout, unsigned char * payload)
+HE100_read (int fdin, time_t read_time, unsigned char * payload)
 {
     if (payload==NULL) return -1;
 
@@ -458,7 +460,7 @@ HE100_read (int fdin, time_t timeout, unsigned char * payload)
 
     // start timer from call
     timer_t read_timer = timer_get();
-    timer_start(&read_timer,timeout,0);
+    timer_start(&read_timer,read_time,0);
 
     // Variables for select
     int ret_value;
@@ -552,9 +554,10 @@ HE100_read (int fdin, time_t timeout, unsigned char * payload)
     return r;
 }
 
+// @param prepared_transmission - the bytes prepared for use externally
+// @return int - exit status
 int 
 HE100_prepareTransmission(unsigned char *payload, unsigned char *prepared_transmission, size_t length, unsigned char *command)
-//unsigned char* HE100_prepareTransmission(unsigned char *payload, size_t length, unsigned char *command)
 {
     int has_payload; // bool to define whether the transmission has payload or not
 
@@ -577,8 +580,8 @@ HE100_prepareTransmission(unsigned char *payload, unsigned char *prepared_transm
     */
 
     // attach sync bytes to final transmission byte array
-    prepared_transmission[HE_SYNC_BYTE_1] = SYNC1; //0x48;
-    prepared_transmission[HE_SYNC_BYTE_2] = SYNC2; //0x65;
+    prepared_transmission[HE_SYNC_BYTE_1] = SYNC1;
+    prepared_transmission[HE_SYNC_BYTE_2] = SYNC2;
 
     // attach command bytes to intermediary payload byte array
     prepared_transmission[HE_TX_RX_BYTE] = (unsigned char) command[0];
@@ -696,6 +699,15 @@ HE100_interpretResponse (unsigned char *response, size_t length)
     return 1;
 }
 
+int 
+HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_length, unsigned char *command)
+{
+    unsigned char transmission[MAX_FRAME_LENGTH] = {0};
+    HE100_prepareTransmission(payload,transmission,payload_length,command);
+    // TODO memset (transmission,'\0',MAX_FRAME_LENGTH);
+    return HE100_write(fdin,transmission,payload_length+WRAPPER_LENGTH);
+}
+
 /**
  * Function to return NOOP byte sequence
  * no arguments
@@ -705,9 +717,7 @@ HE100_NOOP (int fdin)
 {
    unsigned char noop_payload[1] = {0};
    unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
-   unsigned char noop_transmission[MAX_FRAME_LENGTH] = {0};
-   HE100_prepareTransmission(noop_payload,noop_transmission,0,noop_command);
-   return HE100_write(fdin, noop_transmission, WRAPPER_LENGTH);
+   return HE100_dispatchTransmission(fdin,noop_payload,0,noop_command);
 }
 
 /**
@@ -718,10 +728,7 @@ int
 HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t transmit_data_len)
 {
     unsigned char transmit_data_command[2] = {CMD_TRANSMIT, CMD_TRANSMIT_DATA};
-    unsigned char transmission[MAX_FRAME_LENGTH] = {0};
-    HE100_prepareTransmission(transmit_data_payload,transmission,transmit_data_len,transmit_data_command);
-    return HE100_write(fdin,transmission,transmit_data_len+WRAPPER_LENGTH
-    );
+    return HE100_dispatchTransmission(fdin,transmit_data_payload,transmit_data_len,transmit_data_command);
 }
 
 /**
@@ -731,16 +738,11 @@ HE100_transmitData (int fdin, unsigned char *transmit_data_payload, size_t trans
 int
 HE100_setBeaconInterval (int fdin, int beacon_interval)
 {
+   if (beacon_interval > 255 ) return -1; // TODO not possible
    unsigned char beacon_interval_payload[1];
    beacon_interval_payload[0] = beacon_interval & 0xff;
-   unsigned char transmission[MAX_FRAME_LENGTH] = {0};
-
-   if (beacon_interval > 255 ) {
-        return -1;
-   }
    unsigned char beacon_interval_command[2] = {CMD_TRANSMIT, CMD_BEACON_CONFIG};
-   HE100_prepareTransmission(beacon_interval_payload,transmission,1,beacon_interval_command);
-   return HE100_write(fdin,transmission,1+WRAPPER_LENGTH);
+   return HE100_dispatchTransmission(fdin,beacon_interval_payload,1,beacon_interval_command);
 }
 
 /**
@@ -751,9 +753,7 @@ int
 HE100_setBeaconMessage (int fdin, unsigned char *set_beacon_message_payload, size_t beacon_message_len)
 {
    unsigned char set_beacon_message_command[2] = {CMD_TRANSMIT, CMD_BEACON_DATA};
-   unsigned char transmission[MAX_FRAME_LENGTH] = {0};
-   HE100_prepareTransmission(set_beacon_message_payload,transmission,beacon_message_len,set_beacon_message_command);
-   return HE100_write(fdin,transmission,beacon_message_len+WRAPPER_LENGTH);
+   return HE100_dispatchTransmission(fdin,set_beacon_message_payload,beacon_message_len,set_beacon_message_command);
 }
 
 /**
@@ -766,14 +766,9 @@ HE100_fastSetPA (int fdin, int power_level)
 {
    unsigned char fast_set_pa_payload[1];
    fast_set_pa_payload[0] = power_level & 0xff;
-   if (power_level > MAX_POWER_LEVEL) {
-      return 1;
-   }
-
+   if (power_level > MAX_POWER_LEVEL) return 1;
    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
-   unsigned char transmission[MAX_FRAME_LENGTH] = {0};
-   HE100_prepareTransmission(fast_set_pa_payload,transmission,1,fast_set_pa_command);
-   return HE100_write(fdin,transmission,1+WRAPPER_LENGTH);
+   return HE100_dispatchTransmission(fdin,fast_set_pa_payload,1,fast_set_pa_command);
 }
 
 /**
@@ -785,9 +780,7 @@ HE100_softReset(int fdin)
 {
    unsigned char soft_reset_payload[1] = {0};
    unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
-   unsigned char transmission[MAX_FRAME_LENGTH] = {0};
-   HE100_prepareTransmission(soft_reset_payload,transmission,0,soft_reset_command);
-   return HE100_write(fdin,transmission,WRAPPER_LENGTH);
+   return HE100_dispatchTransmission(fdin,soft_reset_payload,0,soft_reset_command);
 }
 
 /**
@@ -799,7 +792,5 @@ HE100_readFirmwareRevision(int fdin)
 {
    unsigned char read_firmware_revision_payload[1] = {0};
    unsigned char read_firmware_revision_command[2] = {CMD_TRANSMIT, CMD_READ_FIRMWARE_V};
-   unsigned char transmission[MAX_FRAME_LENGTH] = {0};
-   HE100_prepareTransmission(read_firmware_revision_payload,transmission,0,read_firmware_revision_command);
-   return HE100_write(fdin,transmission,WRAPPER_LENGTH);
+   return HE100_dispatchTransmission(fdin,read_firmware_revision_payload,0,read_firmware_revision_command);
 }

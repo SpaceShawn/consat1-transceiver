@@ -32,8 +32,9 @@ quit () {
     exit 0
 }
 
-usage="usage: csmake.sh [options] "
-if [ $# -eq 0 ]; then echo "No arguments supplied... $usage"; fi 
+ensure-directories () {
+  mkdir -p $CS1_DIR/HE100-lib/C/lib
+}
 
 mbcc-static-c () {
   make buildQ6  
@@ -60,9 +61,9 @@ bb-static-cpp () {
   ar rcs lib/libhe100-BB.a lib/he100-BB.o
 }
 
-make-run-test () {
+make-run-gtest () {
   cd test
-  bash csmaketest.sh
+  bash csmaketest.sh $1 #will pass gdm argument to csmaketest.sh
   cd ..
 }
 
@@ -78,14 +79,24 @@ for arg in "$@"; do
             bb-static-cpp; quit;
         ;;
         "test")
-            make-run-test
+            make-run-gtest
+        ;;
+        "gdb")
+            make-run-gtest gdb
     esac
 done
 
 CURRENT_DIR="${PWD##*/}"
 if [ "$CURRENT_DIR" != "C" ]; then fail "This script must be run from HE100_lib/C, not $CURRENT_DIR"; fi;
+ensure-directories
 
-x86-static-cpp
-mbcc-static-cpp
+usage="usage: csmake.sh [options] "
+if [ $# -eq 0 ]; then 
+    echo "No arguments supplied... $usage"
+    echo "Running default conditions"
+    x86-static-cpp
+    mbcc-static-cpp
+    make-run-gtest
+fi 
 
 quit # exit cleanly

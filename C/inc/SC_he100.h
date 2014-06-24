@@ -126,6 +126,15 @@ int HE100_referenceByteSequence(unsigned char *response, int position);
 int HE100_interpretResponse (unsigned char *response, size_t length);
 
 /**
+ * Function to take radio command, payload and payload length and write to radio
+ * @param fdin
+ * @param payload
+ * @param payload_length
+ * @param command
+ */
+int HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_length, unsigned char *command);
+
+/**
  * Function to return NOOP byte sequence
  * no arguments
  */

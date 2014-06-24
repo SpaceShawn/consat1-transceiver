@@ -35,9 +35,10 @@ quit () {
 make-clean-gtest () {
     confirm "Would you like to run the live test (requires radio to be present and active)?" && live=1
     make clean
-    make 
-    $1 ./he100_lib_test
-    [ $live ] && ./he100-live_test
+    if make ; then
+        $1 ./he100_lib_test
+        [ $live ] && ./he100-live_test
+    fi;
 }
 
 for arg in "$@"; do
