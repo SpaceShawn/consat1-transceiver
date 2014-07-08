@@ -251,7 +251,7 @@ HE100_openPort(void)
     // TODO issue NOOP and check device is on
 
     if ( HE100_configureInterface(fdin) != 0 ) fdin = -1;
-    return(fdin);
+      return(fdin);
 }
 
 /* Function to close serial device connection at given file descriptor */
@@ -372,16 +372,24 @@ HE100_validateFrame (unsigned char *response, size_t length)
             fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
             char error[MAX_LOG_BUFFER_LEN];
             sprintf (error, "NACK: %s, %d", __func__, __LINE__);
-            if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
-            fclose(fdlog); 
-            r = 1;
+            if (fdlog != NULL) {
+              Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+              fclose(fdlog); 
+            } else {
+              Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
+            } 
+            r = HE_FAILED_NACK;
         } else {
             fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
             char error[MAX_LOG_BUFFER_LEN];
             sprintf (error, "Unknown byte sequence: %s, %d", __func__, __LINE__);
-            if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
-            fclose(fdlog);
-            r = 1;
+            if (fdlog != NULL){
+              Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+              fclose(fdlog);
+            } else {
+              Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
+            }
+            r = HE_INVALID_BYTE_SEQUENCE;
         }
     }
     else
@@ -396,8 +404,12 @@ HE100_validateFrame (unsigned char *response, size_t length)
                     (uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2, 
                     __func__, __LINE__
             );
-            if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
-            fclose(fdlog);
+            if (fdlog != NULL) {
+              Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+              fclose(fdlog);
+            } else {
+              Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
+            } 
             // DISABLED FOR TESTING, TODO, FIX! r=1;
         }
 
@@ -410,7 +422,12 @@ HE100_validateFrame (unsigned char *response, size_t length)
                     (uint8_t)response[pb1],(uint8_t)response[pb2],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2,
                     __func__, __LINE__
             );
-            if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+            if (fdlog != NULL) {
+              Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+              fclose(fdlog);
+            } else {
+              Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
+            }
             // DISABLED FOR TESTING, TODO, FIX! // r=1;
         }
     }
@@ -517,15 +534,26 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
                         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
                         char error[MAX_LOG_BUFFER_LEN];
                         sprintf (error, "Memory allocation problem: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
-                        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+                        if (fdlog != NULL) {
+                          Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+                          fclose(fdlog);
+                        } else {
+                          Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
+                        } 
                         r=-1;//r=CS1_NULL_MALLOC;
                     }
                     else
                     {   // something unexpected
                         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
                         char error[MAX_LOG_BUFFER_LEN];
-                        sprintf (error, "Invalid Data: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
-                        if (fdlog != NULL) Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+                        //sprintf (error, "Invalid Data: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+                        sprintf (error, "Invalid Data: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
+                        if (fdlog != NULL) {
+                          Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+                          fclose(fdlog);
+                        } else {
+                          Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
+                        }
 
                         //r=CS1_INVALID_BYTE_SEQUENCE;
                         r=-1;
