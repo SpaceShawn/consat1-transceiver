@@ -295,7 +295,7 @@ HE100_write (int fdin, unsigned char *bytes, size_t size)
 
     // Check if number of bytes written is greater than zero
     // and if read returns a valid message
-    if ( read_check == 0 && w>0 ) {
+    if ( read_check >= 0 && w>0 ) {
        write_return = 0;
     }
     return write_return;
@@ -320,10 +320,19 @@ HE100_validateFrame (unsigned char *response, size_t length)
     // calculate positions for payload and checksums
     size_t data_length = length - 2; // response minus 2 sync bytes
     int pb1 = length-2; int pb2 = length-1;
-    size_t payload_length = length - WRAPPER_LENGTH; // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
 
-    // validate length
-    if ( response[HE_LENGTH_BYTE] != payload_length ) return CS1_WRONG_LENGTH;    
+    // calculate payload length
+    size_t payload_length;
+    if ( length >= 10 ) 
+    { // a message of this minimum length will have a payload
+        payload_length = length - WRAPPER_LENGTH; // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
+        // validate length
+        if ( response[HE_LENGTH_BYTE] != payload_length ) return CS1_WRONG_LENGTH;    
+    } 
+    else 
+    { // empty payload control sequences
+        payload_length = 0;
+    }
 
 /*  TODO memory should not need to be allocated to apply checksum   */
 /*  simply pass the range of bytes to the checksum function!!       */
@@ -354,18 +363,32 @@ HE100_validateFrame (unsigned char *response, size_t length)
         data[j] = response[i];
         j++;
     }
+    int p_chk=0;
+    uint8_t p_s1_chk;
+    uint8_t p_s2_chk;
+    fletcher_checksum p_chksum;
+    if (payload_length > 0) {
+        // generate and compare payload checksum
+        p_chksum = fletcher_checksum16(data,data_length-2); // chksum everything except 'He' and payload checksum bytes
+        p_s1_chk = memcmp(&response[pb1], &p_chksum.sum1, 1);
+        p_s2_chk = memcmp(&response[pb2], &p_chksum.sum2, 1);
+        p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
+    }
 
-    // generate and compare payload checksum
-    fletcher_checksum p_chksum = fletcher_checksum16(data,data_length-2); // chksum everything except 'He' and payload checksum bytes
-    uint8_t p_s1_chk = memcmp(&response[pb1], &p_chksum.sum1, 1);
-    uint8_t p_s2_chk = memcmp(&response[pb2], &p_chksum.sum2, 1);
-    int p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
 /*  END TODO    */
 
-    if (response[4] == response[5] ) /* ACK or NOACK or EMPTY length */
+    if (response[HE_LENGTH_BYTE_0] == response[HE_LENGTH_BYTE] ) /* ACK or NOACK or EMPTY length */
     {
         if (response[4] == HE_ACK) {
-            fprintf(stdout,"\r\n  HE100: Acknowledge");
+            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+            char error[MAX_LOG_BUFFER_LEN];
+            sprintf (error, "Acknowledge: %d, %s, %d", (int)response[HE_CMD_BYTE], __func__, __LINE__);
+            if (fdlog != NULL) {
+              Shakespeare::log(fdlog, Shakespeare::NOTICE, PROCESS, error);
+              fclose(fdlog); 
+            } else {
+              Shakespeare::log(stdout, Shakespeare::NOTICE, PROCESS, error);
+            }
             /* TODO Check the header checksum here, a bit different than payload responses */
             r = 0;
         } else if (response[4] == HE_NOACK) {
@@ -379,6 +402,17 @@ HE100_validateFrame (unsigned char *response, size_t length)
               Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
             } 
             r = HE_FAILED_NACK;
+        } else if (response[4] == 0) {
+            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+            char error[MAX_LOG_BUFFER_LEN];
+            sprintf (error, "Empty Response: %s, %d", __func__, __LINE__);
+            if (fdlog != NULL) {
+              Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+              fclose(fdlog); 
+            } else {
+              Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
+            } 
+            r = HE_EMPTY_RESPONSE;
         } else {
             fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
             char error[MAX_LOG_BUFFER_LEN];
@@ -410,7 +444,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
             } else {
               Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
             } 
-            // DISABLED FOR TESTING, TODO, FIX! r=1;
+            r=-1;
         }
 
         if (p_chk != 0) {
@@ -428,7 +462,24 @@ HE100_validateFrame (unsigned char *response, size_t length)
             } else {
               Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
             }
-            // DISABLED FOR TESTING, TODO, FIX! // r=1;
+            r=-1;
+        }
+
+        if (payload_length==0) {
+            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+            char error[MAX_LOG_BUFFER_LEN];
+            sprintf (
+                    error, 
+                    "Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK %s, %d", 
+                    __func__, __LINE__
+            );
+            if (fdlog != NULL) {
+              Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
+              fclose(fdlog);
+            } else {
+              Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
+            }
+            r=-1;
         }
     }
 
@@ -489,7 +540,7 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
     fds.fd = fdin;
     fds.events = POLLIN;
    
-    if (fdin==0) return 1;
+    if (fdin==0) return -1;
 
     while (!timer_complete(&read_timer))
     {
@@ -525,8 +576,11 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
                     if ( SVR_result == 0 ) 
                     {   // valid frame
                         r = 0; 
-                        size_t payload_length = breakcond - WRAPPER_LENGTH;
-                        memcpy (payload, response+HE_FIRST_PAYLOAD_BYTE, payload_length);
+                        size_t payload_length;
+                        if (breakcond >= 10) {
+                            payload_length = breakcond - WRAPPER_LENGTH;
+                            memcpy (payload, response+HE_FIRST_PAYLOAD_BYTE, payload_length);
+                        } else payload_length=0;
                         r=payload_length;
                     }
                     else if (SVR_result == CS1_NULL_MALLOC) 
@@ -624,10 +678,10 @@ HE100_prepareTransmission(unsigned char *payload, unsigned char *prepared_transm
     prepared_transmission[HE_HEADER_CHECKSUM_BYTE_1] = (unsigned char) header_checksum.sum1 & 0xff;
     prepared_transmission[HE_HEADER_CHECKSUM_BYTE_2] = (unsigned char) header_checksum.sum2 & 0xff;
    
-    memcpy (prepared_transmission+HE_FIRST_PAYLOAD_BYTE,payload,length);
     
     if( has_payload==1 ) // real payload
     {
+        memcpy (prepared_transmission+HE_FIRST_PAYLOAD_BYTE,payload,length);
         // generate and attach payload checksum
         fletcher_checksum payload_checksum = fletcher_checksum16(prepared_transmission+HE_TX_RX_BYTE,length+6); // chksum everything except first two bytes 'He'
         prepared_transmission[HE_FIRST_PAYLOAD_BYTE+length] = payload_checksum.sum1;
@@ -731,9 +785,10 @@ int
 HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_length, unsigned char *command)
 {
     unsigned char transmission[MAX_FRAME_LENGTH] = {0};
-    HE100_prepareTransmission(payload,transmission,payload_length,command);
-    // TODO memset (transmission,'\0',MAX_FRAME_LENGTH);
-    return HE100_write(fdin,transmission,payload_length+WRAPPER_LENGTH);
+    memset (transmission,'\0',MAX_FRAME_LENGTH);    
+    if (HE100_prepareTransmission(payload,transmission,payload_length,command) == 0)
+         return HE100_write(fdin,transmission,payload_length+WRAPPER_LENGTH);
+    else return 1;
 }
 
 /**
