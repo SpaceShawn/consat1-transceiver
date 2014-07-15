@@ -88,20 +88,43 @@
 #define CMD_GET_CONFIG          0x05 // 20 05 prepends actual config data
 #define CMD_SET_CONFIG          0x06 // followed by config bytes
 #define CMD_TELEMETRY           0x07 // query a telemetry frame
-// EX {48 65 10 06 ... } query a telemetry frame
-// EX {48 65 20 06 ... } receive a telemetry frame
 #define CMD_WRITE_FLASH         0x08 // write flash 16 byte MDF
 #define CMD_RF_CONFIGURE        0x09 // Low Level RF Configuration
 #define CMD_BEACON_DATA         0x10 // Set Beacon Message
 #define CMD_BEACON_CONFIG       0x11 // Set Beacon configuration
 #define CMD_READ_FIRMWARE_V     0x12 // read radio firmware revision
-// EX {48 65 10 12 ... } request revision number
 // EX {48 65 20 12 REV } float 4 byte revision number
 #define CMD_DIO_KEY_WRITE       0x13
 #define CMD_FIRMWARE_UPDATE     0x14
 #define CMD_FIRMWARE_PACKET     0x15
 #define CMD_FAST_SET_PA         0x20
 #define CFG_OFF_LOGIC LOW   0x00
+
+char *CMD_CODE_LIST[32] = {
+    "CMD_NONE",             // 0x00 
+    "CMD_NOOP",             // 0x01 
+    "CMD_RESET",            // 0x02
+    "CMD_TRANSMIT_DATA",    // 0x03
+    "CMD_RECEIVE_DATA",     // 0x04
+    "CMD_GET_CONFIG",       // 0x05
+    "CMD_SET_CONFIG",       // 0x06
+    "CMD_TELEMETRY",        // 0x07
+    "CMD_WRITE_FLASH",      // 0x08
+    "CMD_RF_CONFIGURE",     // 0x09
+    "N/A",                  // 0x0a
+    "N/A",                  // 0x0b
+    "N/A",                  // 0x0c
+    "N/A",                  // 0x0d
+    "N/A",                  // 0x0e
+    "N/A",                  // 0x0f
+    "CMD_BEACON_DATA",      // 0x10
+    "CMD_BEACON_CONFIG",    // 0x11
+    "CMD_READ_FIRMWARE_V",  // 0x12
+    "CMD_DIO_KEY_WRITE",    // 0x13
+    "CMD_FIRMWARE_UPDATE",  // 0x14
+    "CMD_FIRMWARE_PACKET",  // 0x15
+    "CMD_FAST_SET_PA"       // 0x20
+};
 
 FILE *fdlog; // library log file
 
@@ -358,17 +381,18 @@ HE100_validateFrame (unsigned char *response, size_t length)
         fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
         char error[MAX_LOG_BUFFER_LEN];
         if (response[4] == HE_ACK) {
-            sprintf (error, "Acknowledge: %d, %s, %d", (int)response[HE_CMD_BYTE], __func__, __LINE__);
+            sprintf (error, "ACK>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
+            //sprintf (error, "Acknowledge %d %s %d", (int)response[HE_CMD_BYTE], __func__, __LINE__);
             /* TODO Check the header checksum here, a bit different than payload responses */
             r = 0;
         } else if (response[4] == HE_NOACK) {
-            sprintf (error, "NACK: %s, %d", __func__, __LINE__);
+            sprintf (error, "NACK>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
             r = HE_FAILED_NACK;
         } else if (response[4] == 0) {
-            sprintf (error, "Empty Response: %s, %d", __func__, __LINE__);
+            sprintf (error, "Empty Response>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
             r = HE_EMPTY_RESPONSE;
         } else {
-            sprintf (error, "Unknown byte sequence: %s, %d", __func__, __LINE__);
+            sprintf (error, "Unknown byte sequence>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
             r = HE_INVALID_BYTE_SEQUENCE;
         }
         if (fdlog != NULL) {
@@ -749,8 +773,11 @@ HE100_interpretResponse (unsigned char *response, size_t length)
 int 
 HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_length, unsigned char *command)
 {
+    // initialize transmission array to store prepared byte sequence
     unsigned char transmission[MAX_FRAME_LENGTH] = {0};
     memset (transmission,'\0',MAX_FRAME_LENGTH);    
+    
+    // if preparation successful, write the bytes to the radio
     if (HE100_prepareTransmission(payload,transmission,payload_length,command) == 0)
          return HE100_write(fdin,transmission,payload_length+WRAPPER_LENGTH);
     else return 1;
