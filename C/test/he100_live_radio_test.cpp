@@ -3,7 +3,7 @@
 #include "../inc/timer.h"
 #include "../inc/fletcher.h"
 
-#define MAX_TESTED_PAYLOAD 190
+#define MAX_TESTED_PAYLOAD 220
 
 class Helium_100_Live_Radio_Test : public ::testing::Test
 {
@@ -65,20 +65,6 @@ TEST_F(Helium_100_Live_Radio_Test, TransmitData)
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
 
-// Test setBeaconInterval
-TEST_F(Helium_100_Live_Radio_Test, SetBeaconInterval)
-{
-    int interval = 3;
-    int beacon_interval_result = HE100_setBeaconInterval(fdin, interval);
-
-    ASSERT_EQ(
-        0,
-        beacon_interval_result 
-    );
-    // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
-}
-
-/* 
 // Test setBeaconMessage
 TEST_F(Helium_100_Live_Radio_Test, SetBeaconMessage)
 {
@@ -92,17 +78,52 @@ TEST_F(Helium_100_Live_Radio_Test, SetBeaconMessage)
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
 
+// Test setBeaconInterval
+TEST_F(Helium_100_Live_Radio_Test, SetBeaconInterval)
+{
+    int interval = 3;
+    int beacon_interval_result = HE100_setBeaconInterval(fdin, interval);
+
+    ASSERT_EQ(
+        0,
+        beacon_interval_result 
+    );
+    // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
+}
+
+// test passing invalid PA level
+TEST_F(Helium_100_Live_Radio_Test, InvalidPALevel)
+{
+    int ipl_actual_value = HE100_fastSetPA (fdin, 300);
+    ASSERT_EQ(
+        1,
+        ipl_actual_value
+    );
+
+    ipl_actual_value = HE100_fastSetPA (fdin, -3);
+    ASSERT_EQ(
+        1,
+        ipl_actual_value
+    );
+}
+
 // Test fastSetPA
 TEST_F(Helium_100_Live_Radio_Test, FastSetPA)
 {
     int fast_set_pa_result = HE100_fastSetPA(fdin,7);
+    ASSERT_EQ(
+        0,
+        fast_set_pa_result 
+    );
 
+    fast_set_pa_result = HE100_fastSetPA(fdin,0);
     ASSERT_EQ(
         0,
         fast_set_pa_result 
     );
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
+
 
 // Test softReset
 TEST_F(Helium_100_Live_Radio_Test, SoftReset)
@@ -126,16 +147,6 @@ TEST_F(Helium_100_Live_Radio_Test, ReadFirmwareRevision)
         read_firmware_result 
     );
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
-}
-
-// test passing invalid PA level
-TEST_F(Helium_100_Live_Radio_Test, InvalidPALevel)
-{
-    int ipl_actual_value = HE100_fastSetPA (fdin, 300);
-    ASSERT_EQ(
-        -1,
-        ipl_actual_value
-    );
 }
 
 TEST_F(Helium_100_Live_Radio_Test, TestMaxLength)
@@ -176,7 +187,6 @@ TEST_F(Helium_100_Live_Radio_Test, TestAllBytes)
         transmit_result
     );
 }
-*/
 /*
 Send Beacon Data
 486510100100217231313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131B4E8

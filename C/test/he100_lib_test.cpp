@@ -304,7 +304,7 @@ TEST_F(Helium_100_Test, CatchBadChecksum)
     int actual_svr_result = HE100_validateFrame(invalid_checksum_response,icr_length);
 
     ASSERT_EQ(
-        0,
+        HE_FAILED_CHECKSUM,
         actual_svr_result
     );
 
@@ -313,7 +313,7 @@ TEST_F(Helium_100_Test, CatchBadChecksum)
     actual_svr_result = HE100_validateFrame(invalid_checksum_response,icr_length);
 
     ASSERT_EQ(
-        0,
+        HE_FAILED_CHECKSUM,
         actual_svr_result
     );
 }

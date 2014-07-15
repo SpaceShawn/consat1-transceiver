@@ -51,6 +51,7 @@
 // HELIUM VALUES
 #define NOPAY_COMMAND_LENGTH    8
 #define WRAPPER_LENGTH          10
+#define MIN_POWER_LEVEL         0
 #define MAX_POWER_LEVEL         255
 #define MAX_TESTED_FRAME        190
 #define MAX_FRAME_LENGTH        255
@@ -334,96 +335,47 @@ HE100_validateFrame (unsigned char *response, size_t length)
         payload_length = 0;
     }
 
-/*  TODO memory should not need to be allocated to apply checksum   */
-/*  simply pass the range of bytes to the checksum function!!       */
-    // assign memory to hold transmission minus sync bytes 
-    unsigned char *data = (unsigned char *) malloc(length);
-    if (data==NULL) return CS1_NULL_MALLOC;
-
-    // assign memory to hold message (transmission minus all meta data)
-    unsigned char *msg = (unsigned char *) malloc(data_length);
-    if (msg==NULL) return CS1_NULL_MALLOC;
-
-    // copy the header into the new response array minus sync bytes
-    size_t i; size_t j=0;
-    for (i=2;i<8;i++) {
-        data[j] = response[i];
-        j++;
-    }
-
     // generate and compare header checksum
-    fletcher_checksum h_chksum = fletcher_checksum16(data,4);
+    fletcher_checksum h_chksum = fletcher_checksum16(response+2,4);
     uint8_t h_s1_chk = memcmp(&response[HE_HEADER_CHECKSUM_BYTE_1], &h_chksum.sum1, 1);
     uint8_t h_s2_chk = memcmp(&response[HE_HEADER_CHECKSUM_BYTE_2], &h_chksum.sum2, 1);
     int h_chk = h_s1_chk + h_s2_chk; // should be zero given valid chk
-
-    // pick up where j left off
-    for (i=8;i<data_length;i++) /* read up to, not including payload chksum */
-    {
-        data[j] = response[i];
-        j++;
-    }
+    
     int p_chk=0;
     uint8_t p_s1_chk;
     uint8_t p_s2_chk;
     fletcher_checksum p_chksum;
     if (payload_length > 0) {
         // generate and compare payload checksum
-        p_chksum = fletcher_checksum16(data,data_length-2); // chksum everything except 'He' and payload checksum bytes
+        p_chksum = fletcher_checksum16(response+2,data_length-2); // chksum everything except 'He' and payload checksum bytes
         p_s1_chk = memcmp(&response[pb1], &p_chksum.sum1, 1);
         p_s2_chk = memcmp(&response[pb2], &p_chksum.sum2, 1);
         p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
     }
 
-/*  END TODO    */
-
     if (response[HE_LENGTH_BYTE_0] == response[HE_LENGTH_BYTE] ) /* ACK or NOACK or EMPTY length */
     {
+        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+        char error[MAX_LOG_BUFFER_LEN];
         if (response[4] == HE_ACK) {
-            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-            char error[MAX_LOG_BUFFER_LEN];
             sprintf (error, "Acknowledge: %d, %s, %d", (int)response[HE_CMD_BYTE], __func__, __LINE__);
-            if (fdlog != NULL) {
-              Shakespeare::log(fdlog, Shakespeare::NOTICE, PROCESS, error);
-              fclose(fdlog); 
-            } else {
-              Shakespeare::log(stdout, Shakespeare::NOTICE, PROCESS, error);
-            }
             /* TODO Check the header checksum here, a bit different than payload responses */
             r = 0;
         } else if (response[4] == HE_NOACK) {
-            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-            char error[MAX_LOG_BUFFER_LEN];
             sprintf (error, "NACK: %s, %d", __func__, __LINE__);
-            if (fdlog != NULL) {
-              Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
-              fclose(fdlog); 
-            } else {
-              Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
-            } 
             r = HE_FAILED_NACK;
         } else if (response[4] == 0) {
-            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-            char error[MAX_LOG_BUFFER_LEN];
             sprintf (error, "Empty Response: %s, %d", __func__, __LINE__);
-            if (fdlog != NULL) {
-              Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
-              fclose(fdlog); 
-            } else {
-              Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
-            } 
             r = HE_EMPTY_RESPONSE;
         } else {
-            fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
-            char error[MAX_LOG_BUFFER_LEN];
             sprintf (error, "Unknown byte sequence: %s, %d", __func__, __LINE__);
-            if (fdlog != NULL){
-              Shakespeare::log(fdlog, Shakespeare::ERROR, PROCESS, error);
-              fclose(fdlog);
-            } else {
-              Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
-            }
             r = HE_INVALID_BYTE_SEQUENCE;
+        }
+        if (fdlog != NULL) {
+            Shakespeare::log(fdlog, Shakespeare::NOTICE, PROCESS, error);
+            fclose(fdlog); 
+        } else {
+            Shakespeare::log(stdout, Shakespeare::NOTICE, PROCESS, error);
         }
     }
     else
@@ -444,7 +396,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
             } else {
               Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
             } 
-            r=-1;
+            r=HE_FAILED_CHECKSUM;
         }
 
         if (p_chk != 0) {
@@ -462,7 +414,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
             } else {
               Shakespeare::log(stdout, Shakespeare::ERROR, PROCESS, error);
             }
-            r=-1;
+            r=HE_FAILED_CHECKSUM;
         }
 
         if (payload_length==0) {
@@ -483,7 +435,6 @@ HE100_validateFrame (unsigned char *response, size_t length)
         }
     }
 
-    free(data);
     return r;
 }
 
@@ -611,10 +562,24 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
 
                         //r=CS1_INVALID_BYTE_SEQUENCE;
                         r=-1;
+                       
+                        // prepare to log result of soft reset 
+                        fdlog = Shakespeare::open_log(LOG_PATH,PROCESS);
+                        char log_msg[MAX_LOG_BUFFER_LEN];
 
                         // soft reset the transceiver
-                        if ( HE100_softReset(fdin) == 0 ) printf("\r\n Soft Reset written successfully!");
-                        else printf("\r\n Problems with soft reset");
+                        if ( HE100_softReset(fdin) == 0 ) {
+                            sprintf (log_msg, "Soft Reset written successfully!: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
+                        } 
+                        else { 
+                            sprintf (log_msg, "Soft Reset FAILED: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
+                        }
+                        if (fdlog != NULL) {
+                            Shakespeare::log(fdlog, Shakespeare::NOTICE, PROCESS, error);
+                            fclose(fdlog);
+                        } else {
+                            Shakespeare::log(stdout, Shakespeare::NOTICE, PROCESS, error);
+                        }   
                     }
                     break; // TODO why is this break needed?
                 }
@@ -849,7 +814,7 @@ HE100_fastSetPA (int fdin, int power_level)
 {
    unsigned char fast_set_pa_payload[1];
    fast_set_pa_payload[0] = power_level & 0xff;
-   if (power_level > MAX_POWER_LEVEL) return 1;
+   if (power_level > MAX_POWER_LEVEL || power_level < MIN_POWER_LEVEL) return 1;
    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
    return HE100_dispatchTransmission(fdin,fast_set_pa_payload,1,fast_set_pa_command);
 }
