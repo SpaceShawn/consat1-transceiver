@@ -100,7 +100,7 @@
 #define CMD_FAST_SET_PA         0x20
 #define CFG_OFF_LOGIC LOW   0x00
 
-char *CMD_CODE_LIST[32] = {
+const char *CMD_CODE_LIST[32] = {
     "CMD_NONE",             // 0x00 
     "CMD_NOOP",             // 0x01 
     "CMD_RESET",            // 0x02

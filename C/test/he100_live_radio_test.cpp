@@ -2,6 +2,8 @@
 #include "../inc/SC_he100.h"
 #include "../inc/timer.h"
 #include "../inc/fletcher.h"
+#include <Date.h>
+#include <SpaceDecl.h>
 
 #define MAX_TESTED_PAYLOAD 220
 

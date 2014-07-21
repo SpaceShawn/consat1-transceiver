@@ -4,7 +4,8 @@
 #include "../inc/SC_he100.h"
 #include "../inc/timer.h"
 #include "../inc/fletcher.h"
-#include "../../../space-lib/include/SpaceDecl.h"
+#include <Date.h>
+#include <SpaceDecl.h>
 
 class Helium_100_Test : public ::testing::Test
 {
