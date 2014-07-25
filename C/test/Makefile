@@ -25,9 +25,13 @@ SHAKES_DIR = ../../../space-lib/shakespeare
 UTLS_DIR= ../../../space-lib/utls
 
 GLOBAL_INC_DIR= ../../../space-lib/include
+GLOBAL_LIB_DIR= ../../../space-lib/lib
 MICROINCPATH=-I../inc/Q6/
 PCINCPATH=-I../inc/PC/
 INCPATH=-I../inc/ -I$(GLOBAL_INC_DIR)/
+
+LIBPATH=-L$(GLOBAL_LIB_DIR)
+LIBS=$(LIBPATH) -lshakespeare
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
@@ -79,33 +83,33 @@ gtest_main.a : gtest-all.o gtest_main.o
 
 ###########################
 
-OBJECTS=he100_lib_test.o Date.o fletcher.o timer.o shakespeare.o SC_he100.o
-HEADERS=$(USER_DIR)/inc/timer.h $(UTLS_DIR)/include/Date.h $(GLOBAL_INC_DIR)/SpaceDecl.h $(USER_DIR)/inc/SC_he100.h
+OBJECTS= Date.o fletcher.o timer.o shakespeare.o SC_he100.o
+HEADERS=$(GLOBAL_INC_DIR)/timer.h $(GLOBAL_INC_DIR)/Date.h $(GLOBAL_INC_DIR)/shakespeare.h $(GLOBAL_INC_DIR)/SpaceDecl.h $(USER_DIR)/inc/SC_he100.h
 
 ###########################
 
-Date.o : $(UTLS_DIR)/src/Date.cpp $(UTLS_DIR)/include/Date.h $(GTEST_HEADERS)
+Date.o : $(UTLS_DIR)/src/Date.cpp $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) -I$(UTLS_DIR)/include/ $(CXXFLAGS) -c $(UTLS_DIR)/src/Date.cpp
 
-timer.o : $(TIMER_DIR)/src/timer.c $(TIMER_DIR)/inc/timer.h $(GTEST_HEADERS)
+timer.o : $(TIMER_DIR)/src/timer.c $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) -I$(TIMER_DIR)/inc/ $(CXXFLAGS) -c $(TIMER_DIR)/src/timer.c
 
-fletcher.o : $(FLETCHER_DIR)/src/fletcher.c $(FLETCHER_DIR)/inc/fletcher.h $(GTEST_HEADERS)
+fletcher.o : $(FLETCHER_DIR)/src/fletcher.c $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(INCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(FLETCHER_DIR)/src/fletcher.c
 
-shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(HEADERS) $(SHAKES_DIR)/inc/shakespeare.h $(GTEST_HEADERS)
+shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) -I$(SHAKES_DIR)/inc/ $(INCPATH) $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp
 
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(INCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c
 
-he100_lib_test : $(OBJECTS) gtest_main.a
+he100_lib_test : he100_lib_test.o $(OBJECTS) gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt
 
 he100_lib_test.o : $(USER_DIR)/test/he100_lib_test.cpp $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/test/he100_lib_test.cpp
 
-he100_live_radio_test : $(OBJECTS) gtest_main.a
+he100_live_radio_test : he100_live_radio_test.o $(OBJECTS) gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -lpthread $^ -o $@ -lrt
 
 he100_live_radio_test.o : $(USER_DIR)/test/he100_live_radio_test.cpp $(HEADERS) $(GTEST_HEADERS)

@@ -1,11 +1,14 @@
 #include "gtest/gtest.h"
-#include "../inc/SC_he100.h"
-#include "../inc/timer.h"
-#include "../inc/fletcher.h"
+#include <SC_he100.h>
+#include <timer.h>
+#include <fletcher.h>
 #include <Date.h>
 #include <SpaceDecl.h>
+#include <shakespeare.h>
 
 #define MAX_TESTED_PAYLOAD 220
+#define PROCESS "HE100"
+#define LOG_PATH "/home/logs/HE100"
 
 class Helium_100_Live_Radio_Test : public ::testing::Test
 {
@@ -15,6 +18,12 @@ class Helium_100_Live_Radio_Test : public ::testing::Test
       virtual void SetUp() {
         fdin = HE100_openPort(); 
         if (fdin==-1) exit(EXIT_FAILURE);
+        const ::testing::TestInfo* const test_info =
+              ::testing::UnitTest::GetInstance()->current_test_info();
+        char test_description[255] = {0};
+        sprintf(test_description,"We are in test %s of test case %s.",
+                       test_info->name(), test_info->test_case_name());
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, test_description);
       }
       virtual void TearDown() {
         HE100_closePort(fdin);
@@ -151,6 +160,7 @@ TEST_F(Helium_100_Live_Radio_Test, ReadFirmwareRevision)
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
 
+/*  
 TEST_F(Helium_100_Live_Radio_Test, TestMaxLength)
 {
     unsigned char data[256] = 
@@ -189,6 +199,7 @@ TEST_F(Helium_100_Live_Radio_Test, TestAllBytes)
         transmit_result
     );
 }
+*/
 /*
 Send Beacon Data
 486510100100217231313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131B4E8

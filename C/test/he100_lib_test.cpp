@@ -1,17 +1,29 @@
 #include "gtest/gtest.h"
 #include <stdio.h>
 #include <fcntl.h>
-#include "../inc/SC_he100.h"
-#include "../inc/timer.h"
-#include "../inc/fletcher.h"
+#include <SC_he100.h>
+#include <timer.h>
+#include <fletcher.h>
 #include <Date.h>
+#include <shakespeare.h>
 #include <SpaceDecl.h>
+
+#define PROCESS "HE100"
+#define LOG_PATH "/home/logs/HE100"
 
 class Helium_100_Test : public ::testing::Test
 {
     protected:
-    virtual void SetUp() { }
-    virtual void TearDown() { }
+    virtual void SetUp() {
+        const ::testing::TestInfo* const test_info =
+              ::testing::UnitTest::GetInstance()->current_test_info();
+        char test_description[255] = {0};
+        sprintf(test_description,"We are in test %s of test case %s.",
+                       test_info->name(), test_info->test_case_name());
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, test_description);
+    }
+    virtual void TearDown() {
+    }
     const static int fdin = 1; // fake file descriptor to simulate HE100
     size_t z; // assert loop index
     //unsigned char noop_ack[8]       = {0x48,0x65,0x20,0x01,0x0a,0x0a,0x35,0xa1};
@@ -20,6 +32,7 @@ class Helium_100_Test : public ::testing::Test
 };
 
 TEST_F(Helium_100_Test, ReadTest) {
+    Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, "ReadTest");
     // prepare mock bytes to test with
     unsigned char mock_bytes[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
 
