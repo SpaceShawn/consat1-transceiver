@@ -88,14 +88,12 @@ done
 
 CURRENT_DIR="${PWD##*/}"
 if [ "$CURRENT_DIR" != "C" ]; then fail "This script must be run from HE100_lib/C, not $CURRENT_DIR"; fi;
-ensure-directories
 
 usage="usage: csmake.sh [options] "
 if [ $# -eq 0 ]; then 
     echo "No arguments supplied... $usage"
     echo "Running default conditions"
     x86-static-cpp
-    mbcc-static-cpp
     make-run-gtest
 fi 
 

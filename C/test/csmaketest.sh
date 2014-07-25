@@ -60,5 +60,3 @@ if [ $# -eq 0 ]; then
     echo "Running default conditions..."
     make-clean-gtest
 fi
-
-quit # exit cleanly
