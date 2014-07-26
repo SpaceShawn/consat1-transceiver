@@ -131,6 +131,7 @@ FILE *fdlog; // library log file
 // Config options
 #define CFG_FRAME_LENGTH    44
 #define CFG_PAYLOAD_LENGTH  34
+#define CFG_FLASH_LENGTH    34 // TODO was is the real value
 // Interface BAUD RATE config
 #define CFG_IF_BAUD_BYTE    0 // 1st byte
 #define CFG_DEF_IF_BAUD     0
@@ -176,6 +177,7 @@ FILE *fdlog; // library log file
 #define CFG_DST_CALL_BYTE   20 // 21st byte
 #define CFG_SRC_CALL_DEF    "VA3ORB"
 #define CFG_DST_CALL_DEF    "VE2CUA"
+#define CFG_CALLSIGN_LEN    6
 // PREAMBLE/POSTAMBLE config
 #define CFG_TX_PREAM_BYTE   26 // 27th byte
 #define CFG_TX_PREAM_DEF    0
@@ -330,6 +332,7 @@ HE100_configureInterface (int fdin)
         sprintf (error, "failed flush device: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_FLUSH;
+    }
     return 0;
 }
 
@@ -401,10 +404,12 @@ HE100_write (int fdin, unsigned char *bytes, size_t size)
     fflush( NULL ); fsync(fdin); // TODO fdin, is a tty device, ineffective?
 
     unsigned char response_buffer[MAX_FRAME_LENGTH]; // TODO this will not be used, fault of refactoring decision
+
+    int read_check = 0;
     if (bytes[HE_CMD_BYTE] != CMD_GET_CONFIG) // some commands manually manage responses
     { // Issue a read to check for ACK/NOACK
-        int read_check = HE100_read(fdin, 2, response_buffer);
-    }  else read_check = 0;
+        read_check = HE100_read(fdin, 2, response_buffer);
+    }  else read_check = 1;
     // Check if number of bytes written is greater than zero
     // and if read returns a valid message
     if ( read_check >= 0 && w>0 ) {
@@ -977,8 +982,8 @@ HE100_getConfig (int fdin)
        unsigned char config_bytes[MAX_FRAME_LENGTH];
        if ( HE100_read(fdin, 1, config_bytes) > 0 ) // valid number of bytes is great than zero
        {
-         if ( HE100_referenceByteSequence(buffer,HE_CMD_BYTE) == CMD_GET_CONFIG  ) {
-            he100_settings settings = HE100_prepareConfig(buffer); 
+         if ( HE100_referenceByteSequence(config_bytes,HE_CMD_BYTE) == CMD_GET_CONFIG  ) {
+            he100_settings settings = HE100_prepareConfig(config_bytes); 
             return settings;   
          }
          else return old_settings;
@@ -993,11 +998,8 @@ HE100_getConfig (int fdin)
 // TODO currently idea is to set a value in the array that is impossible to 
 // represent a false result. Clearly there is a better way to do this     
 unsigned char * 
-HE100_validateConfig (struct he100_settings he100_new_settings)
+HE100_validateConfig (struct he100_settings he100_new_settings,unsigned char set_config_payload)
 { 
-    // initiate config payload array
-    unsigned char * set_config_payload[CFG_PAYLOAD_LENGTH] = {0};
-
     // validate new interface baud rate setting
     if (
             he100_new_settings.interface_baud_rate < MAX_IF_BAUD_RATE 
@@ -1006,10 +1008,10 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
     ) 
     {
          // TODO this SHOULD changed with the serial connection as well?
-         set_config_payload[CFG_IF_BAUD_BYTE] = he100_new_settings.interface_baud_rate;
+         memcpy(set_config_payload[CFG_IF_BAUD_BYTE],he100_new_settings.interface_baud_rate,sizeof(uint8_t));
     }
     //else set_config_payload[CFG_IF_BAUD_BYTE]=-1;
-    else set_config_payload[0]=255;
+    else memset(set_config_payload[0],0xFF,1);
 
     // validate new power amplification level
     if (
@@ -1017,10 +1019,9 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
             && he100_new_settings.tx_power_amp_level < MAX_PA_LEVEL
        ) 
     {
-        set_config_payload[CFG_PA_BYTE] = he100_new_settings.tx_power_amp_level;
+        memcpy(set_config_payload[CFG_PA_BYTE],he100_new_settings.tx_power_amp_level,sizeof(uint8_t);
     } 
-    //else set_config_payload[CFG_PA_BYTE]=-1;
-    else set_config_payload[0]=255;
+    else memset(set_config_payload[0],0xFF,1);
 
     // validate new rf baud rates
     if (
@@ -1030,13 +1031,10 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
         &&  he100_new_settings.tx_rf_baud_rate > MIN_RF_BAUD_RATE
     ) 
     {
-        set_config_payload[CFG_RF_RX_BAUD_BYTE] = he100_new_settings.rx_rf_baud_rate;
-        set_config_payload[CFG_RF_TX_BAUD_BYTE] = he100_new_settings.tx_rf_baud_rate;
+        memcpy(he100_new_settings.rx_rf_baud_rate, set_config_payload[CFG_RF_RX_BAUD_BYTE],sizeof(uint8_t));
+        memcpy(he100_new_settings.tx_rf_baud_rate,set_config_payload[CFG_RF_TX_BAUD_BYTE],sizeof(uint8_t));
     }
-    else {
-        set_config_payload[CFG_RF_RX_BAUD_BYTE]=-1;
-        set_config_payload[CFG_RF_TX_BAUD_BYTE]=-1;
-    }
+    else memset(set_config_payload[0],0xFF,1);
    
     // validate modulation (USE DEFAULTS)
     if (
@@ -1044,10 +1042,10 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
          && he100_new_settings.tx_modulation == CFG_TX_DEF_MOD        
     )
     {
-        set_config_payload[CFG_RX_MOD_BYTE] = he100_new_settings.rx_modulation;
-        set_config_payload[CFG_TX_MOD_BYTE] = he100_new_settings.tx_modulation;
+        memcpy(he100_new_settings.rx_modulation,set_config_payload[CFG_RX_MOD_BYTE],sizeof(uint8_t));
+        memcpy(he100_new_settings.tx_modulation,set_config_payload[CFG_TX_MOD_BYTE],sizeof(uint8_t));
     }
-    else set_config_payload[0]=255;
+    else memset(set_config_payload[0],0xFF,1);
 
     // validate new RX setting
     if ( 
@@ -1055,9 +1053,9 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
      || (he100_new_settings.rx_freq > MIN_LOWER_FREQ && he100_new_settings.rx_freq < MAX_LOWER_FREQ)
     )
     {
-       // don't know how to set this yet
+        memcpy(he100_new_settings.rx_freq,set_config_payload[CFG_RX_FREQ_BYTE1],sizeof(uint16_t));
     }
-    else set_config_payload[0]=255;
+    else memset(set_config_payload[0],0xFF,1);
 
     // validate new TX setting
     if ( 
@@ -1065,31 +1063,27 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
      || (he100_new_settings.tx_freq > MIN_LOWER_FREQ && he100_new_settings.tx_freq < MAX_LOWER_FREQ)
     )
     {
+        memcpy(he100_new_settings.tx_freq,set_config_payload[CFG_TX_FREQ_BYTE1],sizeof(uint16_t));
        // don't know how to set this yet
     }
-    else set_config_payload[0]=255;
+    else memset(set_config_payload[0],0xFF,1);
 
     // validate callsigns (USE DEFAULTS) 
     if ( 1
         // length should be 6, valid CALLSIGN
-        //( memcmp(he100_new_settings.source_callsign, CFG_SRC_CALL_DEF) == 0 )
-     //&& ( memcmp(he100_new_settings.destination_callsign, CFG_DST_CALL_DEF) == 0 )
+        ( memcmp(he100_new_settings.source_callsign, CFG_SRC_CALL_DEF, 1) == 0 )
+     && ( memcmp(he100_new_settings.destination_callsign, CFG_DST_CALL_DEF, 1) == 0 )
     )
     {
-        int i;
-        int j=0;
         //he100_new_settings.source_callsign = CFG_SRC_CALL_DEF;
         //unsigned char SRC_CALL[7] = "VA3ORB";
-        for (i=CFG_SRC_CALL_BYTE;i<CFG_SRC_CALL_BYTE+6;i++)
-            set_config_payload[i] = CFG_SRC_CALL_DEF[j];
+        memcpy(he100_new_settings.source_callsign,set_config_payload[CFG_SRC_CALL_BYTE],CFG_CALLSIGN_LEN);
 
         //he100_new_settings.destination_callsign = CFG_DST_CALL_DEF;
         //unsigned char DST_CALL[7] = "VE2CUA";
-        j=0;
-        for (i=CFG_DST_CALL_BYTE;i<CFG_DST_CALL_BYTE+6;i++)
-            set_config_payload[i] = CFG_DST_CALL_DEF[j];
+        memcpy(he100_new_settings.destination_callsign,set_config_payload[CFG_DST_CALL_BYTE],CFG_CALLSIGN_LEN);
     }
-    else set_config_payload[0]=255;
+    else memset(set_config_payload[0],0xFF,1);
 
   
 /***   DIO PIN 13, RX CRC, LED, this doesn't make much sense yet:  *******************/
@@ -1103,9 +1097,9 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
          || he100_new_settings.rx_crc == CFG_RX_CRC_OFF
         )
     {
-        set_config_payload[CFG_RX_CRC_BYTE] = he100_new_settings.rx_crc;
+        memcpy(he100_new_settings.rx_crc,set_config_payload[CFG_RX_CRC_BYTE],sizeof(uint8_t));
     }
-    else set_config_payload[0]=255;
+    else memset(set_config_payload[0],0xFF,1);
 
     // validate new LED setting
     if (
@@ -1114,9 +1108,9 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
          || he100_new_settings.led_blink_type == CFG_LED_TX  
         )
     {
-        set_config_payload[CFG_LED_BYTE] = he100_new_settings.led_blink_type;
+        memcpy(he100_new_settings.led_blink_type,set_config_payload[CFG_LED_BYTE],sizeof(uint8_t));
     }
-    else set_config_payload[0]=255;
+    else memset(set_config_payload[0],0xFF,1);
 
     // validate new LED setting
     if (
@@ -1126,17 +1120,17 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
          || he100_new_settings.dio_pin13 == CFG_DIO_PIN13_RXTOG
         )
     {
-        set_config_payload[CFG_DIO_PIN13_BYTE] = he100_new_settings.dio_pin13;
+        memcpy(he100_new_settings.dio_pin13,set_config_payload[CFG_DIO_PIN13_BYTE],sizeof(uint8_t));
     }
-    else set_config_payload[0]=255;
+    else memset(set_config_payload[0],0xFF,1);
 
 /*************************************************************************************/
     // validate TX Test CW (USE DEFAULTS) 
     if ( he100_new_settings.rxtx_test_cw == CFG_RXTX_TEST_CW_DEF )
     {
-        set_config_payload[CFG_RXTX_TEST_CW_BYTE] = he100_new_settings.rxtx_test_cw;
+        memcpy(he100_new_settings.rxtx_test_cw,set_config_payload[CFG_RXTX_TEST_CW_BYTE],sizeof(uint8_t));
     }
-    else set_config_payload[0]=255;
+    else memset(set_config_payload[0],0xFF,1);
 
     // validate EXT functions
     switch (he100_new_settings.ext_conf_setting)
@@ -1145,20 +1139,23 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
            set_config_payload[CFG_EXT_BYTE] = 0;
            break; 
         case CFG_EXT_PING_ON: /* ping on */        
-           set_config_payload[CFG_EXT_BYTE] = CFG_EXT_PING_ON;
+           memset (set_config_payload[CFG_EXT_BYTE],CFG_EXT_PING_ON,1);
            break; 
         case CFG_EXT_CODEUPLOAD_ON: /* code upload on */ 
-           set_config_payload[CFG_EXT_BYTE] = CFG_EXT_CODEUPLOAD_ON;
+           memset (set_config_payload[CFG_EXT_BYTE],CFG_EXT_CODEUPLOAD_ON,1);
            break; 
         case CFG_EXT_RESET_ON: /* reset on */
-           set_config_payload[CFG_EXT_BYTE] = CFG_EXT_RESET_ON;
+           memset (set_config_payload[CFG_EXT_BYTE],CFG_EXT_RESET_ON,1);
            break; 
         default : 
-           set_config_payload[CFG_EXT_BYTE] = CFG_EXT_DEF;
+           memset (set_config_payload[CFG_EXT_BYTE],CFG_EXT_DEF,1);
            break;
     } // if no valid option, go with default
 
-    return set_config_payload;
+    // TODO if valid, just do this!
+    //memcpy (&he100_new_settings,set_config_payload,sizeof(he100_settings);
+
+    return &set_config_payload;
 }
 
 /**
@@ -1179,13 +1176,12 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
 }
 
 int 
-HE100_writeFlash (int fdin, unsigned char *flash_md5sum, size_t length)
+HE100_writeFlash (int fdin, unsigned char *flash_md5sum)
 {
     HE100_dumpHex (stdout,flash_md5sum,24); // TODO handle this properly, see docs
 
-    size_t write_length = length + 10;
-    unsigned char *write_flash_payload[length] = {0};
+    unsigned char write_flash_payload[CFG_FLASH_LENGTH] = {0};
     unsigned char write_flash_command[2] = {CMD_TRANSMIT, CMD_WRITE_FLASH};
     
-    return HE100_dispatchTransmission(fdin,write_flash_payload, length, write_flash_command); 
+    return HE100_dispatchTransmission(fdin, write_flash_payload, CFG_FLASH_LENGTH, write_flash_command); 
 }

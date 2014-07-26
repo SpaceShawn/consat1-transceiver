@@ -31,8 +31,8 @@ struct he100_settings {
   uint8_t       tx_rf_baud_rate; // Radio TX RF Baud Rate (9600=0x00)
   uint8_t       rx_modulation; // (0x00 = GFSK)
   uint8_t       tx_modulation; // (0x00 = GFSK)
-  uint32_t 	    rx_freq; // Channel Rx Frequency default 144200
-  uint32_t 	    tx_freq; // Channel Tx Frequency default 431000
+  uint16_t 	    rx_freq; // Channel Rx Frequency default 144200
+  uint16_t 	    tx_freq; // Channel Tx Frequency default 431000
 
   uint8_t       dio_pin13; // define DIO pin 13 behavior
 
@@ -190,7 +190,7 @@ int HE100_readFirmwareRevision(int fdin);
 struct he100_settings HE100_prepareConfig (unsigned char * buffer);
 struct he100_settings HE100_getConfig (int fdin);
 
-unsigned char * HE100_validateConfig (struct he100_settings he100_new_settings);
+int HE100_validateConfig (struct he100_settings he100_new_settings, unsigned char * set_config_payload );
 
 /* Function to configure the Helium board based on altered input struct he100_settings */
 /* validation will occur here, and if valid values have passed constraints, apply the settings */
