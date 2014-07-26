@@ -22,9 +22,16 @@ TIMER_DIR = ../../../space-timer-lib
 NAMEDPIPE_DIR = ../../../space-commander
 FLETCHER_DIR = ../../../space-lib/checksum
 SHAKES_DIR = ../../../space-lib/shakespeare
+UTLS_DIR= ../../../space-lib/utls
+
+GLOBAL_INC_DIR= ../../../space-lib/include
+GLOBAL_LIB_DIR= ../../../space-lib/lib
 MICROINCPATH=-I../inc/Q6/
 PCINCPATH=-I../inc/PC/
-INCPATH=-I../inc/
+INCPATH=-I../inc/ -I$(GLOBAL_INC_DIR)/
+
+LIBPATH=-L$(GLOBAL_LIB_DIR)
+LIBS=$(LIBPATH) -lshakespeare
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
@@ -36,7 +43,7 @@ CXXFLAGS += -g -Wall -Wextra -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = he100_lib_test
+TESTS = he100_lib_test he100_live_radio_test
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -76,23 +83,34 @@ gtest_main.a : gtest-all.o gtest_main.o
 
 ###########################
 
-NamedPipe.o : $(NAMEDPIPE_DIR)/src/NamedPipe.cpp $(NAMEDPIPE_DIR)/include/NamedPipe.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) -I$(NAMEDPIPE_DIR)/include/ $(CXXFLAGS) -c $(NAMEDPIPE_DIR)/src/NamedPipe.cpp
+OBJECTS= Date.o fletcher.o timer.o shakespeare.o SC_he100.o
+HEADERS=$(GLOBAL_INC_DIR)/timer.h $(GLOBAL_INC_DIR)/Date.h $(GLOBAL_INC_DIR)/shakespeare.h $(GLOBAL_INC_DIR)/SpaceDecl.h $(USER_DIR)/inc/SC_he100.h
 
-timer.o : $(TIMER_DIR)/src/timer.c $(TIMER_DIR)/inc/timer.h $(GTEST_HEADERS)
+###########################
+
+Date.o : $(UTLS_DIR)/src/Date.cpp $(HEADERS) $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) -I$(UTLS_DIR)/include/ $(CXXFLAGS) -c $(UTLS_DIR)/src/Date.cpp
+
+timer.o : $(TIMER_DIR)/src/timer.c $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) -I$(TIMER_DIR)/inc/ $(CXXFLAGS) -c $(TIMER_DIR)/src/timer.c
 
-fletcher.o : $(FLETCHER_DIR)/src/fletcher.c $(FLETCHER_DIR)/inc/fletcher.h $(GTEST_HEADERS)
+fletcher.o : $(FLETCHER_DIR)/src/fletcher.c $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(INCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(FLETCHER_DIR)/src/fletcher.c
 
-SC_he100.o : $(USER_DIR)/src/SC_he100.c $(USER_DIR)/inc/timer.h $(USER_DIR)/inc/SC_he100.h $(GTEST_HEADERS)
+shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(HEADERS) $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) -I$(SHAKES_DIR)/inc/ $(INCPATH) $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp
+
+SC_he100.o : $(USER_DIR)/src/SC_he100.c $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(INCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c
 
-shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(SHAKES_DIR)/inc/shakespeare.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) -I$(SHAKES_DIR)/inc/ $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp
-
-he100_lib_test : he100_lib_test.o NamedPipe.o fletcher.o timer.o shakespeare.o SC_he100.o gtest_main.a
+he100_lib_test : he100_lib_test.o $(OBJECTS) gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt
 
-he100_lib_test.o : $(USER_DIR)/test/he100_lib_test.cpp $(USER_DIR)/inc/SC_he100.h $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/test/he100_lib_test.cpp
+he100_lib_test.o : $(USER_DIR)/test/he100_lib_test.cpp $(HEADERS) $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/test/he100_lib_test.cpp
+
+he100_live_radio_test : he100_live_radio_test.o $(OBJECTS) gtest_main.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -lpthread $^ -o $@ -lrt
+
+he100_live_radio_test.o : $(USER_DIR)/test/he100_live_radio_test.cpp $(HEADERS) $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/test/he100_live_radio_test.cpp

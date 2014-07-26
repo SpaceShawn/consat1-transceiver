@@ -57,8 +57,14 @@ typedef struct HE100_checksum {
     uint8_t sum2;
 } HE100_checksum;
 
-/* Function to apply configuration to HE100 on configured serial port address */
-void HE100_configureInterface (int);
+/**
+ * Function to configure serial interface
+ * @param fdin - the file descriptor representing the serial device
+ * @return int - exit status 
+ * REF: http://man7.org/linux/man-pages/man3/termios.3.html
+ * REF: http://www.unixguide.net/unix/programming/3.6.2.shtml
+ */
+int HE100_configureInterface (int);
 
 /* Function to open HE100 device on configured seial port address */
 int HE100_openPort (void);
@@ -88,7 +94,7 @@ struct HE100_checksum HE100_fletcher16 (unsigned char *data, size_t bytes);
  * @param response - the frame data to be validated
  * @param length - the entire length of the frame in bytes
  */
-int HE100_storeValidResponse (unsigned char *response, size_t length);
+int HE100_validateFrame (unsigned char *response, size_t length);
 
 /* Function to dump a given array to a given file descriptor */
 int HE100_dumpBinary (FILE *fdout, unsigned char *bytes, size_t size);
@@ -103,15 +109,19 @@ void HE100_dumpHex (FILE *fdout, unsigned char *bytes, size_t size);
  * append them to and return a response array
  *
  * @param fdin - the file descriptor representing the serial device
+ * @param payload - a buffer you pass with 255 bytes of memory in which to place
+ *  the response data
+ * @return - the length of the payload read
  */
-int HE100_read (int fdin, time_t timeout);
+int HE100_read (int fdin, time_t timeout, unsigned char * payload);
 
 /**
  * Function to prepare data for transmission
  * @param char payload - data to be transmitted
  * @param size_t length - length of data stream
  */
-unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
+int HE100_prepareTransmission(unsigned char *payload, unsigned char *prepared_transmission, size_t length, unsigned char *command);
+//unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
 /* Function to ensure byte-by-byte that we are receiving a HE100 frame */
 int HE100_referenceByteSequence(unsigned char *response, int position);
@@ -122,6 +132,15 @@ int HE100_referenceByteSequence(unsigned char *response, int position);
  * @param length - the length of the data in bytes
  */
 int HE100_interpretResponse (unsigned char *response, size_t length);
+
+/**
+ * Function to take radio command, payload and payload length and write to radio
+ * @param fdin
+ * @param payload
+ * @param payload_length
+ * @param command
+ */
+int HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_length, unsigned char *command);
 
 /**
  * Function to return NOOP byte sequence

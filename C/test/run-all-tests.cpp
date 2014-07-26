@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "he100_lib_test.cpp"
+#include "he100_live_radio_test.cpp"
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

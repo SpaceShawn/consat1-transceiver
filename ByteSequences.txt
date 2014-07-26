@@ -21,8 +21,8 @@ getconfig response
 noop_ack[8]     48 65 20 01 0a 0a 35 a1
 noop_noack[10]  48 65 10 01 00 00 11 43 00 00
 
-some_ack 486520060a0a3ab0
-tx_ac    486520030a0a37a7
+some_ack 48 65 20 06 0a 0a 3a b0
+tx_ac    48 65 20 03 0a 0a 37 a7
 
 On Connection:
 <20130912194550.362 SYS>
