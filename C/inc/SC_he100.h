@@ -1,11 +1,6 @@
 #ifndef SC_HE100_H_
 #define SC_HE100_H_
 
-#include <stdint.h>
-#include <stddef.h>
-#include <time.h>
-#include <stdio.h>
-
 /*
  * =====================================================================================
  *
@@ -24,6 +19,210 @@
  * =====================================================================================
  */
 
+#include <stdint.h>
+#include <stddef.h>
+#include <time.h>
+#include <stdio.h>
+
+// Transceiver error codes
+#define HE_SUCCESS                  0
+#define HE_FAILED_OPEN_PORT         1
+#define HE_FAILED_CLOSE_PORT        2
+#define HE_NOT_A_TTY                3 
+#define HE_INVALID_COMMAND          4
+#define HE_NOT_READY                5
+#define HE_POWER_OFF                6
+#define HE_FAILED_TTY_CONFIG        7
+#define HE_FAILED_SET_BAUD          8
+#define HE_FAILED_FLUSH             9
+#define HE_FAILED_CHECKSUM          10
+#define HE_FAILED_NACK              11
+#define HE_INVALID_BYTE_SEQUENCE    12
+#define HE_EMPTY_RESPONSE           13
+#define HE_INVALID_POWER_AMP_LEVEL  14
+#define HE_INVALID_IF_BAUD_RATE     15
+#define HE_INVALID_RF_BAUD_RATE     16
+#define HE_INVALID_RX_MOD           17
+#define HE_INVALID_TX_MOD           18
+#define HE_INVALID_RX_FREQ          19
+#define HE_INVALID_TX_FREQ          20
+#define HE_INVALID_CALLSIGN         21
+#define HE_INVALID_TX_PREAM         22
+#define HE_INVALID_TX_POSTAM        23
+#define HE_INVALID_RX_PREAM         24
+#define HE_INVALID_RX_POSTAM        25
+#define HE_INVALID_CRC              26
+#define HE_INVALID_DIO_PIN13        27
+#define HE_INVALID_RXTX_TEST        28
+#define HE_INVALID_EXT              29
+#define HE_INVALID_LED              30
+#define HE_INVALID_CONFIG           31
+
+extern const char *HE_STATUS[32];
+extern const char *CMD_CODE_LIST[32];
+extern const char *if_baudrate[6];
+extern const char *rf_baudrate[5];
+
+// TTY settings
+// baudrate settings are defined in <asm/termbits.h> from <termios.h>
+#define BAUDRATE B9600
+#define TTYDEVICE "/dev/ttyS2"
+#define PARITYBIT ~PARENB // no parity bit
+#define BYTESIZE CS8 // 8 data bits
+#define STOPBITS ~CSTOPB // 1 stop bit
+#define HWFLWCTL ~CRTSCTS // disable hardware flow control
+// HELIUM VALUES
+#define NOPAY_COMMAND_LENGTH    8
+#define WRAPPER_LENGTH          10
+#define MIN_POWER_LEVEL         0
+#define MAX_POWER_LEVEL         255
+#define MAX_TESTED_FRAME        190
+#define MAX_FRAME_LENGTH        255
+#define HE_ACK                  0x0a
+#define HE_NOACK                0xff
+// HELIUM HEADER FRAME BYTES
+#define HE_SYNC_BYTE_1             0
+#define HE_SYNC_BYTE_2             1
+#define HE_TX_RX_BYTE              2
+#define HE_CMD_BYTE                3
+#define HE_LENGTH_BYTE_0           4 // will never be filled, except by ACK/NOACK
+#define HE_LENGTH_BYTE             5 
+#define HE_HEADER_CHECKSUM_BYTE_1  6
+#define HE_HEADER_CHECKSUM_BYTE_2  7
+#define HE_FIRST_PAYLOAD_BYTE      8
+// Sync and command byte values
+#define SYNC1       0x48
+#define SYNC2           0x65
+#define CMD_TRANSMIT        0x10
+#define CMD_RECEIVE         0x20
+#define CMD_TELEMETRY_DUMP  0x30 // pending??
+#define CMD_PING_RETURN     0x31
+#define CMD_CODE_UPLOAD     0x33 // pending??
+#define CMD_TOGGLE_PIN      0x34
+#define CMD_NOOP                0x01 // noop command, increments command processing counter
+#define CMD_RESET               0x02 // reset radio processors and systems
+#define CMD_TRANSMIT_DATA       0x03 // send N number of bytes
+#define CMD_RECEIVE_DATA        0x04 // receive N number of bytes
+#define CMD_GET_CONFIG          0x05 // 20 05 prepends actual config data
+#define CMD_SET_CONFIG          0x06 // followed by config bytes
+#define CMD_TELEMETRY           0x07 // query a telemetry frame
+#define CMD_WRITE_FLASH         0x08 // write flash 16 byte MDF
+#define CMD_RF_CONFIGURE        0x09 // Low Level RF Configuration
+#define CMD_BEACON_DATA         0x10 // Set Beacon Message
+#define CMD_BEACON_CONFIG       0x11 // Set Beacon configuration
+#define CMD_READ_FIRMWARE_V     0x12 // read radio firmware revision
+// EX {48 65 20 12 REV } float 4 byte revision number
+#define CMD_DIO_KEY_WRITE       0x13
+#define CMD_FIRMWARE_UPDATE     0x14
+#define CMD_FIRMWARE_PACKET     0x15
+#define CMD_FAST_SET_PA         0x20
+#define CFG_OFF_LOGIC LOW   0x00
+
+// Config options
+#define CFG_FRAME_LENGTH    44
+#define CFG_PAYLOAD_LENGTH  34
+#define CFG_FLASH_LENGTH    34 // TODO was is the real value
+// Interface BAUD RATE config
+#define CFG_IF_BAUD_BYTE    0 // 1st byte
+#define CFG_DEF_IF_BAUD     0
+#define CFG_IF_BAUD_9600    0
+#define CFG_IF_BAUD_19200   1
+#define CFG_IF_BAUD_38400   2
+#define CFG_IF_BAUD_76800   3
+#define CFG_IF_BAUD_115200  4
+#define MAX_IF_BAUD_RATE    4
+#define MIN_IF_BAUD_RATE    0
+// PA config
+#define CFG_PA_BYTE         1 // 2nd byte 
+#define MAX_PA_LEVEL        0xFF
+#define MIN_PA_LEVEL        0x00
+// RF BAUD rate config
+#define CFG_RF_RX_BAUD_BYTE 2 // 3rd byte 
+#define CFG_RF_TX_BAUD_BYTE 3 // 4th byte 
+#define CFG_DEF_RF_BAUDRATE 1
+#define CFG_RF_BAUD_1200    0
+#define CFG_RF_BAUD_9600    1
+#define CFG_RF_BAUD_19200   2
+#define CFG_RF_BAUD_38400   3
+#define MAX_RF_BAUD_RATE    3
+#define MIN_RF_BAUD_RATE    0
+// MODULATION config
+#define CFG_RX_MOD_BYTE     4 // 5th byte
+#define CFG_TX_MOD_BYTE     5 // 6th byte
+#define CFG_RX_DEF_MOD      0x00 // GFSK
+#define CFG_TX_DEF_MOD      0x00 // GFSK
+// RX TX FREQ config
+#define CFG_RX_FREQ_BYTE1   6 // 7th byte
+#define CFG_RX_FREQ_BYTE2   7 // 8th byte
+#define CFG_RX_FREQ_BYTE3   8 // 8th byte
+#define CFG_RX_FREQ_BYTE4   9 // 8th byte
+#define CFG_RX_FREQ_DEFAULT 144200L
+#define CFG_TX_FREQ_BYTE1   10 // 11th byte
+#define CFG_TX_FREQ_BYTE2   11 // 12th byte
+#define CFG_TX_FREQ_BYTE3   12 // 12th byte
+#define CFG_TX_FREQ_BYTE4   13 // 12th byte
+#define CFG_TX_FREQ_DEFAULT 431000L
+#define MAX_UPPER_FREQ      450000L
+#define MIN_UPPER_FREQ      400000L
+#define MAX_LOWER_FREQ      150000L
+#define MIN_LOWER_FREQ      120000L
+// CALLSIGN config
+#define CFG_SRC_CALL_BYTE   14 // 15th byte  
+#define CFG_DST_CALL_BYTE   20 // 21st byte
+#define CFG_SRC_CALL_DEF    "VA3ORB"
+#define CFG_DST_CALL_DEF    "VE2CUA"
+#define CFG_CALLSIGN_LEN    6
+
+
+// PREAMBLE/POSTAMBLE config
+#define CFG_TX_PREAM_BYTE   26 // 27th byte
+#define CFG_TX_PREAM_DEF    0
+#define CFG_TX_PREAM_MIN    0
+#define CFG_TX_PREAM_MAX    10
+#define CFG_TX_POSTAM_BYTE  28 // 29th byte
+#define CFG_TX_POSTAM_DEF   0
+#define CFG_TX_POSTAM_MIN   0
+#define CFG_TX_POSTAM_MAX   10
+#define CFG_RX_PREAM_BYTE   26 // 27th byte
+#define CFG_RX_PREAM_DEF    0
+#define CFG_RX_PREAM_MIN    0
+#define CFG_RX_PREAM_MAX    10
+#define CFG_RX_POSTAM_BYTE   28 // 29th byte
+#define CFG_RX_POSTAM_DEF    0
+#define CFG_RX_POSTAM_MIN    0
+#define CFG_RX_POSTAM_MAX    10
+// TODO these are 16-bit variables, fix them
+
+
+// RX CRC config
+#define CFG_RX_CRC_BYTE     30 // 31st byte
+#define CFG_RX_CRC_ON       0x43
+#define CFG_RX_CRC_OFF      0x03
+// RX CRC config// DIO - Pin 13 config
+#define CFG_DIO_PIN13_BYTE      30 // 31st byte
+#define CFG_DIO_PIN13_OFF       0x43
+#define CFG_DIO_PIN13_TXRXS     0x47 
+#define CFG_DIO_PIN13_2p5HZ     0x4b
+#define CFG_DIO_PIN13_RXTOG     0x4f
+// LED config
+#define CFG_LED_BYTE 30  // 38th byte in byte array
+#define CFG_LED_PS  0x41 // 2.5 second pulse
+#define CFG_LED_TX  0x42 // flash on transmit
+#define CFG_LED_RX  0x43 // flash on receive
+// TX Test CW config
+#define CFG_RXTX_TEST_CW_BYTE 32 // 33rd byte
+#define CFG_RXTX_TEST_CW_DEF  0x00 
+#define CFG_RXTX_TEST_CW_OFF  0x00 
+#define CFG_TX_TEST_CW_ON     0x02 
+#define CFG_RX_TEST_CW_ON     0x04
+// EXT Functions config
+#define CFG_EXT_BYTE          33 // 34th byte
+#define CFG_EXT_DEF           0x00  
+#define CFG_EXT_OFF           0x00
+#define CFG_EXT_PING_ON       0x10
+#define CFG_EXT_CODEUPLOAD_ON 0x20
+#define CFG_EXT_RESET_ON      0x40
+
 struct he100_settings {
   uint8_t       interface_baud_rate; // Radio Interface Baud Rate (9600=0x00)
   uint8_t       tx_power_amp_level; // Tx Power Amp Level (min=0x00, max=0xFF)
@@ -31,31 +230,45 @@ struct he100_settings {
   uint8_t       tx_rf_baud_rate; // Radio TX RF Baud Rate (9600=0x00)
   uint8_t       rx_modulation; // (0x00 = GFSK)
   uint8_t       tx_modulation; // (0x00 = GFSK)
-  uint16_t 	    rx_freq; // Channel Rx Frequency default 144200
-  uint16_t 	    tx_freq; // Channel Tx Frequency default 431000
-
+  uint32_t 	    rx_freq; // Channel Rx Frequency default 144200
+  uint32_t 	    tx_freq; // Channel Tx Frequency default 431000
   uint8_t       dio_pin13; // define DIO pin 13 behavior
-
   unsigned char	source_callsign[7]; // VA3ORB, default NOCALL
   unsigned char destination_callsign[7]; // VE2CUA, default CQ
-  uint8_t       tx_preamble; // AX25 Mode Tx Preamble byte length (0x00 = 20 flags)
-  uint8_t       tx_postamble; // AX25 Mode Tx Postamble byte length (0x00 = 20 flags)
-  uint8_t       rx_crc; // enable or disable RX CRC
-
+  uint16_t      tx_preamble; // AX25 Mode Tx Preamble byte length (0x00 = 20 flags)
+  uint16_t      tx_postamble; // AX25 Mode Tx Postamble byte length (0x00 = 20 flags)
+  //uint8_t       rx_crc; // enable or disable RX CRC
+  //uint8_t       led_blink_type; //
+  //uint8_t       dio_pin13; //
+  uint8_t       function_config; // Radio Configuration discrete behaviors TODO SHOULD BE uint16_t
   uint8_t       rxtx_test_cw; // default 0
   uint8_t       ext_conf_setting; // default 0
-  int           function_config; // Radio Configuration discrete behaviors
-  int           function_config2; // Radio Configuration discrete behaviors #2
-  uint8_t       led_blink_type; //
+  //uint8_t       function_config2; // Radio Configuration discrete behaviors #2 TODO SHOULD BE uint16_t
 };
 
 /**
- * struct to hold values of fletcher checksum
+ * Telemetry structure
  */
-typedef struct HE100_checksum {
-    uint8_t sum1;
-    uint8_t sum2;
-} HE100_checksum;
+typedef struct telem_type
+{
+    uint16_t op_counter;
+    uint16_t msp430_temp;
+    uint8_t time_count[3];
+    uint8_t rssi;
+    uint32_t bytes_received;
+    uint32_t bytes_transmitted;
+} TELEMETRY_STRUCTURE_type;
+
+/**
+ *   The Low Level RF Structure
+ */
+typedef struct
+{
+    uint8_t front_end_level; //0 to 63 Value
+    uint8_t tx_power_amp_level; //0 to 255 value, non-linear
+    uint32_t tx_frequency_offset; //Up to 20 kHz
+    uint32_t rx_frequency_offset; //Up to 20 kHz
+} RADIO_RF_CONFIGURATION_TYPE;
 
 /**
  * Function to configure serial interface
@@ -187,10 +400,12 @@ int HE100_readFirmwareRevision(int fdin);
 
 
 /* Function to return an array of config struct from Helium 100 */
-struct he100_settings HE100_prepareConfig (unsigned char * buffer);
+struct he100_settings HE100_collectConfig (unsigned char * buffer);
 struct he100_settings HE100_getConfig (int fdin);
 
-int HE100_validateConfig (struct he100_settings he100_new_settings, unsigned char * set_config_payload );
+//int HE100_validateConfig (struct he100_settings he100_new_settings, unsigned char * set_config_payload );
+int HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings settings);
+int HE100_validateConfig (struct he100_settings he100_new_settings);
 
 /* Function to configure the Helium board based on altered input struct he100_settings */
 /* validation will occur here, and if valid values have passed constraints, apply the settings */

@@ -24,7 +24,7 @@
 #include <fcntl.h>      /*  File control definitions */
 #include <errno.h>      /*  Error number definitions */
 #include <termios.h>    /*  POSIX terminal control definitions */
-#include "SC_he100.h"   /*  Helium 100 header file */
+#include <SC_he100.h>   /*  Helium 100 header file */
 #include "time.h"
 #include <poll.h>
 // project includes
@@ -40,67 +40,43 @@
 #define PROCESS "HE100"
 #define LOG_PATH "/home/logs/HE100"
 #define MAX_LOG_BUFFER_LEN 255
-// TTY settings
-// baudrate settings are defined in <asm/termbits.h> from <termios.h>
-#define BAUDRATE B9600
-#define TTYDEVICE "/dev/ttyS2"
-#define PARITYBIT ~PARENB // no parity bit
-#define BYTESIZE CS8 // 8 data bits
-#define STOPBITS ~CSTOPB // 1 stop bit
-#define HWFLWCTL ~CRTSCTS // disable hardware flow control
-// HELIUM VALUES
-#define NOPAY_COMMAND_LENGTH    8
-#define WRAPPER_LENGTH          10
-#define MIN_POWER_LEVEL         0
-#define MAX_POWER_LEVEL         255
-#define MAX_TESTED_FRAME        190
-#define MAX_FRAME_LENGTH        255
-#define HE_ACK                  0x0a
-#define HE_NOACK                0xff
-// HELIUM HEADER FRAME BYTES
-#define HE_SYNC_BYTE_1             0
-#define HE_SYNC_BYTE_2             1
-#define HE_TX_RX_BYTE              2
-#define HE_CMD_BYTE                3
-#define HE_LENGTH_BYTE_0           4 // will never be filled, except by ACK/NOACK
-#define HE_LENGTH_BYTE             5 
-#define HE_HEADER_CHECKSUM_BYTE_1  6
-#define HE_HEADER_CHECKSUM_BYTE_2  7
-#define HE_FIRST_PAYLOAD_BYTE      8
-// LED config
-#define CFG_LED_BYTE 38  // 38th byte in byte array
-#define CFG_LED_PS  0x41 // 2.5 second pulse
-#define CFG_LED_TX  0x42 // flash on transmit
-#define CFG_LED_RX  0x43 // flash on receive
-// Sync and command byte values
-#define SYNC1       0x48
-#define SYNC2           0x65
-#define CMD_TRANSMIT        0x10
-#define CMD_RECEIVE         0x20
-#define CMD_TELEMETRY_DUMP  0x30 // pending??
-#define CMD_PING_RETURN     0x31
-#define CMD_CODE_UPLOAD     0x33 // pending??
-#define CMD_TOGGLE_PIN      0x34
-#define CMD_NOOP                0x01 // noop command, increments command processing counter
-#define CMD_RESET               0x02 // reset radio processors and systems
-#define CMD_TRANSMIT_DATA       0x03 // send N number of bytes
-#define CMD_RECEIVE_DATA        0x04 // receive N number of bytes
-#define CMD_GET_CONFIG          0x05 // 20 05 prepends actual config data
-#define CMD_SET_CONFIG          0x06 // followed by config bytes
-#define CMD_TELEMETRY           0x07 // query a telemetry frame
-#define CMD_WRITE_FLASH         0x08 // write flash 16 byte MDF
-#define CMD_RF_CONFIGURE        0x09 // Low Level RF Configuration
-#define CMD_BEACON_DATA         0x10 // Set Beacon Message
-#define CMD_BEACON_CONFIG       0x11 // Set Beacon configuration
-#define CMD_READ_FIRMWARE_V     0x12 // read radio firmware revision
-// EX {48 65 20 12 REV } float 4 byte revision number
-#define CMD_DIO_KEY_WRITE       0x13
-#define CMD_FIRMWARE_UPDATE     0x14
-#define CMD_FIRMWARE_PACKET     0x15
-#define CMD_FAST_SET_PA         0x20
-#define CFG_OFF_LOGIC LOW   0x00
 
-const char *CMD_CODE_LIST[32] = {
+extern const char *HE_STATUS[32] = {
+    "HE_SUCCESS",
+    "HE_FAILED_OPEN_PORT",
+    "HE_FAILED_CLOSE_PORT",
+    "HE_NOT_A_TTY",
+    "HE_INVALID_COMMAND",
+    "HE_NOT_READY",
+    "HE_POWER_OFF",
+    "HE_FAILED_TTY_CONFIG",
+    "HE_FAILED_SET_BAUD",
+    "HE_FAILED_FLUSH",
+    "HE_FAILED_CHECKSUM",
+    "HE_FAILED_NACK",
+    "HE_INVALID_BYTE_SEQUENCE",
+    "HE_EMPTY_RESPONSE",
+    "HE_INVALID_POWER_AMP_LEVEL",
+    "HE_INVALID_IF_BAUD_RATE",
+    "HE_INVALID_RF_BAUD_RATE",
+    "HE_INVALID_RX_MOD",
+    "HE_INVALID_TX_MOD",
+    "HE_INVALID_RX_FREQ",
+    "HE_INVALID_TX_FREQ",
+    "HE_INVALID_CALLSIGN",
+    "HE_INVALID_TX_PREAM",
+    "HE_INVALID_TX_POSTAM",
+    "HE_INVALID_RX_PREAM",
+    "HE_INVALID_RX_POSTAM",
+    "HE_INVALID_CRC",
+    "HE_INVALID_DIO_PIN13",
+    "HE_INVALID_RXTX_TEST",
+    "HE_INVALID_EXT",
+    "HE_INVALID_LED",
+    "HE_INVALID_CONFIG"
+};
+
+extern const char *CMD_CODE_LIST[32] = {
     "CMD_NONE",             // 0x00 
     "CMD_NOOP",             // 0x01 
     "CMD_RESET",            // 0x02
@@ -126,109 +102,15 @@ const char *CMD_CODE_LIST[32] = {
     "CMD_FAST_SET_PA"       // 0x20
 };
 
+extern const char *if_baudrate[6] = {
+    "9600","19200","38400","76800","115200"
+};
+
+extern const char *rf_baudrate[5] = {
+    "1200","9600","19200","38400"
+};
+
 FILE *fdlog; // library log file
-
-// Config options
-#define CFG_FRAME_LENGTH    44
-#define CFG_PAYLOAD_LENGTH  34
-#define CFG_FLASH_LENGTH    34 // TODO was is the real value
-// Interface BAUD RATE config
-#define CFG_IF_BAUD_BYTE    0 // 1st byte
-#define CFG_DEF_IF_BAUD     0
-#define CFG_IF_BAUD_9600    0
-#define CFG_IF_BAUD_19200   1
-#define CFG_IF_BAUD_38400   2
-#define CFG_IF_BAUD_76800   3
-#define CFG_IF_BAUD_115200  4
-#define MAX_IF_BAUD_RATE    4
-#define MIN_IF_BAUD_RATE    0
-// PA config
-#define CFG_PA_BYTE         1 // 2nd byte 
-#define MAX_PA_LEVEL        0xFF
-#define MIN_PA_LEVEL        0x00
-// RF BAUD rate config
-#define CFG_RF_RX_BAUD_BYTE 2 // 3rd byte 
-#define CFG_RF_TX_BAUD_BYTE 3 // 4th byte 
-#define CFG_DEF_RF_BAUDRATE 1
-#define CFG_RF_BAUD_1200    0
-#define CFG_RF_BAUD_9600    1
-#define CFG_RF_BAUD_19200   2
-#define CFG_RF_BAUD_38400   3
-#define MAX_RF_BAUD_RATE    3
-#define MIN_RF_BAUD_RATE    0
-// MODULATION config
-#define CFG_RX_MOD_BYTE     4 // 5th byte
-#define CFG_TX_MOD_BYTE     5 // 6th byte
-#define CFG_RX_DEF_MOD      0x00 // GFSK
-#define CFG_TX_DEF_MOD      0x00 // GFSK
-// RX TX FREQ config
-#define MAX_UPPER_FREQ      450000 
-#define MIN_UPPER_FREQ      400000
-#define MAX_LOWER_FREQ      150000
-#define MIN_LOWER_FREQ      120000
-#define CFG_RX_FREQ_BYTE1   6 // 7th byte
-#define CFG_RX_FREQ_BYTE2   7 // 8th byte
-#define CFG_RX_FREQ_DEFAULT 144200
-#define CFG_TX_FREQ_BYTE1   10 // 11th byte
-#define CFG_TX_FREQ_BYTE2   11 // 12th byte
-#define CFG_TX_FREQ_DEFAULT 431000 
-// CALLSIGN config
-#define CFG_SRC_CALL_BYTE   14 // 15th byte  
-#define CFG_DST_CALL_BYTE   20 // 21st byte
-#define CFG_SRC_CALL_DEF    "VA3ORB"
-#define CFG_DST_CALL_DEF    "VE2CUA"
-#define CFG_CALLSIGN_LEN    6
-// PREAMBLE/POSTAMBLE config
-#define CFG_TX_PREAM_BYTE   26 // 27th byte
-#define CFG_TX_PREAM_DEF    0
-#define CFG_TX_PREAM_MIN    0
-#define CFG_TX_PREAM_MAX    10
-#define CFG_TX_POSTAM_BYTE  28 // 29th byte
-#define CFG_TX_POSTAM_DEF   0
-#define CFG_TX_POSTAM_MIN   0
-#define CFG_TX_POSTAM_MAX   10
-#define CFG_RX_PREAM_BYTE   26 // 27th byte
-#define CFG_RX_PREAM_DEF    0
-#define CFG_RX_PREAM_MIN    0
-#define CFG_RX_PREAM_MAX    10
-#define CFG_RX_POSTAM_BYTE  28 // 29th byte
-#define CFG_RX_POSTAM_DEF   0
-#define CFG_RX_POSTAM_MIN   0
-#define CFG_RX_POSTAM_MAX   10
-
-// RX CRC config
-#define CFG_RX_CRC_BYTE     30 // 31st byte
-#define CFG_RX_CRC_ON       0x43
-#define CFG_RX_CRC_OFF      0x03
-
-// RX CRC config// DIO - Pin 13 config
-#define CFG_DIO_PIN13_BYTE  30 // 31st byte
-#define CFG_DIO_PIN13_OFF   0x43
-#define CFG_DIO_PIN13_TXRXS 0x47 
-#define CFG_DIO_PIN13_2p5HZ 0x4b
-#define CFG_DIO_PIN13_RXTOG 0x4f
-
-// TX Test CW config
-#define CFG_RXTX_TEST_CW_BYTE 32 // 33rd byte
-#define CFG_RXTX_TEST_CW_DEF  0x00 
-#define CFG_RXTX_TEST_CW_OFF  0x00 
-#define CFG_TX_TEST_CW_ON     0x02 
-#define CFG_RX_TEST_CW_ON     0x04
-
-// EXT Functions config
-#define CFG_EXT_BYTE          33 // 34th byte
-#define CFG_EXT_DEF           0x00  
-#define CFG_EXT_OFF           0x00
-#define CFG_EXT_PING_ON       0x10
-#define CFG_EXT_CODEUPLOAD_ON 0x20
-#define CFG_EXT_RESET_ON      0x40
-
-// LED config
-#define CFG_LED_BYTE 38  // 38th byte in byte array
-#define CFG_LED_PS  0x41 // 2.5 second pulse
-#define CFG_LED_TX  0x42 // flash on transmit
-#define CFG_LED_RX  0x43 // flash on receive
-
 
 /**
  * Function to configure interface
@@ -924,42 +806,109 @@ HE100_readFirmwareRevision(int fdin)
 
 // TODO these settings are not clearly defined in documentation and need to be confirmed
 struct he100_settings
-HE100_prepareConfig (unsigned char * buffer)
+HE100_collectConfig (unsigned char * buffer)
 {
     he100_settings settings; 
-    //if ( (int)buffer[5] == CFG_PAYLOAD_LENGTH) 
-    //{ // check that we have the expected CFG payload length
-      // pour data into struct
-      settings.interface_baud_rate = buffer[10+0]; 
-      settings.tx_power_amp_level = buffer[10+1]; 
-      settings.rx_rf_baud_rate = buffer[10+2]; 
-      settings.tx_rf_baud_rate = buffer[10+3]; 
-      settings.rx_modulation = buffer[10+4]; 
-      settings.tx_modulation = buffer[10+5]; 
-      settings.rx_freq = buffer[10+6]; 
-      //settings.rx_freq = buffer[10+7]; 
-      settings.tx_freq = buffer[10+10]; 
-      //settings.tx_freq = buffer[10+11]; 
+    if ( (int)buffer[HE_LENGTH_BYTE] == CFG_PAYLOAD_LENGTH) 
+    { // pour data into struct
+      settings.interface_baud_rate = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_IF_BAUD_BYTE]; 
+      settings.tx_power_amp_level = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_PA_BYTE]; 
+      settings.rx_rf_baud_rate = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RF_RX_BAUD_BYTE]; 
+      settings.tx_rf_baud_rate = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RF_TX_BAUD_BYTE]; 
+      settings.rx_modulation = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_MOD_BYTE]; 
+      settings.tx_modulation = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_MOD_BYTE]; 
      
-      //unsigned char * scl[7];
-      //unsigned char * dcl[7];
-      //memcpy(scl,buffer+10+14,6);
-      memcpy(settings.source_callsign,(unsigned char*)buffer+10+14,6);
-      //memcpy(dcl,buffer+10+20,6);
-      memcpy(settings.destination_callsign,(unsigned char*)buffer+10+20,6);
+      // swap endianess 
+      // TODO CONDITIONAL ENDIANNESS conversion
+      settings.rx_freq = 
+            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_FREQ_BYTE4] << 24 |
+            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_FREQ_BYTE3] << 16 |
+            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_FREQ_BYTE2] << 8  |
+            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_FREQ_BYTE1]  
+      ;
+      settings.tx_freq = 
+            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_FREQ_BYTE4] << 24 |
+            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_FREQ_BYTE3] << 16 | 
+            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_FREQ_BYTE2] << 8  |
+            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_FREQ_BYTE1]  
+      ;
+      
+      memcpy(
+              settings.source_callsign,
+              (unsigned char*)buffer+HE_FIRST_PAYLOAD_BYTE+CFG_SRC_CALL_BYTE,
+              CFG_CALLSIGN_LEN
+      );
+      memcpy(
+              settings.destination_callsign,
+              (unsigned char*)buffer+HE_FIRST_PAYLOAD_BYTE+CFG_DST_CALL_BYTE,
+              CFG_CALLSIGN_LEN
+      );
 
-      settings.tx_preamble = buffer[10+26]; 
-      settings.tx_postamble = buffer[10+28]; 
+      settings.tx_preamble = 
+          buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_PREAM_BYTE] << 8 | 
+          buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_PREAM_BYTE+1]
+      ; 
+      settings.tx_postamble = 
+          buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_POSTAM_BYTE] << 8 |
+          buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_POSTAM_BYTE+1]
+      ; 
 
-      //settings.dio_pin14 = buffer[10+30]; 
-      //settings.rx_crc = buffer[10+30]; 
+      settings.function_config = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_CRC_BYTE]; 
+      //settings.dio_pin13 = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_CRC_BYTE]; 
+      //settings.rx_crc = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_DIO_PIN13_BYTE]; 
+      //settings.led_blink_type = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_LED_BYTE]; 
 
-      settings.rxtx_test_cw = buffer[10+32]; 
-      settings.ext_conf_setting = buffer[10+33]; 
-      settings.led_blink_type = buffer[10+38]; 
-    //}
+      // TODO settings.function_config 
+      settings.rxtx_test_cw = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RXTX_TEST_CW_BYTE]; 
+      settings.ext_conf_setting = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_EXT_BYTE]; 
+    }
 
+    //memcpy (&settings,buffer+WRAPPER_LENGTH,CFG_PAYLOAD_LENGTH); // copies char buf into struct
     return settings;
+}
+
+int 
+HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings settings){
+/*    
+    // TODO should this be changed with the serial connection as well?
+    memcpy(prepared_bytes[CFG_IF_BAUD_BYTE],settings.interface_baud_rate,sizeof(uint8_t));
+    memcpy(prepared_bytes[CFG_PA_BYTE],settings.tx_power_amp_level,sizeof(uint8_t);
+    memcpy(prepared_bytes[CFG_RF_RX_BAUD_BYTE],settings.rx_rf_baud_rate,sizeof(uint8_t));
+    memcpy(prepared_bytes[CFG_RF_TX_BAUD_BYTE],settings.tx_rf_baud_rate,sizeof(uint8_t));
+    memcpy(prepared_bytes[CFG_RX_MOD_BYTE],settings.rx_modulation,sizeof(uint8_t));
+    memcpy(prepared_bytes[CFG_TX_MOD_BYTE],settings.tx_modulation,sizeof(uint8_t));
+    memcpy(prepared_bytes[CFG_RX_FREQ_BYTE1],settings.rx_freq,sizeof(uint16_t));
+    memcpy(prepared_bytes[CFG_TX_FREQ_BYTE1],settings.tx_freq,sizeof(uint16_t));
+    
+    memcpy(prepared_bytes[CFG_SRC_CALL_BYTE],settings.source_callsign,CFG_CALLSIGN_LEN);
+    memcpy(prepared_bytes[CFG_DST_CALL_BYTE],settings.destination_callsign,CFG_CALLSIGN_LEN);
+
+    memcpy(prepared_bytes[CFG_RX_CRC_BYTE],settings.rx_crc,sizeof(uint8_t));
+    memcpy(prepared_bytes[CFG_LED_BYTE],settings.led_blink_type,sizeof(uint8_t));
+    memcpy(prepared_bytes[CFG_RXTX_TEST_CW_BYTE],settings.rxtx_test_cw,sizeof(uint8_t));
+    memcpy(prepared_bytes[CFG_DIO_PIN13_BYTE],settings.dio_pin13,sizeof(uint8_t));
+
+    switch (settings.ext_conf_setting)
+    {
+        case 0 : / all EXT functions off 
+           prepared_bytes[CFG_EXT_BYTE] = 0;
+           break; 
+        case CFG_EXT_PING_ON: // 
+           prepared_bytes[CFG_EXT_BYTE]=CFG_EXT_PING_ON; break; 
+        case CFG_EXT_CODEUPLOAD_ON: // 
+           prepared_bytes[CFG_EXT_BYTE]=CFG_EXT_CODEUPLOAD_ON;
+           break; 
+        case CFG_EXT_RESET_ON: //
+           prepared_bytes[CFG_EXT_BYTE]=CFG_EXT_RESET_ON;
+           break; 
+        default : 
+           prepared_bytes[CFG_EXT_BYTE]=CFG_EXT_DEF;
+           return HE_INVALID_EXT;
+           break;
+    }
+*/
+    memcpy (prepared_bytes,&settings,CFG_PAYLOAD_LENGTH); // copies char buf into struct
+    return 0;
 }
 
 // TODO redundant to call two structs. What do we want to DO with these settings? Perhaps write to file.
@@ -979,11 +928,13 @@ HE100_getConfig (int fdin)
 
     if(get_config_result == 0)
     {
-       unsigned char config_bytes[MAX_FRAME_LENGTH];
-       if ( HE100_read(fdin, 1, config_bytes) > 0 ) // valid number of bytes is great than zero
+       unsigned char config_transmission[MAX_FRAME_LENGTH];
+       if ( HE100_read(fdin, 1, config_transmission) > 0 ) // valid number of bytes is great than zero
        {
-         if ( HE100_referenceByteSequence(config_bytes,HE_CMD_BYTE) == CMD_GET_CONFIG  ) {
-            he100_settings settings = HE100_prepareConfig(config_bytes); 
+         if ( HE100_referenceByteSequence(config_transmission,HE_CMD_BYTE) == CMD_GET_CONFIG  ) {
+            unsigned char config_bytes[CFG_PAYLOAD_LENGTH];
+            memcpy (&config_bytes, config_transmission+HE_FIRST_PAYLOAD_BYTE,CFG_PAYLOAD_LENGTH);
+            he100_settings settings = HE100_collectConfig(config_bytes); 
             return settings;   
          }
          else return old_settings;
@@ -995,167 +946,206 @@ HE100_getConfig (int fdin)
  *  This function validates a he100_settings struct
  *  and converts to char array for safe deployment
  **/ 
-// TODO currently idea is to set a value in the array that is impossible to 
-// represent a false result. Clearly there is a better way to do this     
-unsigned char * 
-HE100_validateConfig (struct he100_settings he100_new_settings,unsigned char set_config_payload)
-{ 
+int 
+//HE100_validateConfig (struct he100_settings he100_new_settings,unsigned char* set_config_payload)
+HE100_validateConfig (struct he100_settings he100_new_settings)
+{
+    char validation_log_entry[MAX_LOG_BUFFER_LEN];
+
     // validate new interface baud rate setting
     if (
-            he100_new_settings.interface_baud_rate < MAX_IF_BAUD_RATE 
-        &&  he100_new_settings.interface_baud_rate > MIN_IF_BAUD_RATE 
-        &&  he100_new_settings.interface_baud_rate != CFG_DEF_IF_BAUD 
+            he100_new_settings.interface_baud_rate <= MAX_IF_BAUD_RATE 
+        &&  he100_new_settings.interface_baud_rate >= MIN_IF_BAUD_RATE 
+        // TODO WHY // &&  he100_new_settings.interface_baud_rate != CFG_DEF_IF_BAUD 
     ) 
     {
-         // TODO this SHOULD changed with the serial connection as well?
-         memcpy(set_config_payload[CFG_IF_BAUD_BYTE],he100_new_settings.interface_baud_rate,sizeof(uint8_t));
     }
-    //else set_config_payload[CFG_IF_BAUD_BYTE]=-1;
-    else memset(set_config_payload[0],0xFF,1);
+    else {
+        sprintf(validation_log_entry,"%s %s ^%s@%d",
+                HE_STATUS[HE_INVALID_IF_BAUD_RATE],if_baudrate[he100_new_settings.interface_baud_rate],
+                __func__,__LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        return HE_INVALID_IF_BAUD_RATE;
+    } 
+    
 
     // validate new power amplification level
     if (
-            he100_new_settings.tx_power_amp_level > MIN_PA_LEVEL 
-            && he100_new_settings.tx_power_amp_level < MAX_PA_LEVEL
+            he100_new_settings.tx_power_amp_level >= MIN_PA_LEVEL 
+            && he100_new_settings.tx_power_amp_level <= MAX_PA_LEVEL
        ) 
     {
-        memcpy(set_config_payload[CFG_PA_BYTE],he100_new_settings.tx_power_amp_level,sizeof(uint8_t);
     } 
-    else memset(set_config_payload[0],0xFF,1);
+    else { 
+        sprintf(validation_log_entry,"%s BAUD:%d ^%s@%d",
+                HE_STATUS[HE_INVALID_POWER_AMP_LEVEL],he100_new_settings.tx_power_amp_level,
+                __func__,__LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        return HE_INVALID_POWER_AMP_LEVEL;
+    };
 
     // validate new rf baud rates
     if (
-            he100_new_settings.rx_rf_baud_rate < MAX_RF_BAUD_RATE
-        &&  he100_new_settings.rx_rf_baud_rate > MIN_RF_BAUD_RATE
-        &&  he100_new_settings.tx_rf_baud_rate < MAX_RF_BAUD_RATE
-        &&  he100_new_settings.tx_rf_baud_rate > MIN_RF_BAUD_RATE
+            he100_new_settings.rx_rf_baud_rate <= MAX_RF_BAUD_RATE
+        &&  he100_new_settings.rx_rf_baud_rate >= MIN_RF_BAUD_RATE 
+        &&  he100_new_settings.tx_rf_baud_rate <= MAX_RF_BAUD_RATE
+        &&  he100_new_settings.tx_rf_baud_rate >= MIN_RF_BAUD_RATE 
     ) 
     {
-        memcpy(he100_new_settings.rx_rf_baud_rate, set_config_payload[CFG_RF_RX_BAUD_BYTE],sizeof(uint8_t));
-        memcpy(he100_new_settings.tx_rf_baud_rate,set_config_payload[CFG_RF_TX_BAUD_BYTE],sizeof(uint8_t));
     }
-    else memset(set_config_payload[0],0xFF,1);
+    else {
+        sprintf(validation_log_entry,"%s MAX:%d MIN:%d INDEX:%d BAUD:%s ^%s@%d",
+                HE_STATUS[HE_INVALID_RF_BAUD_RATE],
+                MAX_RF_BAUD_RATE, MIN_RF_BAUD_RATE,
+                he100_new_settings.tx_power_amp_level,rf_baudrate[he100_new_settings.tx_power_amp_level],
+                __func__,__LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        return HE_INVALID_RF_BAUD_RATE;
+    }
    
     // validate modulation (USE DEFAULTS)
     if (
             he100_new_settings.rx_modulation == CFG_RX_DEF_MOD
-         && he100_new_settings.tx_modulation == CFG_TX_DEF_MOD        
     )
     {
-        memcpy(he100_new_settings.rx_modulation,set_config_payload[CFG_RX_MOD_BYTE],sizeof(uint8_t));
-        memcpy(he100_new_settings.tx_modulation,set_config_payload[CFG_TX_MOD_BYTE],sizeof(uint8_t));
     }
-    else memset(set_config_payload[0],0xFF,1);
+    else {
+        sprintf(validation_log_entry,"%s [rx] expected[%d] actual[%d] ^%s@%d",
+                HE_STATUS[HE_INVALID_RX_MOD],
+                CFG_RX_DEF_MOD,
+                he100_new_settings.rx_modulation,
+                __func__,__LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        return HE_INVALID_RX_MOD; // TODO what about TX_MOD?
+    }
+
+    if (
+         he100_new_settings.tx_modulation == CFG_TX_DEF_MOD        
+    )
+    {
+    }
+    else {
+        sprintf(validation_log_entry,"%s expected[%d] actual[%d] ^%s@%d",
+                HE_STATUS[HE_INVALID_TX_MOD],
+                CFG_TX_DEF_MOD,
+                he100_new_settings.tx_modulation,
+                __func__,__LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        return HE_INVALID_TX_MOD; // TODO what about TX_MOD?
+    }
 
     // validate new RX setting
     if ( 
-        (he100_new_settings.rx_freq > MIN_UPPER_FREQ && he100_new_settings.rx_freq < MAX_UPPER_FREQ)
-     || (he100_new_settings.rx_freq > MIN_LOWER_FREQ && he100_new_settings.rx_freq < MAX_LOWER_FREQ)
+        (he100_new_settings.rx_freq >= MIN_UPPER_FREQ && he100_new_settings.rx_freq <= MAX_UPPER_FREQ)
+     || (he100_new_settings.rx_freq >= MIN_LOWER_FREQ && he100_new_settings.rx_freq <= MAX_LOWER_FREQ)
     )
     {
-        memcpy(he100_new_settings.rx_freq,set_config_payload[CFG_RX_FREQ_BYTE1],sizeof(uint16_t));
     }
-    else memset(set_config_payload[0],0xFF,1);
+    else { 
+        sprintf(validation_log_entry,"%s rx:%d ^%s@%d",
+                HE_STATUS[HE_INVALID_RX_FREQ],he100_new_settings.rx_freq,
+                __func__,__LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        return HE_INVALID_RX_FREQ;
+    }
 
     // validate new TX setting
     if ( 
-        (he100_new_settings.tx_freq > MIN_UPPER_FREQ && he100_new_settings.tx_freq < MAX_UPPER_FREQ)
-     || (he100_new_settings.tx_freq > MIN_LOWER_FREQ && he100_new_settings.tx_freq < MAX_LOWER_FREQ)
+        (he100_new_settings.tx_freq >= MIN_UPPER_FREQ && he100_new_settings.tx_freq <= MAX_UPPER_FREQ)
+     || (he100_new_settings.tx_freq >= MIN_LOWER_FREQ && he100_new_settings.tx_freq <= MAX_LOWER_FREQ)
     )
     {
-        memcpy(he100_new_settings.tx_freq,set_config_payload[CFG_TX_FREQ_BYTE1],sizeof(uint16_t));
-       // don't know how to set this yet
     }
-    else memset(set_config_payload[0],0xFF,1);
+    else {
+        sprintf(validation_log_entry,"%s tx:%d ^%s@%d",
+                HE_STATUS[HE_INVALID_TX_FREQ],he100_new_settings.tx_freq,
+                __func__,__LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        return HE_INVALID_TX_FREQ;
+    }
 
     // validate callsigns (USE DEFAULTS) 
-    if ( 1
+    if ( //1
         // length should be 6, valid CALLSIGN
         ( memcmp(he100_new_settings.source_callsign, CFG_SRC_CALL_DEF, 1) == 0 )
      && ( memcmp(he100_new_settings.destination_callsign, CFG_DST_CALL_DEF, 1) == 0 )
     )
-    {
-        //he100_new_settings.source_callsign = CFG_SRC_CALL_DEF;
-        //unsigned char SRC_CALL[7] = "VA3ORB";
-        memcpy(he100_new_settings.source_callsign,set_config_payload[CFG_SRC_CALL_BYTE],CFG_CALLSIGN_LEN);
-
-        //he100_new_settings.destination_callsign = CFG_DST_CALL_DEF;
-        //unsigned char DST_CALL[7] = "VE2CUA";
-        memcpy(he100_new_settings.destination_callsign,set_config_payload[CFG_DST_CALL_BYTE],CFG_CALLSIGN_LEN);
+    { }
+    else {
+        sprintf(validation_log_entry,"%s source:%s destination:%s ^%s@%d",
+                HE_STATUS[HE_INVALID_CALLSIGN],he100_new_settings.source_callsign,he100_new_settings.destination_callsign,
+                __func__,__LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        return HE_INVALID_CALLSIGN;
     }
-    else memset(set_config_payload[0],0xFF,1);
-
   
 /***   DIO PIN 13, RX CRC, LED, this doesn't make much sense yet:  *******************/
 /* the following settings are in conflict because they are set by the same byte */
 /* CFG_RX_CRC_BYTE == CFG_LED_BYTE == CFG_DIO_PIN13_BYTE == 30 */
 /* 0x43 could conceivably simultaneously enable CFG_RX_CRC_ON, CFG_LED_RX, and CFG_DIO_PIN13_OFF */
-
-    // validate RX CRC setting 
     if (
-            he100_new_settings.rx_crc == CFG_RX_CRC_ON
-         || he100_new_settings.rx_crc == CFG_RX_CRC_OFF
-        )
+            he100_new_settings.function_config == CFG_RX_CRC_ON
+         || he100_new_settings.function_config == CFG_RX_CRC_OFF
+         || he100_new_settings.function_config == CFG_LED_PS
+         || he100_new_settings.function_config == CFG_LED_RX
+         || he100_new_settings.function_config == CFG_DIO_PIN13_OFF
+         || he100_new_settings.function_config == CFG_DIO_PIN13_TXRXS
+         || he100_new_settings.function_config == CFG_DIO_PIN13_2p5HZ
+         || he100_new_settings.function_config == CFG_DIO_PIN13_RXTOG
+       ) 
     {
-        memcpy(he100_new_settings.rx_crc,set_config_payload[CFG_RX_CRC_BYTE],sizeof(uint8_t));
     }
-    else memset(set_config_payload[0],0xFF,1);
+    else {
+        sprintf(validation_log_entry,"%s setting:%02X ^%s@%d",
+                HE_STATUS[HE_INVALID_DIO_PIN13],
+                he100_new_settings.dio_pin13,
+                __func__,__LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        return HE_INVALID_DIO_PIN13;
+    }
 
-    // validate new LED setting
-    if (
-            he100_new_settings.led_blink_type == CFG_LED_PS
-         || he100_new_settings.led_blink_type == CFG_LED_RX
-         || he100_new_settings.led_blink_type == CFG_LED_TX  
-        )
-    {
-        memcpy(he100_new_settings.led_blink_type,set_config_payload[CFG_LED_BYTE],sizeof(uint8_t));
-    }
-    else memset(set_config_payload[0],0xFF,1);
-
-    // validate new LED setting
-    if (
-            he100_new_settings.dio_pin13 == CFG_DIO_PIN13_OFF
-         || he100_new_settings.dio_pin13 == CFG_DIO_PIN13_TXRXS
-         || he100_new_settings.dio_pin13 == CFG_DIO_PIN13_2p5HZ 
-         || he100_new_settings.dio_pin13 == CFG_DIO_PIN13_RXTOG
-        )
-    {
-        memcpy(he100_new_settings.dio_pin13,set_config_payload[CFG_DIO_PIN13_BYTE],sizeof(uint8_t));
-    }
-    else memset(set_config_payload[0],0xFF,1);
 
 /*************************************************************************************/
     // validate TX Test CW (USE DEFAULTS) 
     if ( he100_new_settings.rxtx_test_cw == CFG_RXTX_TEST_CW_DEF )
     {
-        memcpy(he100_new_settings.rxtx_test_cw,set_config_payload[CFG_RXTX_TEST_CW_BYTE],sizeof(uint8_t));
     }
-    else memset(set_config_payload[0],0xFF,1);
+    else { 
+        sprintf(validation_log_entry,"%s setting:%02X ^%s@%d",
+                HE_STATUS[HE_INVALID_RXTX_TEST],
+                he100_new_settings.rxtx_test_cw,
+                __func__,__LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        return HE_INVALID_RXTX_TEST;
+    }
 
     // validate EXT functions
     switch (he100_new_settings.ext_conf_setting)
     {
         case 0 : /* all EXT functions off */
-           set_config_payload[CFG_EXT_BYTE] = 0;
            break; 
         case CFG_EXT_PING_ON: /* ping on */        
-           memset (set_config_payload[CFG_EXT_BYTE],CFG_EXT_PING_ON,1);
-           break; 
+           break;
         case CFG_EXT_CODEUPLOAD_ON: /* code upload on */ 
-           memset (set_config_payload[CFG_EXT_BYTE],CFG_EXT_CODEUPLOAD_ON,1);
            break; 
         case CFG_EXT_RESET_ON: /* reset on */
-           memset (set_config_payload[CFG_EXT_BYTE],CFG_EXT_RESET_ON,1);
            break; 
         default : 
-           memset (set_config_payload[CFG_EXT_BYTE],CFG_EXT_DEF,1);
+           return HE_INVALID_EXT;
            break;
     } // if no valid option, go with default
 
-    // TODO if valid, just do this!
-    //memcpy (&he100_new_settings,set_config_payload,sizeof(he100_settings);
-
-    return &set_config_payload;
+    return 0;
 }
 
 /**
@@ -1164,15 +1154,13 @@ HE100_validateConfig (struct he100_settings he100_new_settings,unsigned char set
 int 
 HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
 {
-    fprintf(stdout, "config function not yet implemented, try again later");
-    return -1;
-
-    unsigned char *set_config_payload = HE100_validateConfig(he100_new_settings);
+    unsigned char set_config_payload[CFG_PAYLOAD_LENGTH] = {0}; 
+    int validate_result = HE100_validateConfig(he100_new_settings);
     unsigned char set_config_command[2] = {CMD_TRANSMIT, CMD_SET_CONFIG};
 
-    // TODO expand to check all parameters and display all errors present 
-    if (set_config_payload[0] != 255) // we have valid array
+    if (validate_result == 0) // we have valid array
         return HE100_dispatchTransmission(fdin, set_config_payload, CFG_PAYLOAD_LENGTH, set_config_command);
+    else return HE_INVALID_CONFIG;
 }
 
 int 

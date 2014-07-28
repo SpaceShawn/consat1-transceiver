@@ -83,8 +83,10 @@ gtest_main.a : gtest-all.o gtest_main.o
 
 ###########################
 
-OBJECTS= Date.o fletcher.o timer.o shakespeare.o SC_he100.o
-HEADERS=$(GLOBAL_INC_DIR)/timer.h $(GLOBAL_INC_DIR)/Date.h $(GLOBAL_INC_DIR)/shakespeare.h $(GLOBAL_INC_DIR)/SpaceDecl.h $(USER_DIR)/inc/SC_he100.h
+OBJECTS=Date.o fletcher.o timer.o shakespeare.o SC_he100.o
+HE100_HEADERS=$(USER_DIR)/inc/SC_he100.h
+SHAKESPEARE_HEADERS=$(GLOBAL_INC_DIR)/shakespeare.h 
+HEADERS=$(GLOBAL_INC_DIR)/timer.h $(GLOBAL_INC_DIR)/Date.h $(GLOBAL_INC_DIR)/SpaceDecl.h 
 
 ###########################
 
@@ -103,14 +105,14 @@ shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(HEADERS) $(GTEST_HEADERS)
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(INCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c
 
-he100_lib_test : he100_lib_test.o $(OBJECTS) gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt
-
 he100_lib_test.o : $(USER_DIR)/test/he100_lib_test.cpp $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/test/he100_lib_test.cpp
 
-he100_live_radio_test : he100_live_radio_test.o $(OBJECTS) gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -lpthread $^ -o $@ -lrt
-
 he100_live_radio_test.o : $(USER_DIR)/test/he100_live_radio_test.cpp $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/test/he100_live_radio_test.cpp
+
+he100_lib_test : $(OBJECTS) he100_lib_test.o $(HE100_HEADERS) gtest_main.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt
+
+he100_live_radio_test : $(OBJECTS) he100_live_radio_test.o gtest_main.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -lpthread $^ -o $@ -lrt
