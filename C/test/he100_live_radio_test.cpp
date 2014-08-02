@@ -38,6 +38,7 @@ class Helium_100_Live_Radio_Test : public ::testing::Test
 // Pass the function some data and check against expected result
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
+/* 
 // Test writing to the helium device
 TEST_F(Helium_100_Live_Radio_Test, GoodWrite)
 {
@@ -158,6 +159,12 @@ TEST_F(Helium_100_Live_Radio_Test, ReadFirmwareRevision)
         read_firmware_result 
     );
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
+}
+*/
+
+TEST_F(Helium_100_Live_Radio_Test, GetConfig)
+{
+    ASSERT_EQ(0,HE100_getConfig(fdin));
 }
 
 /*  

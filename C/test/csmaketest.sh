@@ -37,7 +37,7 @@ make-clean-gtest () {
     make clean
     if make ; then
         $1 ./he100_lib_test
-        [ $live ] && ./he100_live_test
+        [ $live ] && ./he100_live_radio_test
     fi;
 }
 

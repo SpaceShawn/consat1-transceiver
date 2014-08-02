@@ -41,7 +41,7 @@
 #define LOG_PATH "/home/logs/HE100"
 #define MAX_LOG_BUFFER_LEN 255
 
-extern const char *HE_STATUS[32] = {
+extern const char *HE_STATUS[34] = {
     "HE_SUCCESS",
     "HE_FAILED_OPEN_PORT",
     "HE_FAILED_CLOSE_PORT",
@@ -73,7 +73,9 @@ extern const char *HE_STATUS[32] = {
     "HE_INVALID_RXTX_TEST",
     "HE_INVALID_EXT",
     "HE_INVALID_LED",
-    "HE_INVALID_CONFIG"
+    "HE_INVALID_CONFIG",
+    "HE_FAILED_GET_CONFIG",
+    "HE_FAILED_READ"
 };
 
 extern const char *CMD_CODE_LIST[32] = {
@@ -288,7 +290,7 @@ HE100_write (int fdin, unsigned char *bytes, size_t size)
     unsigned char response_buffer[MAX_FRAME_LENGTH]; // TODO this will not be used, fault of refactoring decision
 
     int read_check = 0;
-    if (bytes[HE_CMD_BYTE] != CMD_GET_CONFIG) // some commands manually manage responses
+    if (bytes[HE_CMD_BYTE] != CMD_GET_CONFIG) // some commands manually manage reading responses
     { // Issue a read to check for ACK/NOACK
         read_check = HE100_read(fdin, 2, response_buffer);
     }  else read_check = 1;
@@ -809,66 +811,132 @@ struct he100_settings
 HE100_collectConfig (unsigned char * buffer)
 {
     he100_settings settings; 
-    if ( (int)buffer[HE_LENGTH_BYTE] == CFG_PAYLOAD_LENGTH) 
-    { // pour data into struct
-      settings.interface_baud_rate = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_IF_BAUD_BYTE]; 
-      settings.tx_power_amp_level = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_PA_BYTE]; 
-      settings.rx_rf_baud_rate = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RF_RX_BAUD_BYTE]; 
-      settings.tx_rf_baud_rate = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RF_TX_BAUD_BYTE]; 
-      settings.rx_modulation = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_MOD_BYTE]; 
-      settings.tx_modulation = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_MOD_BYTE]; 
-     
-      // swap endianess 
-      // TODO CONDITIONAL ENDIANNESS conversion
-      settings.rx_freq = 
-            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_FREQ_BYTE4] << 24 |
-            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_FREQ_BYTE3] << 16 |
-            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_FREQ_BYTE2] << 8  |
-            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_FREQ_BYTE1]  
-      ;
-      settings.tx_freq = 
-            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_FREQ_BYTE4] << 24 |
-            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_FREQ_BYTE3] << 16 | 
-            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_FREQ_BYTE2] << 8  |
-            buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_FREQ_BYTE1]  
-      ;
-      
-      memcpy(
-              settings.source_callsign,
-              (unsigned char*)buffer+HE_FIRST_PAYLOAD_BYTE+CFG_SRC_CALL_BYTE,
-              CFG_CALLSIGN_LEN
-      );
-      memcpy(
-              settings.destination_callsign,
-              (unsigned char*)buffer+HE_FIRST_PAYLOAD_BYTE+CFG_DST_CALL_BYTE,
-              CFG_CALLSIGN_LEN
-      );
+    settings.interface_baud_rate = buffer[CFG_IF_BAUD_BYTE]; 
+    settings.tx_power_amp_level = buffer[CFG_PA_BYTE]; 
+    settings.rx_rf_baud_rate = buffer[CFG_RF_RX_BAUD_BYTE]; 
+    settings.tx_rf_baud_rate = buffer[CFG_RF_TX_BAUD_BYTE]; 
+    settings.rx_modulation = buffer[CFG_RX_MOD_BYTE]; 
+    settings.tx_modulation = buffer[CFG_TX_MOD_BYTE]; 
+    
+    // swap endianess 
+    // TODO CONDITIONAL ENDIANNESS conversion
+    settings.rx_freq = 
+          buffer[CFG_RX_FREQ_BYTE4] << 24 |
+          buffer[CFG_RX_FREQ_BYTE3] << 16 |
+          buffer[CFG_RX_FREQ_BYTE2] << 8  |
+          buffer[CFG_RX_FREQ_BYTE1]  
+    ;
+    settings.tx_freq = 
+          buffer[CFG_TX_FREQ_BYTE4] << 24 |
+          buffer[CFG_TX_FREQ_BYTE3] << 16 | 
+          buffer[CFG_TX_FREQ_BYTE2] << 8  |
+          buffer[CFG_TX_FREQ_BYTE1]  
+    ;
+    
+    memcpy(
+            settings.source_callsign,
+            (unsigned char*)buffer+CFG_SRC_CALL_BYTE,
+            CFG_CALLSIGN_LEN
+    );
+    memcpy(
+            settings.destination_callsign,
+            (unsigned char*)buffer+CFG_DST_CALL_BYTE,
+            CFG_CALLSIGN_LEN
+    );
 
-      settings.tx_preamble = 
-          buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_PREAM_BYTE] << 8 | 
-          buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_PREAM_BYTE+1]
-      ; 
-      settings.tx_postamble = 
-          buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_POSTAM_BYTE] << 8 |
-          buffer[HE_FIRST_PAYLOAD_BYTE+CFG_TX_POSTAM_BYTE+1]
-      ; 
+    settings.tx_preamble = 
+        buffer[CFG_TX_PREAM_BYTE] << 8 | 
+        buffer[CFG_TX_PREAM_BYTE+1]
+    ; 
+    settings.tx_postamble = 
+        buffer[CFG_TX_POSTAM_BYTE] << 8 |
+        buffer[CFG_TX_POSTAM_BYTE+1]
+    ; 
 
-      settings.function_config = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_CRC_BYTE]; 
-      //settings.dio_pin13 = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RX_CRC_BYTE]; 
-      //settings.rx_crc = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_DIO_PIN13_BYTE]; 
-      //settings.led_blink_type = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_LED_BYTE]; 
+    settings.function_config = buffer[CFG_RX_CRC_BYTE]; 
+    //settings.dio_pin13 = buffer[CFG_RX_CRC_BYTE]; 
+    //settings.rx_crc = buffer[CFG_DIO_PIN13_BYTE]; 
+    //settings.led_blink_type = buffer[CFG_LED_BYTE]; 
 
-      // TODO settings.function_config 
-      settings.rxtx_test_cw = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_RXTX_TEST_CW_BYTE]; 
-      settings.ext_conf_setting = buffer[HE_FIRST_PAYLOAD_BYTE+CFG_EXT_BYTE]; 
-    }
+    // TODO settings.function_config 
+    settings.rxtx_test_cw = buffer[CFG_RXTX_TEST_CW_BYTE]; 
+    settings.ext_conf_setting = buffer[CFG_EXT_BYTE]; 
 
     //memcpy (&settings,buffer+WRAPPER_LENGTH,CFG_PAYLOAD_LENGTH); // copies char buf into struct
     return settings;
 }
 
+void 
+HE100_printSettings( struct he100_settings settings ) {
+    printf("Interface Baud Rate: %s [%d]\n\r", if_baudrate[settings.interface_baud_rate],settings.interface_baud_rate);
+    printf("TX Power Amplification Level: %d [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
+    printf("RX Baud Rate: %s [%d] \r\n", rf_baudrate[settings.rx_rf_baud_rate],settings.rx_rf_baud_rate);
+    printf("TX Baud Rate: %s [%d] \r\n", rf_baudrate[settings.tx_rf_baud_rate],settings.tx_rf_baud_rate);
+    printf("RX Frequency: %d \r\n", settings.rx_freq);
+    printf("TX Frequency: %d \r\n", settings.tx_freq);
+
+    char dio_pin13_value[64] = {0};
+    switch (settings.dio_pin13)
+    {
+        case CFG_RX_CRC_ON: // 0x43
+        //case CFG_LED_RX: // 0x43
+        //case CFG_DIO_PIN13_OFF: // 0x43
+           sprintf(dio_pin13_value, "CRC ON, DIO_PIN13 OFF, CFG_LED_RX");
+           break;
+        case CFG_RX_CRC_OFF: // 0x03
+           sprintf(dio_pin13_value, "CRC OFF");
+           break; 
+        case CFG_DIO_PIN13_TXRXS: // 0x47
+           sprintf(dio_pin13_value, "DIO_PIN13 TXRXS");
+           break; 
+        case CFG_DIO_PIN13_2p5HZ: // 0x4b
+           sprintf(dio_pin13_value, "DIO_PIN13 2p5HZ");
+           break; 
+        case CFG_DIO_PIN13_RXTOG: // 0x4f
+           sprintf(dio_pin13_value, "DIO_PIN13 RXTOG");
+           break; 
+        case CFG_LED_PS: // 0x41
+           sprintf(dio_pin13_value, "CFG_LED Pulse");
+           break; 
+        case CFG_LED_TX: // 0x42
+           sprintf(dio_pin13_value, "CFG_LED on Transmit");
+           break; 
+        default : 
+           sprintf(dio_pin13_value, "Invalid DIO_PIN 13 Value: %02X");
+           break;
+    }
+    printf("DIO_PIN13 Behavior: %s [%02X] \r\n", dio_pin13_value, settings.dio_pin13);
+
+    printf("Source Callsign: %s \r\n", settings.source_callsign);
+    printf("Destination Callsign: %s \r\n", settings.destination_callsign);
+    printf("TX Preamble: %d \r\n", settings.tx_preamble);
+    printf("TX Postamble: %d \r\n", settings.tx_postamble);
+   
+    char ext_conf_value[32] = {0}; 
+    // validate EXT functions
+    switch (settings.ext_conf_setting)
+    {
+        case 0 :
+           sprintf(ext_conf_value, "All Functions off");
+           break; 
+        case CFG_EXT_PING_ON:
+           sprintf(ext_conf_value, "PING ON");
+           break;
+        case CFG_EXT_CODEUPLOAD_ON:
+           sprintf(ext_conf_value, "CODEUPLOAD ON");
+           break; 
+        case CFG_EXT_RESET_ON:
+           sprintf(ext_conf_value, "RESET ON");
+           break; 
+        default : 
+           sprintf(ext_conf_value, "INVALID SETTING");
+           break;
+    }
+    printf("EXT: %s [%02X] \r\n", ext_conf_value, settings.ext_conf_setting);
+}
+
 int 
-HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings settings){
+HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings settings) {
 /*    
     // TODO should this be changed with the serial connection as well?
     memcpy(prepared_bytes[CFG_IF_BAUD_BYTE],settings.interface_baud_rate,sizeof(uint8_t));
@@ -912,16 +980,13 @@ HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings setti
 }
 
 // TODO redundant to call two structs. What do we want to DO with these settings? Perhaps write to file.
-struct he100_settings 
+int 
 HE100_getConfig (int fdin)
 {
+    int result = 1;
+    struct he100_settings settings;
     unsigned char get_config_payload[1] = {0};
     unsigned char get_config_command[2] = {CMD_TRANSMIT, CMD_GET_CONFIG};
-    
-    struct he100_settings old_settings;
-
-    // not ready yet, return empty
-    return old_settings;
   
     // the response to this call will contain the  
     int get_config_result = HE100_dispatchTransmission(fdin,get_config_payload,0,get_config_command);
@@ -929,17 +994,17 @@ HE100_getConfig (int fdin)
     if(get_config_result == 0)
     {
        unsigned char config_transmission[MAX_FRAME_LENGTH];
-       if ( HE100_read(fdin, 1, config_transmission) > 0 ) // valid number of bytes is great than zero
+       if ( HE100_read(fdin, 2, config_transmission) > 0 ) // valid number of bytes is great than zero
        {
-         if ( HE100_referenceByteSequence(config_transmission,HE_CMD_BYTE) == CMD_GET_CONFIG  ) {
-            unsigned char config_bytes[CFG_PAYLOAD_LENGTH];
-            memcpy (&config_bytes, config_transmission+HE_FIRST_PAYLOAD_BYTE,CFG_PAYLOAD_LENGTH);
-            he100_settings settings = HE100_collectConfig(config_bytes); 
-            return settings;   
-         }
-         else return old_settings;
-       }
+         // TODO verify this is a read frame!
+         unsigned char config_bytes[CFG_PAYLOAD_LENGTH];
+         memcpy (&config_bytes, config_transmission,CFG_PAYLOAD_LENGTH);
+         settings = HE100_collectConfig(config_bytes); 
+         HE100_printSettings( settings );
+         result = HE100_validateConfig(settings); 
+       } else result = HE_FAILED_READ;
     }
+    return result;
 }
 
 /**  
@@ -955,7 +1020,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
     // validate new interface baud rate setting
     if (
             he100_new_settings.interface_baud_rate <= MAX_IF_BAUD_RATE 
-        &&  he100_new_settings.interface_baud_rate >= MIN_IF_BAUD_RATE 
+        //&&  he100_new_settings.interface_baud_rate >= MIN_IF_BAUD_RATE // always true
         // TODO WHY // &&  he100_new_settings.interface_baud_rate != CFG_DEF_IF_BAUD 
     ) 
     {
@@ -972,8 +1037,8 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
 
     // validate new power amplification level
     if (
-            he100_new_settings.tx_power_amp_level >= MIN_PA_LEVEL 
-            && he100_new_settings.tx_power_amp_level <= MAX_PA_LEVEL
+               he100_new_settings.tx_power_amp_level <= MAX_PA_LEVEL
+            && he100_new_settings.tx_power_amp_level >= MIN_PA_LEVEL // always true
        ) 
     {
     } 
@@ -989,9 +1054,9 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
     // validate new rf baud rates
     if (
             he100_new_settings.rx_rf_baud_rate <= MAX_RF_BAUD_RATE
-        &&  he100_new_settings.rx_rf_baud_rate >= MIN_RF_BAUD_RATE 
+        //&&  he100_new_settings.rx_rf_baud_rate >= MIN_RF_BAUD_RATE // always true
         &&  he100_new_settings.tx_rf_baud_rate <= MAX_RF_BAUD_RATE
-        &&  he100_new_settings.tx_rf_baud_rate >= MIN_RF_BAUD_RATE 
+        //&&  he100_new_settings.tx_rf_baud_rate >= MIN_RF_BAUD_RATE // always true
     ) 
     {
     }

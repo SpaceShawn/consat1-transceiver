@@ -57,8 +57,10 @@
 #define HE_INVALID_EXT              29
 #define HE_INVALID_LED              30
 #define HE_INVALID_CONFIG           31
+#define HE_FAILED_GET_CONFIG        32
+#define HE_FAILED_READ              33
 
-extern const char *HE_STATUS[32];
+extern const char *HE_STATUS[34];
 extern const char *CMD_CODE_LIST[32];
 extern const char *if_baudrate[6];
 extern const char *rf_baudrate[5];
@@ -134,8 +136,8 @@ extern const char *rf_baudrate[5];
 #define MIN_IF_BAUD_RATE    0
 // PA config
 #define CFG_PA_BYTE         1 // 2nd byte 
-#define MAX_PA_LEVEL        0xFF
-#define MIN_PA_LEVEL        0x00
+#define MAX_PA_LEVEL        255
+#define MIN_PA_LEVEL        0
 // RF BAUD rate config
 #define CFG_RF_RX_BAUD_BYTE 2 // 3rd byte 
 #define CFG_RF_TX_BAUD_BYTE 3 // 4th byte 
@@ -192,7 +194,6 @@ extern const char *rf_baudrate[5];
 #define CFG_RX_POSTAM_MIN    0
 #define CFG_RX_POSTAM_MAX    10
 // TODO these are 16-bit variables, fix them
-
 
 // RX CRC config
 #define CFG_RX_CRC_BYTE     30 // 31st byte
@@ -401,7 +402,7 @@ int HE100_readFirmwareRevision(int fdin);
 
 /* Function to return an array of config struct from Helium 100 */
 struct he100_settings HE100_collectConfig (unsigned char * buffer);
-struct he100_settings HE100_getConfig (int fdin);
+int HE100_getConfig (int fdin);
 
 //int HE100_validateConfig (struct he100_settings he100_new_settings, unsigned char * set_config_payload );
 int HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings settings);
@@ -410,6 +411,8 @@ int HE100_validateConfig (struct he100_settings he100_new_settings);
 /* Function to configure the Helium board based on altered input struct he100_settings */
 /* validation will occur here, and if valid values have passed constraints, apply the settings */
 int HE100_setConfig (int fdin, struct he100_settings he100_new_settings);
+
+void HE100_printSettings( struct he100_settings settings );
 
 /* Function to write current set config to flash and overwrite default settings */
 int HE100_writeFlash (int fdin, unsigned char *flash_md5sum, size_t length);
