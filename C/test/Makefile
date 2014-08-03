@@ -30,8 +30,8 @@ MICROINCPATH=-I../inc/Q6/
 PCINCPATH=-I../inc/PC/
 INCPATH=-I../inc/ -I$(GLOBAL_INC_DIR)/
 
-LIBPATH=-L$(GLOBAL_LIB_DIR)
-LIBS=$(LIBPATH) -lshakespeare
+LIBPATH=-L$(GLOBAL_LIB_DIR) -L/usr/lib/x86_64-linux-gnu/
+LIBS=$(LIBPATH) -lshakespeare -lssl -lcrypto
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
@@ -112,7 +112,7 @@ he100_live_radio_test.o : $(USER_DIR)/test/he100_live_radio_test.cpp $(HEADERS) 
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/test/he100_live_radio_test.cpp
 
 he100_lib_test : $(OBJECTS) he100_lib_test.o $(HE100_HEADERS) gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ -lrt $(LIBS) 
 
 he100_live_radio_test : $(OBJECTS) he100_live_radio_test.o gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -lpthread $^ -o $@ -lrt
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -lpthread $^ -o $@ -lrt $(LIBS)

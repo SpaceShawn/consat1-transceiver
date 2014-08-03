@@ -164,7 +164,11 @@ TEST_F(Helium_100_Live_Radio_Test, ReadFirmwareRevision)
 
 TEST_F(Helium_100_Live_Radio_Test, GetConfig)
 {
-    ASSERT_EQ(0,HE100_getConfig(fdin));
+    struct he100_settings * settings;
+    int result = HE100_getConfig(fdin,settings);
+    HE100_printSettings( *settings );
+
+    ASSERT_EQ(0,result);
 }
 
 /*  

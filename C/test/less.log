@@ -1,0 +1,5 @@
+g++ -isystem ../../../gtest-1.7.0/include -I../../../space-lib/utls/include/ -g -Wall -Wextra -pthread -c ../../../space-lib/utls/src/Date.cpp
+g++ -isystem ../../../gtest-1.7.0/include -I../inc/ -I../../../space-lib/include/ -I../inc/PC/ -g -Wall -Wextra -pthread -c ../../../space-lib/checksum/src/fletcher.c
+g++ -isystem ../../../gtest-1.7.0/include -I../../../space-timer-lib/inc/ -g -Wall -Wextra -pthread -c ../../../space-timer-lib/src/timer.c
+g++ -isystem ../../../gtest-1.7.0/include -I../../../space-lib/shakespeare/inc/ -I../inc/ -I../../../space-lib/include/ -g -Wall -Wextra -pthread -c ../../../space-lib/shakespeare/src/shakespeare.cpp
+g++ -isystem ../../../gtest-1.7.0/include -I../inc/ -I../../../space-lib/include/ -I../inc/PC/ -g -Wall -Wextra -pthread -c ../../../HE100-lib/C/src/SC_he100.c
