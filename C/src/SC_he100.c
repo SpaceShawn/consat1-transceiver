@@ -115,42 +115,67 @@ extern const char *rf_baudrate[5] = {
 };
 
 const char * CFG_FC_LED[4] = {
-    "LED: OFFLOGICLOW",
-    "LED: PULSE",
-    "LED: TX_TOGGLE",
-    "LED: RX_TOGGLE"
+    "LED:                   OFFLOGICLOW",
+    "LED:                   PULSE",
+    "LED:                   TX_TOGGLE",
+    "LED:                   RX_TOGGLE"
 };
 
 const char * CFG_FC_PIN13[4] = {
-    "PIN13: OFFLOGICLOW",
-    "PIN13: TX/RX Switch",
-    "PIN13: 2.5 Hx WDT",
-    "PIN13: RX Packet Toggle"
+    "PIN13:                 OFFLOGICLOW",
+    "PIN13:                 TX/RX Switch",
+    "PIN13:                 2.5 Hx WDT",
+    "PIN13:                 RX Packet Toggle"
 };
 
 const char * CFG_FC_PIN14[4] = {
-    "PIN14: OFFLOGICLOW",
-    "PIN14: DIO Over Air ON",
-    "PIN14: DIO Over Air Pattern A (latching high)",
-    "PIN14: DIO Over Air Pattern B (toggle, 72 ms high)"
+    "PIN14:                 OFFLOGICLOW",
+    "PIN14:                 DIO Over Air ON",
+    "PIN14:                 DIO Over Air Pattern A (latching high)",
+    "PIN14:                 DIO Over Air Pattern B (toggle, 72 ms high)"
 };
 
-const char * CFG_FC_RX_CRC[2] = {"RXCRC: OFF","RXCRC: ON"};
-const char * CFG_FC_TX_CRC[2] = {"TXCRC: OFF","TXCRC: ON"};
+const char * CFG_FC_RX_CRC[2] = {
+    "RXCRC:                 OFF",
+    "RXCRC:                 ON"
+};
 
-const char * CFG_FC_TELEMETRY[2] = {"TELEMETRY: OFF","TELEMETRY: ON"};
+const char * CFG_FC_TX_CRC[2] = {
+    "TXCRC:                 OFF",
+    "TXCRC:                 ON"
+};
+
+const char * CFG_FC_TELEMETRY[2] = {
+    "TELEMETRY:             OFF",
+    "TELEMETRY:             ON"
+};
 
 const char * CFG_FC_TELEMETRY_RATE[4] = {
-    "TELEMETRY RATE: 1/10 Hz",
-    "TELEMETRY RATE: 1 Hz",
-    "TELEMETRY RATE: 2 Hz",
-    "TELEMETRY RATE: 3 Hz"
+    "TELEMETRY RATE:        1/10 Hz",
+    "TELEMETRY RATE:        1 Hz",
+    "TELEMETRY RATE:        2 Hz",
+    "TELEMETRY RATE:        3 Hz"
 };
 
-const char * CFG_FC_TELEMETRY_DUMP[2] = {"TELEMETRY DUMP: OFF","TELEMETRY_DUMP: ON"};
-const char * CFG_FC_BEACON_OA_COMMANDS[2] = {"BEACON OA COMMANDS: OFF","BEACON OA COMMANDS: ON"};
-const char * CFG_FC_BEACON_CODE_UPLOAD[2] = {"CODE UPLOAD: OFF","CODE UPLOAD: ON"};
-const char * CFG_FC_BEACON_RESET[2] = {"CODE RESET: OFF","CODE RESET: ON"};
+const char * CFG_FC_TELEMETRY_DUMP[2] = {
+    "TELEMETRY DUMP:        OFF",
+    "TELEMETRY_DUMP:        ON"
+};
+
+const char * CFG_FC_BEACON_OA_COMMANDS[2] = { 
+    "BEACON OA COMMANDS:    OFF",
+    "BEACON OA COMMANDS:    ON"
+};
+
+const char * CFG_FC_BEACON_CODE_UPLOAD[2] = {
+    "CODE UPLOAD:           OFF",
+    "CODE UPLOAD:           ON"
+};
+
+const char * CFG_FC_BEACON_RESET[2] = {
+    "CODE RESET:            OFF",
+    "CODE RESET:            ON"
+};
 
 FILE *fdlog; // library log file
 
@@ -850,7 +875,6 @@ HE100_readFirmwareRevision(int fdin)
 struct he100_settings
 HE100_collectConfig (unsigned char * buffer)
 {
-    HE100_dumpHex(stdout,buffer,CFG_PAYLOAD_LENGTH);
     he100_settings settings; 
     settings.interface_baud_rate = buffer[CFG_IF_BAUD_BYTE]; 
     settings.tx_power_amp_level = buffer[CFG_PA_BYTE]; 
@@ -918,46 +942,14 @@ HE100_collectConfig (unsigned char * buffer)
 
 void 
 HE100_printSettings( struct he100_settings settings ) {
-    printf("Interface Baud Rate: %s [%d]\n\r", if_baudrate[settings.interface_baud_rate],settings.interface_baud_rate);
-    printf("TX Power Amplification Level: %d [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
-    printf("RX Baud Rate: %s [%d] \r\n", rf_baudrate[settings.rx_rf_baud_rate],settings.rx_rf_baud_rate);
-    printf("TX Baud Rate: %s [%d] \r\n", rf_baudrate[settings.tx_rf_baud_rate],settings.tx_rf_baud_rate);
-    printf("RX Frequency: %d \r\n", settings.rx_freq);
-    printf("TX Frequency: %d \r\n", settings.tx_freq);
+    int column_width = 32;
+    printf("Interface Baud Rate:   %s [%d]\n\r", if_baudrate[settings.interface_baud_rate],settings.interface_baud_rate);
+    printf("TX Power Amp Level:    %d [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
+    printf("RX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.rx_rf_baud_rate],settings.rx_rf_baud_rate);
+    printf("TX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.tx_rf_baud_rate],settings.tx_rf_baud_rate);
+    printf("RX Frequency:          %d \r\n", settings.rx_freq);
+    printf("TX Frequency:          %d \r\n", settings.tx_freq);
 
-    /* 
-    char dio_pin13_value[64] = {0};
-    switch (settings.dio_pin13)
-    {
-        case CFG_RX_CRC_ON: // 0x43
-        //case CFG_LED_RX: // 0x43
-        //case CFG_DIO_PIN13_OFF: // 0x43
-           sprintf(dio_pin13_value, "CRC ON, DIO_PIN13 OFF, CFG_LED_RX");
-           break;
-        case CFG_RX_CRC_OFF: // 0x03
-           sprintf(dio_pin13_value, "CRC OFF");
-           break; 
-        case CFG_DIO_PIN13_TXRXS: // 0x47
-           sprintf(dio_pin13_value, "DIO_PIN13 TXRXS");
-           break; 
-        case CFG_DIO_PIN13_2p5HZ: // 0x4b
-           sprintf(dio_pin13_value, "DIO_PIN13 2p5HZ");
-           break; 
-        case CFG_DIO_PIN13_RXTOG: // 0x4f
-           sprintf(dio_pin13_value, "DIO_PIN13 RXTOG");
-           break; 
-        case CFG_LED_PS: // 0x41
-           sprintf(dio_pin13_value, "CFG_LED Pulse");
-           break; 
-        case CFG_LED_TX: // 0x42
-           sprintf(dio_pin13_value, "CFG_LED on Transmit");
-           break; 
-        default : 
-           sprintf(dio_pin13_value, "Invalid DIO_PIN 13 Value: %02X");
-           break;
-    }
-    printf("DIO_PIN13 Behavior: %s [%02X] \r\n", dio_pin13_value, settings.dio_pin13);
-    */
     struct function_config fc1 = settings.function_config;
 
     printf("%s [%02X] \r\n",CFG_FC_LED[fc1.crc_rx],fc1.crc_rx);
@@ -973,17 +965,11 @@ HE100_printSettings( struct he100_settings settings ) {
     printf("%s [%02X] \r\n",CFG_FC_BEACON_CODE_UPLOAD[fc1.beacon_code_upload_status],fc1.beacon_code_upload_status);
     printf("%s [%02X] \r\n",CFG_FC_BEACON_RESET[fc1.beacon_radio_reset_status],fc1.beacon_radio_reset_status);
 
-    struct function_config2 fc2 = settings.function_config2;
-    printf(
-            "Function Config2 [%02X][%02X][%02X][%02X]\r\n",
-            fc2.rafc,fc2.rxcw,fc2.txcw,fc2.tbd
-    );
+    printf("Source Callsign:       %s \r\n", settings.source_callsign);
+    printf("Destination Callsign:  %s \r\n", settings.destination_callsign);
+    printf("TX Preamble:           %d \r\n", settings.tx_preamble);
+    printf("TX Postamble:          %d \r\n", settings.tx_postamble);
 
-    printf("Source Callsign: %s \r\n", settings.source_callsign);
-    printf("Destination Callsign: %s \r\n", settings.destination_callsign);
-    printf("TX Preamble: %d \r\n", settings.tx_preamble);
-    printf("TX Postamble: %d \r\n", settings.tx_postamble);
-   
     char ext_conf_value[32] = {0}; 
     // validate EXT functions
     switch (settings.ext_conf_setting)
@@ -1004,7 +990,13 @@ HE100_printSettings( struct he100_settings settings ) {
            sprintf(ext_conf_value, "INVALID SETTING");
            break;
     }
-    printf("EXT: %s [%02X] \r\n", ext_conf_value, settings.ext_conf_setting);
+    printf("EXT:                   %s [%02X] \r\n", ext_conf_value, settings.ext_conf_setting);
+   
+    struct function_config2 fc2 = settings.function_config2;
+    printf(
+            "Function Config2       [%02X][%02X][%02X][%02X]\r\n",
+            fc2.rafc,fc2.rxcw,fc2.txcw,fc2.tbd
+    );
 }
 
 int 

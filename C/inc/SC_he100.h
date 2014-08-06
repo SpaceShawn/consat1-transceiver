@@ -238,28 +238,28 @@ extern const char *rf_baudrate[5];
  *  function_config bit values
  **/
 struct function_config {
-    unsigned beacon_0:1;
-    unsigned beacon_oa_cmd_status:1;        // enable OA Commands
-    unsigned beacon_code_upload_status:1;        // enable code upload
-    unsigned beacon_radio_reset_status:1;        // enable radio reset
-    unsigned telemetry_status:1;     // enable telemetry logging 
-    unsigned telemetry_rate:2;     // logging rate 0 1/10 Hz, 1 1 Hz, 2 2 Hz, 3 4 Hz
-    unsigned telemetry_dump_status:1;     // enable telemetry dump
-    unsigned crc_rx:1;           // enable RX CRC
-    unsigned crc_tx:1;           // enable TX CRC
-    unsigned pin14:2;           // pin 14
-    unsigned pin13:2;           
     unsigned led:2;
+    unsigned pin13:2;           
+    unsigned pin14:2;           // pin 14
+    unsigned crc_tx:1;           // enable TX CRC
+    unsigned crc_rx:1;           // enable RX CRC
+    unsigned telemetry_dump_status:1;     // enable telemetry dump
+    unsigned telemetry_rate:2;     // logging rate 0 1/10 Hz, 1 1 Hz, 2 2 Hz, 3 4 Hz
+    unsigned telemetry_status:1;     // enable telemetry logging 
+    unsigned beacon_radio_reset_status:1;        // enable radio reset
+    unsigned beacon_code_upload_status:1;        // enable code upload
+    unsigned beacon_oa_cmd_status:1;        // enable OA Commands
+    unsigned beacon_0:1;
 };
 
 /**
  * function_config2 bit values
  **/
 struct function_config2 {
-    unsigned rafc:1;
-    unsigned rxcw:1;
-    unsigned txcw:1;
     unsigned tbd:1;
+    unsigned txcw:1;
+    unsigned rxcw:1;
+    unsigned rafc:1;
 };
 
 struct he100_settings {
@@ -333,8 +333,8 @@ struct he100_settings {
 #define CFG_FC_BEACON_CODE_UPLOAD_ON        1 //0b01
 #define CFG_FC_BEACON_CODE_UPLOAD_DEFAULT   CFG_FC_BEACON_CODE_UPLOAD_OFF
 
-#define CFG_FC_BEACON_CODE_RESET_ON         0 //0b00
-#define CFG_FC_BEACON_CODE_RESET_OFF        1 //0b01
+#define CFG_FC_BEACON_CODE_RESET_OFF         0 //0b00
+#define CFG_FC_BEACON_CODE_RESET_ON        1 //0b01
 #define CFG_FC_BEACON_CODE_RESET_DEFAULT    CFG_FC_BEACON_CODE_RESET_OFF
 
 // function_config2
