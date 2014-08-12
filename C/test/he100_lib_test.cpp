@@ -376,6 +376,7 @@ TEST_F(Helium_100_Test, TestCollectValidConfig)
     int validation_result = 1; 
     validation_result = HE100_validateConfig(test_settings_1);
     HE100_printSettings(test_settings_1);
+    HE100_printSettings(test_settings_2);
     ASSERT_EQ (0, validation_result);   
     validation_result = HE100_validateConfig(test_settings_2);
     ASSERT_EQ (0, validation_result);   
@@ -397,16 +398,6 @@ TEST_F(Helium_100_Test, TestMD5Sum)
         );
     }
 }
-/* 
-EST_F(Helium_100_Test, TestPrepareConfig)
-{
-    struct he100_settings good_settings;
-    good_settings
-    unsigned char config_data[CFG_PAYLOAD_LENGTH];_
-    struct he100_settings good_settings = HE100_prepareConfig(config_data, good_config);
-    ASSERT_EQ(9600, config_data[]); // TODO test all like this to known good config
-}
-*/
 
 void print_binary(int n)
 {
@@ -445,6 +436,22 @@ TEST_F(Helium_100_Test, InterpretFunctionConfig) {
     ASSERT_EQ(CFG_FC_PIN14_DIOOVERAIR_ON,fc1.pin14);
     ASSERT_EQ(CFG_FC_PIN13_RXPACKETTOG,fc1.pin13);
     ASSERT_EQ(CFG_FC_LED_RXTOG,fc1.led);
+}
+
+TEST_F(Helium_100_Test, PrepareConfig) {
+    unsigned char config1[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+    unsigned char config_result[CFG_PAYLOAD_LENGTH] = {0};
+    struct he100_settings test_settings = HE100_collectConfig(config1);
+    ASSERT_EQ(
+        CS1_SUCCESS,
+        HE100_prepareConfig(config_result, test_settings)
+    );
+    for (z=0; z<CFG_PAYLOAD_LENGTH; z++) {
+        ASSERT_EQ(
+            config1[z],
+            config_result[z]
+        );
+    }
 }
 
 /*

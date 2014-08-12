@@ -271,14 +271,10 @@ struct he100_settings {
   uint8_t                   tx_modulation; // (0x00 = GFSK)
   uint32_t 	                rx_freq; // Channel Rx Frequency default 144200
   uint32_t 	                tx_freq; // Channel Tx Frequency default 431000
-  uint8_t                   dio_pin13; // define DIO pin 13 behavior
   unsigned char	            source_callsign[7]; // VA3ORB, default NOCALL
   unsigned char             destination_callsign[7]; // VE2CUA, default CQ
   uint16_t                  tx_preamble; // AX25 Mode Tx Preamble byte length (0x00 = 20 flags)
   uint16_t                  tx_postamble; // AX25 Mode Tx Postamble byte length (0x00 = 20 flags)
-  //uint8_t                 rx_crc; // enable or disable RX CRC
-  //uint8_t                 led_blink_type; //
-  //uint8_t                 dio_pin13; //
   struct function_config    function_config; 
   struct function_config2   function_config2;
   uint8_t                   ext_conf_setting;
@@ -519,5 +515,5 @@ void HE100_printSettings( struct he100_settings settings );
 int HE100_md5sum(unsigned char * input_data, size_t input_data_length, unsigned char * md5sum);
 
 /* Function to write current set config to flash and overwrite default settings */
-int HE100_writeFlash (int fdin, unsigned char *flash_md5sum, size_t length);
+int HE100_writeFlash (int fdin, unsigned char *flash_md5sum);
 #endif

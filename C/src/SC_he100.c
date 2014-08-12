@@ -159,7 +159,7 @@ const char * CFG_FC_TELEMETRY_RATE[4] = {
 
 const char * CFG_FC_TELEMETRY_DUMP[2] = {
     "TELEMETRY DUMP:        OFF",
-    "TELEMETRY_DUMP:        ON"
+    "TELEMETRY DUMP:        ON"
 };
 
 const char * CFG_FC_BEACON_OA_COMMANDS[2] = { 
@@ -942,7 +942,6 @@ HE100_collectConfig (unsigned char * buffer)
 
 void 
 HE100_printSettings( struct he100_settings settings ) {
-    int column_width = 32;
     printf("Interface Baud Rate:   %s [%d]\n\r", if_baudrate[settings.interface_baud_rate],settings.interface_baud_rate);
     printf("TX Power Amp Level:    %d [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
     printf("RX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.rx_rf_baud_rate],settings.rx_rf_baud_rate);
@@ -959,7 +958,6 @@ HE100_printSettings( struct he100_settings settings ) {
     printf("%s [%02X] \r\n",CFG_FC_TX_CRC[fc1.crc_tx],fc1.crc_tx);
     printf("%s [%02X] \r\n",CFG_FC_TELEMETRY[fc1.telemetry_status],fc1.telemetry_status);
     printf("%s [%02X] \r\n",CFG_FC_TELEMETRY_RATE[fc1.telemetry_rate],fc1.telemetry_rate);
-    printf("%s [%02X] \r\n",CFG_FC_TELEMETRY_DUMP[fc1.telemetry_dump_status],fc1.telemetry_dump_status);
     printf("%s [%02X] \r\n",CFG_FC_TELEMETRY_DUMP[fc1.telemetry_dump_status],fc1.telemetry_dump_status);
     printf("%s [%02X] \r\n",CFG_FC_BEACON_OA_COMMANDS[fc1.beacon_oa_cmd_status],fc1.beacon_oa_cmd_status);
     printf("%s [%02X] \r\n",CFG_FC_BEACON_CODE_UPLOAD[fc1.beacon_code_upload_status],fc1.beacon_code_upload_status);
@@ -1001,46 +999,109 @@ HE100_printSettings( struct he100_settings settings ) {
 
 int 
 HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings settings) {
-/*    
+
     // TODO should this be changed with the serial connection as well?
-    memcpy(prepared_bytes[CFG_IF_BAUD_BYTE],settings.interface_baud_rate,sizeof(uint8_t));
-    memcpy(prepared_bytes[CFG_PA_BYTE],settings.tx_power_amp_level,sizeof(uint8_t);
-    memcpy(prepared_bytes[CFG_RF_RX_BAUD_BYTE],settings.rx_rf_baud_rate,sizeof(uint8_t));
-    memcpy(prepared_bytes[CFG_RF_TX_BAUD_BYTE],settings.tx_rf_baud_rate,sizeof(uint8_t));
-    memcpy(prepared_bytes[CFG_RX_MOD_BYTE],settings.rx_modulation,sizeof(uint8_t));
-    memcpy(prepared_bytes[CFG_TX_MOD_BYTE],settings.tx_modulation,sizeof(uint8_t));
-    memcpy(prepared_bytes[CFG_RX_FREQ_BYTE1],settings.rx_freq,sizeof(uint16_t));
-    memcpy(prepared_bytes[CFG_TX_FREQ_BYTE1],settings.tx_freq,sizeof(uint16_t));
-    
-    memcpy(prepared_bytes[CFG_SRC_CALL_BYTE],settings.source_callsign,CFG_CALLSIGN_LEN);
-    memcpy(prepared_bytes[CFG_DST_CALL_BYTE],settings.destination_callsign,CFG_CALLSIGN_LEN);
+    memcpy(
+        &prepared_bytes[CFG_IF_BAUD_BYTE],
+        (unsigned char*)&settings.interface_baud_rate,
+        sizeof(settings.interface_baud_rate)
+    );
+    memcpy(
+        &prepared_bytes[CFG_PA_BYTE],
+        (unsigned char*)&settings.tx_power_amp_level,
+        sizeof(settings.tx_power_amp_level)
+    );
+    memcpy(
+        &prepared_bytes[CFG_RF_RX_BAUD_BYTE],
+        (unsigned char*)&settings.rx_rf_baud_rate,
+        sizeof(settings.rx_rf_baud_rate)
+    );
+    memcpy(
+        &prepared_bytes[CFG_RF_TX_BAUD_BYTE],
+        &settings.tx_rf_baud_rate,
+        sizeof(settings.tx_rf_baud_rate)
+    );
+    memcpy(
+        &prepared_bytes[CFG_RX_MOD_BYTE],
+        &settings.rx_modulation,
+        sizeof(settings.rx_modulation)
+    );
+    memcpy(
+        &prepared_bytes[CFG_TX_MOD_BYTE],
+        &settings.tx_modulation,
+        sizeof(settings.tx_modulation)
+    );
 
-    memcpy(prepared_bytes[CFG_RX_CRC_BYTE],settings.rx_crc,sizeof(uint8_t));
-    memcpy(prepared_bytes[CFG_LED_BYTE],settings.led_blink_type,sizeof(uint8_t));
-    memcpy(prepared_bytes[CFG_RXTX_TEST_CW_BYTE],settings.rxtx_test_cw,sizeof(uint8_t));
-    memcpy(prepared_bytes[CFG_DIO_PIN13_BYTE],settings.dio_pin13,sizeof(uint8_t));
+    unsigned char * rx_freq = (unsigned char *)&settings.rx_freq;
+    uint32_t big_endian_rx_freq = 
+          rx_freq[3] << 24 |
+          rx_freq[2] << 16 |
+          rx_freq[1] << 8  |
+          rx_freq[0]  
+    ;
+    memcpy(
+        &prepared_bytes[CFG_RX_FREQ_BYTE1],
+        &big_endian_rx_freq,
+        sizeof(settings.rx_freq)
+    );
+    unsigned char * tx_freq = (unsigned char *)&settings.tx_freq;
+    uint32_t big_endian_tx_freq =
+          tx_freq[3] << 24 |
+          tx_freq[2] << 16 |
+          tx_freq[1] << 8  |
+          tx_freq[0]  
+    ;
+    memcpy(
+        &prepared_bytes[CFG_TX_FREQ_BYTE1],
+        &big_endian_tx_freq,
+        sizeof(settings.tx_freq)
+    );
 
-    switch (settings.ext_conf_setting)
-    {
-        case 0 : / all EXT functions off 
-           prepared_bytes[CFG_EXT_BYTE] = 0;
-           break; 
-        case CFG_EXT_PING_ON: // 
-           prepared_bytes[CFG_EXT_BYTE]=CFG_EXT_PING_ON; break; 
-        case CFG_EXT_CODEUPLOAD_ON: // 
-           prepared_bytes[CFG_EXT_BYTE]=CFG_EXT_CODEUPLOAD_ON;
-           break; 
-        case CFG_EXT_RESET_ON: //
-           prepared_bytes[CFG_EXT_BYTE]=CFG_EXT_RESET_ON;
-           break; 
-        default : 
-           prepared_bytes[CFG_EXT_BYTE]=CFG_EXT_DEF;
-           return HE_INVALID_EXT;
-           break;
-    }
-*/
-    memcpy (prepared_bytes,&settings,CFG_PAYLOAD_LENGTH); // copies char buf into struct
-    return 0;
+    memcpy(
+        &prepared_bytes[CFG_SRC_CALL_BYTE],
+        settings.source_callsign,
+        CFG_CALLSIGN_LEN
+    );
+    memcpy(
+        &prepared_bytes[CFG_DST_CALL_BYTE],
+        &settings.destination_callsign,
+        CFG_CALLSIGN_LEN
+    );
+
+    unsigned char * tx_preamble = (unsigned char *)&settings.tx_preamble;
+    uint16_t big_endian_tx_preamble = 
+        tx_preamble[0] << 8 | 
+        tx_preamble[1]
+    ; 
+    memcpy(
+        &prepared_bytes[CFG_TX_PREAM_BYTE],
+        &big_endian_tx_preamble,
+        sizeof(settings.tx_preamble)
+    );
+
+    unsigned char * tx_postamble = (unsigned char *)&settings.tx_postamble;
+    uint16_t big_endian_tx_postamble = 
+        tx_postamble[0] << 8 |
+        tx_postamble[1]
+    ; 
+    memcpy(
+        &prepared_bytes[CFG_TX_POSTAM_BYTE],
+        &big_endian_tx_postamble,
+        sizeof(settings.tx_postamble)
+    );
+
+    memcpy(
+        &prepared_bytes[CFG_FUNCTION_CONFIG_BYTE],
+        &settings.function_config,
+        CFG_FUNCTION_CONFIG_LENGTH
+    );
+    memcpy(
+        &prepared_bytes[CFG_FUNCTION_CONFIG2_BYTE],
+        &settings.function_config2,
+        CFG_FUNCTION_CONFIG2_LENGTH
+    );
+
+    return HE_SUCCESS;
 }
 
 // TODO redundant to call two structs. What do we want to DO with these settings? Perhaps write to file.
@@ -1063,13 +1124,13 @@ HE100_getConfig (int fdin, struct he100_settings * settings)
          // TODO verify this is a read frame!
          unsigned char config_bytes[CFG_PAYLOAD_LENGTH];
          memcpy (&config_bytes, config_transmission,CFG_PAYLOAD_LENGTH);
-         
-         //*settings = (struct he100_settings *) malloc ( sizeof (struct he100_settings) );
-         //settings = HE100_collectConfig(config_bytes); 
          *settings = HE100_collectConfig(config_bytes); 
-
          result = HE100_validateConfig(*settings); 
-       } else result = HE_FAILED_READ;
+       } 
+       else 
+       {
+         result = HE_FAILED_READ;
+       } 
     }
     return result;
 }
@@ -1203,43 +1264,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
         return HE_INVALID_CALLSIGN;
     }
   
-/***   DIO PIN 13, RX CRC, LED, this doesn't make much sense yet:  *******************/
-/* the following settings are in conflict because they are set by the same byte */
-/* CFG_RX_CRC_BYTE == CFG_LED_BYTE == CFG_DIO_PIN13_BYTE == 30 */
-/* 0x43 could conceivably simultaneously enable CFG_RX_CRC_ON, CFG_LED_RX, and CFG_DIO_PIN13_OFF */
-    //struct function_config = he100_new_settings.function_config;
-    //if (
-            //function_config != CFG_RX_CRC_ON
-         //|| function_config != CFG_RX_CRC_OFF
-         //|| function_config != CFG_LED_PS
-         //|| function_config != CFG_LED_RX
-         //|| function_config != CFG_DIO_PIN13_OFF
-         //|| function_config != CFG_DIO_PIN13_TXRXS
-         //|| function_config != CFG_DIO_PIN13_2p5HZ
-         //|| function_config != CFG_DIO_PIN13_RXTOG
-    //)
-    //{
-        //sprintf(validation_log_entry,"%s setting:%02X ^%s@%d",
-                //HE_STATUS[HE_INVALID_DIO_PIN13],
-                //he100_new_settings.dio_pin13,
-                //__func__,__LINE__
-        //);
-        //Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
-        //return HE_INVALID_DIO_PIN13;
-    //}
-
-/*************************************************************************************/
     // validate TX Test CW (USE DEFAULTS) 
-    //if ( he100_new_settings.rxtx_test_cw != CFG_RXTX_TEST_CW_DEF )
-    //{ 
-        //sprintf(validation_log_entry,"%s setting:%02X ^%s@%d",
-                //HE_STATUS[HE_INVALID_RXTX_TEST],
-                //he100_new_settings.rxtx_test_cw,
-                //__func__,__LINE__
-        //);
-        //Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
-        //return HE_INVALID_RXTX_TEST;
-    //}
 
     // validate EXT functions
     switch (he100_new_settings.ext_conf_setting)
@@ -1267,10 +1292,15 @@ int
 HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
 {
     unsigned char set_config_payload[CFG_PAYLOAD_LENGTH] = {0}; 
-    int validate_result = HE100_validateConfig(he100_new_settings);
     unsigned char set_config_command[2] = {CMD_TRANSMIT, CMD_SET_CONFIG};
 
-    if (validate_result == 0) // we have valid array
+    int validate_result=1, prepare_result=1;
+    validate_result = HE100_validateConfig(he100_new_settings);
+    if (validate_result==HE_SUCCESS) {
+        prepare_result = HE100_prepareConfig(set_config_payload,he100_new_settings);
+    }
+
+    if (prepare_result == HE_SUCCESS) // we have valid array
         return HE100_dispatchTransmission(fdin, set_config_payload, CFG_PAYLOAD_LENGTH, set_config_command);
     else return HE_INVALID_CONFIG;
 }
@@ -1304,32 +1334,3 @@ HE100_writeFlash (int fdin, unsigned char *flash_md5sum)
     return HE100_dispatchTransmission(fdin, write_flash_payload, CFG_FLASH_LENGTH, write_flash_command); 
 }
 
-/* 
-
-#define STR_VALUE(val) #val
-#define STR(name) STR_VALUE(name)
-
-#define PATH_LEN 256
-#define MD5_LEN 32
-
-int CalcFileMD5(char *file_name, char *md5_sum)
-{
-    #define MD5SUM_CMD_FMT "md5sum %." STR(PATH_LEN) "s 2>/dev/null"
-    char cmd[PATH_LEN + sizeof (MD5SUM_CMD_FMT)];
-    sprintf(cmd, MD5SUM_CMD_FMT, file_name);
-    #undef MD5SUM_CMD_FMT
-
-    FILE *p = popen(cmd, "r");
-    if (p == NULL) return 0;
-
-    int i, ch;
-    for (i = 0; i < MD5_LEN && isxdigit(ch = fgetc(p)); i++) {
-        *md5_sum++ = ch;
-    }
-
-    *md5_sum = '\0';
-    pclose(p);
-    return i == MD5_LEN;
-
-    }  
-*/
