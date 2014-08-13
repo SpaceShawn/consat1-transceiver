@@ -777,11 +777,14 @@ HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_leng
     // initialize transmission array to store prepared byte sequence
     unsigned char transmission[MAX_FRAME_LENGTH] = {0};
     memset (transmission,'\0',MAX_FRAME_LENGTH);    
-    
+
     // if preparation successful, write the bytes to the radio
-    if (HE100_prepareTransmission(payload,transmission,payload_length,command) == 0)
-         return HE100_write(fdin,transmission,payload_length+WRAPPER_LENGTH);
-    else return 1;
+    if (HE100_prepareTransmission(payload,transmission,payload_length,command) == 0) {
+      HE100_dumpHex(stdout,transmission,payload_length+WRAPPER_LENGTH);
+      return HE100_write(fdin,transmission,payload_length+WRAPPER_LENGTH);
+    } else {
+        return 1;
+    }
 }
 
 /**
@@ -941,32 +944,32 @@ HE100_collectConfig (unsigned char * buffer)
 }
 
 void 
-HE100_printSettings( struct he100_settings settings ) {
-    printf("Interface Baud Rate:   %s [%d]\n\r", if_baudrate[settings.interface_baud_rate],settings.interface_baud_rate);
-    printf("TX Power Amp Level:    %d [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
-    printf("RX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.rx_rf_baud_rate],settings.rx_rf_baud_rate);
-    printf("TX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.tx_rf_baud_rate],settings.tx_rf_baud_rate);
-    printf("RX Frequency:          %d \r\n", settings.rx_freq);
-    printf("TX Frequency:          %d \r\n", settings.tx_freq);
+HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
+    fprintf(fdout,"Interface Baud Rate:   %s [%d]\n\r", if_baudrate[settings.interface_baud_rate],settings.interface_baud_rate);
+    fprintf(fdout,"TX Power Amp Level:    %d [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
+    fprintf(fdout,"RX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.rx_rf_baud_rate],settings.rx_rf_baud_rate);
+    fprintf(fdout,"TX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.tx_rf_baud_rate],settings.tx_rf_baud_rate);
+    fprintf(fdout,"RX Frequency:          %d \r\n", settings.rx_freq);
+    fprintf(fdout,"TX Frequency:          %d \r\n", settings.tx_freq);
 
     struct function_config fc1 = settings.function_config;
 
-    printf("%s [%02X] \r\n",CFG_FC_LED[fc1.crc_rx],fc1.crc_rx);
-    printf("%s [%02X] \r\n",CFG_FC_PIN13[fc1.pin13],fc1.pin13);
-    printf("%s [%02X] \r\n",CFG_FC_PIN14[fc1.pin14],fc1.pin14);
-    printf("%s [%02X] \r\n",CFG_FC_RX_CRC[fc1.crc_rx],fc1.crc_rx);
-    printf("%s [%02X] \r\n",CFG_FC_TX_CRC[fc1.crc_tx],fc1.crc_tx);
-    printf("%s [%02X] \r\n",CFG_FC_TELEMETRY[fc1.telemetry_status],fc1.telemetry_status);
-    printf("%s [%02X] \r\n",CFG_FC_TELEMETRY_RATE[fc1.telemetry_rate],fc1.telemetry_rate);
-    printf("%s [%02X] \r\n",CFG_FC_TELEMETRY_DUMP[fc1.telemetry_dump_status],fc1.telemetry_dump_status);
-    printf("%s [%02X] \r\n",CFG_FC_BEACON_OA_COMMANDS[fc1.beacon_oa_cmd_status],fc1.beacon_oa_cmd_status);
-    printf("%s [%02X] \r\n",CFG_FC_BEACON_CODE_UPLOAD[fc1.beacon_code_upload_status],fc1.beacon_code_upload_status);
-    printf("%s [%02X] \r\n",CFG_FC_BEACON_RESET[fc1.beacon_radio_reset_status],fc1.beacon_radio_reset_status);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_LED[fc1.crc_rx],fc1.crc_rx);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_PIN13[fc1.pin13],fc1.pin13);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_PIN14[fc1.pin14],fc1.pin14);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_RX_CRC[fc1.crc_rx],fc1.crc_rx);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_TX_CRC[fc1.crc_tx],fc1.crc_tx);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_TELEMETRY[fc1.telemetry_status],fc1.telemetry_status);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_TELEMETRY_RATE[fc1.telemetry_rate],fc1.telemetry_rate);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_TELEMETRY_DUMP[fc1.telemetry_dump_status],fc1.telemetry_dump_status);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_BEACON_OA_COMMANDS[fc1.beacon_oa_cmd_status],fc1.beacon_oa_cmd_status);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_BEACON_CODE_UPLOAD[fc1.beacon_code_upload_status],fc1.beacon_code_upload_status);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_BEACON_RESET[fc1.beacon_radio_reset_status],fc1.beacon_radio_reset_status);
 
-    printf("Source Callsign:       %s \r\n", settings.source_callsign);
-    printf("Destination Callsign:  %s \r\n", settings.destination_callsign);
-    printf("TX Preamble:           %d \r\n", settings.tx_preamble);
-    printf("TX Postamble:          %d \r\n", settings.tx_postamble);
+    fprintf(fdout,"Source Callsign:       %s \r\n", settings.source_callsign);
+    fprintf(fdout,"Destination Callsign:  %s \r\n", settings.destination_callsign);
+    fprintf(fdout,"TX Preamble:           %d \r\n", settings.tx_preamble);
+    fprintf(fdout,"TX Postamble:          %d \r\n", settings.tx_postamble);
 
     char ext_conf_value[32] = {0}; 
     // validate EXT functions
@@ -988,12 +991,13 @@ HE100_printSettings( struct he100_settings settings ) {
            sprintf(ext_conf_value, "INVALID SETTING");
            break;
     }
-    printf("EXT:                   %s [%02X] \r\n", ext_conf_value, settings.ext_conf_setting);
+    fprintf(fdout,"EXT:                   %s [%02X] \r\n", ext_conf_value, settings.ext_conf_setting);
    
     struct function_config2 fc2 = settings.function_config2;
-    printf(
-            "Function Config2       [%02X][%02X][%02X][%02X]\r\n",
-            fc2.rafc,fc2.rxcw,fc2.txcw,fc2.tbd
+    fprintf(
+        fdout,
+        "Function Config2       [%02X][%02X][%02X][%02X]\r\n",
+        fc2.rafc,fc2.rxcw,fc2.txcw,fc2.tbd
     );
 }
 
@@ -1325,12 +1329,9 @@ HE100_md5sum(unsigned char * input_data, size_t input_data_length, unsigned char
 int 
 HE100_writeFlash (int fdin, unsigned char *flash_md5sum)
 {
-
-    HE100_dumpHex (stdout,flash_md5sum,24); // TODO handle this properly, see docs
-
-    unsigned char write_flash_payload[CFG_FLASH_LENGTH] = {0};
+    //unsigned char write_flash_payload[CFG_FLASH_LENGTH] = {0};
     unsigned char write_flash_command[2] = {CMD_TRANSMIT, CMD_WRITE_FLASH};
     
-    return HE100_dispatchTransmission(fdin, write_flash_payload, CFG_FLASH_LENGTH, write_flash_command); 
+    return HE100_dispatchTransmission(fdin, flash_md5sum, CFG_FLASH_LENGTH, write_flash_command); 
 }
 

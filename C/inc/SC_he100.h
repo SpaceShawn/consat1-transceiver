@@ -125,7 +125,8 @@ extern const char *rf_baudrate[5];
 // Config options
 #define CFG_FRAME_LENGTH    44
 #define CFG_PAYLOAD_LENGTH  34
-#define CFG_FLASH_LENGTH    34 // TODO was is the real value
+#define CFG_FLASH_LENGTH    16
+#define CFG_HUMAN_LENGTH    1500
 // Interface BAUD RATE config
 #define CFG_IF_BAUD_BYTE    0 // 1st byte
 #define CFG_DEF_IF_BAUD     0
@@ -510,7 +511,7 @@ int HE100_validateConfig (struct he100_settings he100_new_settings);
 /* validation will occur here, and if valid values have passed constraints, apply the settings */
 int HE100_setConfig (int fdin, struct he100_settings he100_new_settings);
 
-void HE100_printSettings( struct he100_settings settings );
+void HE100_printSettings(FILE* fdout, struct he100_settings settings);
 
 int HE100_md5sum(unsigned char * input_data, size_t input_data_length, unsigned char * md5sum);
 
