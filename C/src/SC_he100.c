@@ -348,20 +348,18 @@ HE100_write (int fdin, unsigned char *bytes, size_t size)
     if (fdin!=0) w = write (fdin, bytes, size); // Write byte array
     else return HE_FAILED_OPEN_PORT;
 
-    // TODO // free(bytes); // bytes is always allocated on the stack!
-
     fflush( NULL ); fsync(fdin); // TODO fdin, is a tty device, ineffective?
 
     unsigned char response_buffer[MAX_FRAME_LENGTH]; // TODO this will not be used, fault of refactoring decision
 
-    int read_check = 0;
+    int valid_bytes_returned = 0;
     if (bytes[HE_CMD_BYTE] != CMD_GET_CONFIG) // some commands manually manage reading responses
     { // Issue a read to check for ACK/NOACK
-        read_check = HE100_read(fdin, 2, response_buffer);
-    }  else read_check = 1;
-    // Check if number of bytes written is greater than zero
-    // and if read returns a valid message
-    if ( read_check >= 0 && w>0 ) {
+        valid_bytes_returned = HE100_read(fdin, 2, response_buffer);
+    }  else {
+        valid_bytes_returned = 1;
+    }
+    if ( valid_bytes_returned >= 0 && w>0 ) {
        write_return = 0;
     }
     return write_return;
@@ -425,7 +423,6 @@ HE100_validateFrame (unsigned char *response, size_t length)
         if (response[4] == HE_ACK) {
             sprintf (output, "ACK>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
             logPriority = Shakespeare::NOTICE;
-            /* TODO Check the header checksum here, a bit different than payload responses */
             r = 0;
         } else if (response[4] == HE_NOACK) {
             sprintf (output, "NACK>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
@@ -442,46 +439,41 @@ HE100_validateFrame (unsigned char *response, size_t length)
         }
         Shakespeare::log_shorthand(LOG_PATH, logPriority, PROCESS, output);
     }
-    else
-    {
-        // something is wrong
-        //
-        //
-        if (h_chk != 0) {
-           char error[MAX_LOG_BUFFER_LEN];
-           sprintf (
-                    error, 
-                    "Invalid header checksum. Incoming: [%d,%d] Calculated: [%d,%d] %s, %d", 
-                    (uint8_t)response[HE_HEADER_CHECKSUM_BYTE_1],(uint8_t)response[HE_HEADER_CHECKSUM_BYTE_2],
-                    (uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2, 
-                    __func__, __LINE__
-            );
-            Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
-            r=HE_FAILED_CHECKSUM;
-        }
+    
+    if (h_chk != 0) {
+       char error[MAX_LOG_BUFFER_LEN];
+       sprintf (
+                error, 
+                "Invalid header checksum. Incoming: [%d,%d] Calculated: [%d,%d] %s, %d", 
+                (uint8_t)response[HE_HEADER_CHECKSUM_BYTE_1],(uint8_t)response[HE_HEADER_CHECKSUM_BYTE_2],
+                (uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2, 
+                __func__, __LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        r=HE_FAILED_CHECKSUM;
+    }
 
-        if (p_chk != 0) {
-            char error[MAX_LOG_BUFFER_LEN];
-            sprintf (
-                    error, 
-                    "Invalid payload checksum. Incoming: [%d,%d] Calculated: [%d,%d] %s, %d", 
-                    (uint8_t)response[pb1],(uint8_t)response[pb2],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2,
-                    __func__, __LINE__
-            );
-            Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
-            r=HE_FAILED_CHECKSUM;
-        }
+    if (p_chk != 0) {
+        char error[MAX_LOG_BUFFER_LEN];
+        sprintf (
+                error, 
+                "Invalid payload checksum. Incoming: [%d,%d] Calculated: [%d,%d] %s, %d", 
+                (uint8_t)response[pb1],(uint8_t)response[pb2],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2,
+                __func__, __LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        r=HE_FAILED_CHECKSUM;
+    }
 
-        if (payload_length==0) {
-            char error[MAX_LOG_BUFFER_LEN];
-            sprintf (
-                    error, 
-                    "Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK %s, %d", 
-                    __func__, __LINE__
-            );
-            Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
-            r=-1;
-        }
+    if (payload_length==0) {
+        char error[MAX_LOG_BUFFER_LEN];
+        sprintf (
+                error, 
+                "Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK %s, %d", 
+                __func__, __LINE__
+        );
+        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        r=-1;
     }
 
     return r;
@@ -547,7 +539,6 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
         if ( ( ret_value = poll(&fds, 1, 5) > -1 ) ) // if a byte is ready to be read
         {
             read(fdin, &buffer, 1);
-            //if (buffer[0] != 0) printf("i=%u breakcond=%u response=%u buffer=%u \n",i,breakcond,response[i], buffer[0]);
             // set break condition based on incoming byte pattern
             if ( i==HE_LENGTH_BYTE_0 && (buffer[0] == 0x0A || buffer[0] == 0xFF) ) { 
                 // TODO could this EVER also be a large length > 255? 
@@ -725,52 +716,6 @@ HE100_referenceByteSequence(unsigned char *response, int position)
     return r;
 }
 
-/**
- * TODO COMPLETE AND INTEGRATE
- * Function to decode validated and extracted data from response for 
- * nice outputting or logging
- *
- * @param response - the response data to interpret
- * @param length - the length of the data in bytes
- */
-int
-HE100_interpretResponse (unsigned char *response, size_t length)
-{
-    printf("Response length: %d\n", (int)length);
-
-    // if response == transmission, He100 device is off!
-    if ((int)response[2]==16) {
-        fprintf(stderr,"HE100_read: He100 is off! Line:%d", __LINE__);
-        return 0;
-    }
-
-    const char* value;
-    size_t i=0;
-    for (i=0; i<length; i++) // only runs once!
-    {
-        printf("0x%02X : %d ",response[i], response[i]);
-        // instead of this, build array from struct and lookup based on position and value
-        // log failed transmissions with shakespeare
-        switch ((int)response[i])
-        {
-            case 72  :
-                value = (i==0) ? "Sync H" : "data"; break;
-            case 101 :
-                value = (i==1) ? "Sync e" : "data"; break;
-            case 32  :
-                value = (i==2) ? "Response" : "data"; break;
-            case 3   :
-                value = (i==3) ? "Transmission" : "data"; break;
-            case 10  :
-                value = (i==4||i==5) ? "Acknowledge" : "data"; break;
-            default  :
-                value = (i==length||i==length-1) ?"chksum" :"data"; break;
-        }
-        printf(": %s,\n",value);
-    }
-    return 1;
-}
-
 int 
 HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_length, unsigned char *command)
 {
@@ -845,7 +790,9 @@ HE100_fastSetPA (int fdin, int power_level)
 {
    unsigned char fast_set_pa_payload[1];
    fast_set_pa_payload[0] = power_level & 0xff;
-   if (power_level > MAX_POWER_LEVEL || power_level < MIN_POWER_LEVEL) return 1;
+   if (power_level > MAX_POWER_LEVEL || power_level < MIN_POWER_LEVEL) {
+     return 1;
+   } 
    unsigned char fast_set_pa_command[2] = {CMD_TRANSMIT, CMD_FAST_SET_PA};
    return HE100_dispatchTransmission(fdin,fast_set_pa_payload,1,fast_set_pa_command);
 }
@@ -874,7 +821,10 @@ HE100_readFirmwareRevision(int fdin)
    return HE100_dispatchTransmission(fdin,read_firmware_revision_payload,0,read_firmware_revision_command);
 }
 
-// TODO these settings are not clearly defined in documentation and need to be confirmed
+/**
+ * Function to parse the results from a character array into
+ * a he100_settings struct
+ */
 struct he100_settings
 HE100_collectConfig (unsigned char * buffer)
 {
@@ -943,6 +893,10 @@ HE100_collectConfig (unsigned char * buffer)
     return settings;
 }
 
+/**
+ * This function parses and prints out a the configuration passed by
+ * a he100_settings struct to a given file pointer
+ */
 void 
 HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     fprintf(fdout,"Interface Baud Rate:   %s [%d]\n\r", if_baudrate[settings.interface_baud_rate],settings.interface_baud_rate);
@@ -1001,6 +955,11 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     );
 }
 
+/**  
+ * This function prepares the byte sequence parsed from a 
+ * he100_settings struct to be passed over the serial interface
+ * to the transceiver
+ **/
 int 
 HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings settings) {
 
@@ -1108,12 +1067,14 @@ HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings setti
     return HE_SUCCESS;
 }
 
-// TODO redundant to call two structs. What do we want to DO with these settings? Perhaps write to file.
+/** 
+ * This function calls the dispatch to read the configuration
+ * from the transceiver
+ **/
 int 
 HE100_getConfig (int fdin, struct he100_settings * settings)
 {
     int result = 1;
-//    struct he100_settings settings;
     unsigned char get_config_payload[1] = {0};
     unsigned char get_config_command[2] = {CMD_TRANSMIT, CMD_GET_CONFIG};
   
@@ -1208,7 +1169,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
                 __func__,__LINE__
         );
         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
-        return HE_INVALID_RX_MOD; // TODO what about TX_MOD?
+        return HE_INVALID_RX_MOD; 
     }
 
     if (
@@ -1222,7 +1183,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
                 __func__,__LINE__
         );
         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
-        return HE_INVALID_TX_MOD; // TODO what about TX_MOD?
+        return HE_INVALID_TX_MOD;
     }
 
     // validate new RX setting
@@ -1300,13 +1261,17 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
 
     int validate_result=1, prepare_result=1;
     validate_result = HE100_validateConfig(he100_new_settings);
+
     if (validate_result==HE_SUCCESS) {
         prepare_result = HE100_prepareConfig(set_config_payload,he100_new_settings);
     }
 
-    if (prepare_result == HE_SUCCESS) // we have valid array
+    if (prepare_result == HE_SUCCESS) {
+        // we have valid array
         return HE100_dispatchTransmission(fdin, set_config_payload, CFG_PAYLOAD_LENGTH, set_config_command);
-    else return HE_INVALID_CONFIG;
+    } else {
+        return HE_INVALID_CONFIG;
+    }
 }
 
 int
@@ -1329,7 +1294,6 @@ HE100_md5sum(unsigned char * input_data, size_t input_data_length, unsigned char
 int 
 HE100_writeFlash (int fdin, unsigned char *flash_md5sum)
 {
-    //unsigned char write_flash_payload[CFG_FLASH_LENGTH] = {0};
     unsigned char write_flash_command[2] = {CMD_TRANSMIT, CMD_WRITE_FLASH};
     
     return HE100_dispatchTransmission(fdin, flash_md5sum, CFG_FLASH_LENGTH, write_flash_command); 
