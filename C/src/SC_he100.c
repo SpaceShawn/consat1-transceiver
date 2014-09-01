@@ -195,7 +195,7 @@ HE100_configureInterface (int fdin)
     if ( ( get_settings = tcgetattr(fdin, &settings) ) < 0 )
     {
         char error[MAX_LOG_BUFFER_LEN];
-        sprintf (error, "get config failed: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        snprintf (error, MAX_LOG_BUFFER_LEN, "get config failed: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_TTY_CONFIG; 
     }
@@ -203,7 +203,7 @@ HE100_configureInterface (int fdin)
     if (cfsetispeed(&settings, B9600) < 0 || cfsetospeed(&settings, B9600) < 0)
     {
         char error[MAX_LOG_BUFFER_LEN];
-        sprintf (error, "failed set BAUD rate: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        snprintf (error, MAX_LOG_BUFFER_LEN, "failed set BAUD rate: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_SET_BAUD;
     }
@@ -271,14 +271,14 @@ HE100_configureInterface (int fdin)
     int apply_settings = -1;
     if ( (apply_settings = tcsetattr(fdin, TCSANOW, &settings)) < 0 ) { // apply attributes
         char error[MAX_LOG_BUFFER_LEN];
-        sprintf (error, "failed set config: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        snprintf (error, MAX_LOG_BUFFER_LEN, "failed set config: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_TTY_CONFIG;
     }
     int flush_device = -1;
     if ( (flush_device = tcsetattr(fdin, TCSAFLUSH, &settings)) < 0 ) { // apply attributes
         char error[MAX_LOG_BUFFER_LEN];
-        sprintf (error, "failed flush device: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        snprintf (error, MAX_LOG_BUFFER_LEN, "failed flush device: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_FLUSH;
     }
@@ -301,14 +301,14 @@ HE100_openPort(void)
 
     if (fdin == -1) {
         char error[MAX_LOG_BUFFER_LEN];
-        sprintf (error, "Unable to open port: %s, %s, %s, %d", port_address, strerror(errno), __func__, __LINE__);
+        snprintf (error, MAX_LOG_BUFFER_LEN, "Unable to open port: %s, %s, %s, %d", port_address, strerror(errno), __func__, __LINE__);
         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_OPEN_PORT;
     }
 
     if ( !isatty(fdin) ) {
         char error[MAX_LOG_BUFFER_LEN];
-        sprintf (error, "Not a serial device: %s, %s, %s, %d", port_address, strerror(errno), __func__, __LINE__);
+        snprintf (error, MAX_LOG_BUFFER_LEN, "Not a serial device: %s, %s, %s, %d", port_address, strerror(errno), __func__, __LINE__);
         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
         return HE_NOT_A_TTY;
     }
@@ -327,7 +327,7 @@ HE100_closePort(int fdin)
     if (close(fdin) == -1)
     {
         char error[MAX_LOG_BUFFER_LEN];
-        sprintf (error, "Unable to close serial connection: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+        snprintf (error, MAX_LOG_BUFFER_LEN, "Unable to close serial connection: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_CLOSE_PORT;
     }
@@ -421,19 +421,19 @@ HE100_validateFrame (unsigned char *response, size_t length)
         char output[MAX_LOG_BUFFER_LEN];
         Shakespeare::Priority logPriority;
         if (response[4] == HE_ACK) {
-            sprintf (output, "ACK>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
+            snprintf (output, MAX_LOG_BUFFER_LEN, "ACK>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
             logPriority = Shakespeare::NOTICE;
             r = 0;
         } else if (response[4] == HE_NOACK) {
-            sprintf (output, "NACK>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
+            snprintf (output, MAX_LOG_BUFFER_LEN, "NACK>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
             logPriority = Shakespeare::ERROR;
             r = HE_FAILED_NACK;
         } else if (response[4] == 0) {
-            sprintf (output, "Empty Response>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
+            snprintf (output, MAX_LOG_BUFFER_LEN, "Empty Response>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
             logPriority = Shakespeare::ERROR;
             r = HE_EMPTY_RESPONSE;
         } else {
-            sprintf (output, "Unknown byte sequence>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
+            snprintf (output, MAX_LOG_BUFFER_LEN, "Unknown byte sequence>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
             logPriority = Shakespeare::ERROR;
             r = HE_INVALID_BYTE_SEQUENCE;
         }
@@ -577,14 +577,14 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
                     else if (SVR_result == CS1_NULL_MALLOC) 
                     {   // memory allocation problem in validateFrame()
                         char error[MAX_LOG_BUFFER_LEN];
-                        sprintf (error, "Memory allocation problem: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+                        snprintf (error, MAX_LOG_BUFFER_LEN, "Memory allocation problem: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
                         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
                         r=-1;
                     }
                     else
                     {   // something unexpected
                         char error[MAX_LOG_BUFFER_LEN];
-                        sprintf (error, "Invalid Data: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
+                        snprintf (error, MAX_LOG_BUFFER_LEN, "Invalid Data: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
                         Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
                         r=-1;
                        
@@ -609,7 +609,7 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
         else if (ret_value == -1) 
         {   // bad or no read
             char error[MAX_LOG_BUFFER_LEN];
-            sprintf (error, "Problem with poll(): %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+            snprintf (error, MAX_LOG_BUFFER_LEN, "Problem with poll(): %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
             Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
             r = -1;
         }

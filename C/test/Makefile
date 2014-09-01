@@ -19,7 +19,6 @@ GTEST_DIR = ../../../gtest-1.7.0
 # Where to find user code.
 USER_DIR = ../../../HE100-lib/C
 TIMER_DIR = ../../../space-timer-lib
-NAMEDPIPE_DIR = ../../../space-commander
 FLETCHER_DIR = ../../../space-lib/checksum
 SHAKES_DIR = ../../../space-lib/shakespeare
 UTLS_DIR= ../../../space-lib/utls
@@ -30,7 +29,7 @@ MICROINCPATH=-I../inc/Q6/
 PCINCPATH=-I../inc/PC/
 INCPATH=-I../inc/ -I$(GLOBAL_INC_DIR)/
 
-LIBPATH=-L$(GLOBAL_LIB_DIR) -L/usr/lib/x86_64-linux-gnu/
+LIBPATH=-L$(TIMER_DIR)/lib -L$(FLETCHER_DIR)/lib -L$(SHAKES_DIR)/lib -L$(UTLS_DIR)/lib -L/usr/lib/x86_64-linux-gnu/
 LIBS=$(LIBPATH) -lshakespeare -lssl -lcrypto
 
 # Flags passed to the preprocessor.
