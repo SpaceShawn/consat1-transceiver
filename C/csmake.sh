@@ -42,7 +42,7 @@ mbcc-static-c () {
 }
 
 mbcc-static-cpp () {
-  make buildQ6Cpp
+  make buildQ6
   ar rcs lib/libhe100-mbcc.a lib/he100-mbcc.o
 }
 
@@ -52,7 +52,7 @@ x86-static-c () {
 }
 
 x86-static-cpp () {
-  make buildBinCpp
+  make buildBin
   ar rcs lib/libhe100.a lib/he100.o
 }
 
