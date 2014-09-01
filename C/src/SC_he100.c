@@ -31,7 +31,6 @@
 #include "he100.h"      /*  exposes the correct serial device location */
 #include "fletcher.h"
 #include "timer.h"
-#include "NamedPipe.h"
 #include "SpaceDecl.h"
 #include "shakespeare.h"
 
