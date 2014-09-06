@@ -6,6 +6,7 @@
 #include <fletcher.h>
 #include <Date.h>
 #include <shakespeare.h>
+//#include <SC_he100.h>
 #include <SpaceDecl.h>
 
 #define PROCESS "HE100"
@@ -282,7 +283,7 @@ TEST_F(Helium_100_Test, InvalidCommand)
         0,
         HE100_validateFrame(good_response,length)
     );    ASSERT_EQ(
-        15,
+        HE_INVALID_COMMAND,
         HE100_validateFrame(bad_response,length)
     );
 }
@@ -363,6 +364,99 @@ TEST_F(Helium_100_Test, SetBeaconInterval)
             );
         }
         ASSERT_EQ(CS1_SUCCESS,r);
+    }
+}
+
+TEST_F(Helium_100_Test, TestCollectValidConfig)
+{
+    unsigned char config1[44] = {0x00,0x87,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+    unsigned char config2[44] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4F,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x09,0x00,0x00,0x00,0x43,0x00,0x00,0x00}; 
+    struct he100_settings test_settings_1 = HE100_collectConfig(config1);
+    struct he100_settings test_settings_2 = HE100_collectConfig(config2);
+    int validation_result = 1; 
+    validation_result = HE100_validateConfig(test_settings_1);
+
+
+    FILE *test_log;
+    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
+    HE100_printSettings( test_log, test_settings_1 );
+    HE100_printSettings( test_log, test_settings_2 );
+    fclose(test_log);
+
+    ASSERT_EQ (0, validation_result);   
+    validation_result = HE100_validateConfig(test_settings_2);
+    ASSERT_EQ (0, validation_result);   
+}
+
+TEST_F(Helium_100_Test, TestMD5Sum)
+{
+    //$'\x00\x87\x01\x01\x00\x00\xa8\x3c\x02\x00\x08\xab\x06\x00\x56\x41\x33\x4f\x52\x42\x56\x45\x32\x43\x55\x41\x05\x00\x00\x00\x41\x80\x00\x00\'
+    unsigned char expected_checksum[16] = {0xd4,0x1d,0x8c,0xd9,0x8f,0x00,0xb2,0x04,0xe9,0x80,0x09,0x98,0xec,0xf8,0x42,0x7e};
+    unsigned char config1[44] = {0x00,0x87,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+    unsigned char md5sum[16] = {0};
+    ASSERT_EQ(0,HE100_md5sum(config1, 44, md5sum));
+    HE100_dumpHex (stdout, expected_checksum, 16);
+    HE100_dumpHex (stdout, md5sum, 16);
+    for (z=0; z<11; z++) {
+        ASSERT_EQ(
+            expected_checksum[z],
+            md5sum[z]
+        );
+    }
+}
+
+void print_binary(int n)
+{
+    int r[100]={0},i=0;
+    while(n>0)
+    {
+        r[i]=n%2;
+        n=n/2;
+        i++;
+    }
+    for(;i>=0;i--)
+    {
+        printf("%d",r[i]);
+    }
+    printf("\n");
+}
+
+TEST_F(Helium_100_Test, InterpretFunctionConfig) {
+    //unsigned char * config_value = (unsigned char *)0b0111110111011111;
+    printf("Size of function_config: %ld \r\n", sizeof(struct function_config));
+    int config_value = 0x7ddf;
+    struct function_config fc1;
+    
+    print_binary(config_value);
+
+    memcpy (&fc1,&config_value,CFG_FUNCTION_CONFIG_LENGTH);
+    ASSERT_EQ(0,fc1.beacon_0);
+    ASSERT_EQ(CFG_FC_BEACON_CODE_RESET_ON,fc1.beacon_oa_cmd_status);
+    ASSERT_EQ(CFG_FC_BEACON_CODE_UPLOAD_ON,fc1.beacon_code_upload_status);
+    ASSERT_EQ(CFG_FC_BEACON_OA_COMMANDS_ON,fc1.beacon_radio_reset_status);
+    ASSERT_EQ(CFG_FC_TELEMETRY_DUMP_ON,fc1.telemetry_status);
+    ASSERT_EQ(CFG_FC_TELEMETRY_RATE_2HZ,fc1.telemetry_rate); // TODO BROKEN
+    ASSERT_EQ(CFG_FC_TELEMETRY_ON,fc1.telemetry_dump_status); // TODO BROKEN
+    ASSERT_EQ(CFG_FC_TX_CRC_ON,fc1.crc_rx);
+    ASSERT_EQ(CFG_FC_RX_CRC_ON,fc1.crc_tx);
+    ASSERT_EQ(CFG_FC_PIN14_DIOOVERAIR_ON,fc1.pin14);
+    ASSERT_EQ(CFG_FC_PIN13_RXPACKETTOG,fc1.pin13);
+    ASSERT_EQ(CFG_FC_LED_RXTOG,fc1.led);
+}
+
+TEST_F(Helium_100_Test, PrepareConfig) {
+    unsigned char config1[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+    unsigned char config_result[CFG_PAYLOAD_LENGTH] = {0};
+    struct he100_settings test_settings = HE100_collectConfig(config1);
+    ASSERT_EQ(
+        CS1_SUCCESS,
+        HE100_prepareConfig(config_result, test_settings)
+    );
+    for (z=0; z<CFG_PAYLOAD_LENGTH; z++) {
+        ASSERT_EQ(
+            config1[z],
+            config_result[z]
+        );
     }
 }
 
