@@ -9,9 +9,9 @@ MICROCFLAGS=-mcpu=v8.40.b -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-comp
 DEBUGFLAGS=-ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provides macro info to gdb
 
 SPACE_LIB=../../space-lib
-SPACE_TIMER_LIB=../../space-timer
+SPACE_TIMER_LIB=../../space-timer-lib
 
-INCPATH=-I./inc/ -I$(SPACE_LIB)/checksum/inc -I$(SPACE_TIMER_LIB)/inc -I$(SPACE_LIB)/include
+INCPATH=-I./inc/ -I$(SPACE_LIB)/checksum/inc/ -I$(SPACE_LIB)/shakespeare/inc/ -I$(SPACE_TIMER_LIB)/inc/ -I$(SPACE_LIB)/include/
 MICROINCPATH=-I./inc/Q6/
 PCINCPATH=-I./inc/PC/
 BBINCPATH=-I./inc/BB/
