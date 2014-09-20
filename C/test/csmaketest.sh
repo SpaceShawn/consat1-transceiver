@@ -38,6 +38,7 @@ make-clean-gtest () {
     if make ; then
         $1 ./he100_lib_test
         [ $live ] && sudo ./he100_live_radio_test
+        return 0
     fi;
 }
 
