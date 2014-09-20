@@ -6,7 +6,7 @@ MICROPP=microblazeel-xilinx-linux-gnu-g++
 BEAGLECC=arm-linux-gnueabi-g++
 #CFLAGS=-static
 MICROCFLAGS=-mcpu=v8.40.b -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-compare -mno-xl-soft-mul -mno-xl-soft-div -mxl-float-sqrt -mhard-float -mxl-float-convert -mlittle-endian -Wall
-DEBUGFLAGS=-ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provides macro info to gdb
+DEBUGFLAGS=-pedantic -Wextra -Werror -ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provides macro info to gdb
 
 SPACE_LIB=../../space-lib
 SPACE_TIMER_LIB=../../space-timer-lib

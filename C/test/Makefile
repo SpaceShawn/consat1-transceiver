@@ -26,13 +26,12 @@ UTLS_DIR= ../../../space-lib/utls
 SPACE_TIMER_DIR= ../../../space-timer-lib
 SPACE_LIB_DIR= ../../../space-lib
 GLOBAL_INC_DIR= ../../../space-lib/include
-GLOBAL_LIB_DIR= ../../../space-lib/lib
 MICROINCPATH=-I../inc/Q6/
 PCINCPATH=-I../inc/PC/
 INCPATH=-I../inc/ -I$(GLOBAL_INC_DIR)/ -I$(UTLS_DIR)/include -I$(FLETCHER_DIR)/inc -I$(TIMER_DIR)/inc -I$(SHAKES_DIR)/inc
 
 LIBPATH=-L$(TIMER_DIR)/lib -L$(FLETCHER_DIR)/lib -L$(SHAKES_DIR)/lib -L$(UTLS_DIR)/lib -L/usr/lib/x86_64-linux-gnu/
-LIBS=$(LIBPATH) -lrt -lssl -lcrypto
+LIBS=$(LIBPATH) -lcs1_utls -lrt -lssl -lcrypto
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that

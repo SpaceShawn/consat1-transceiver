@@ -42,7 +42,7 @@
 #define LOG_PATH "/home/logs/HE100"
 #define MAX_LOG_BUFFER_LEN 255
 
-extern const char *HE_STATUS[34] = {
+const char *HE_STATUS[34] = {
     "HE_SUCCESS",
     "HE_FAILED_OPEN_PORT",
     "HE_FAILED_CLOSE_PORT",
@@ -79,7 +79,7 @@ extern const char *HE_STATUS[34] = {
     "HE_FAILED_READ"
 };
 
-extern const char *CMD_CODE_LIST[32] = {
+const char *CMD_CODE_LIST[32] = {
     "CMD_NONE",             // 0x00 
     "CMD_NOOP",             // 0x01 
     "CMD_RESET",            // 0x02
@@ -105,11 +105,11 @@ extern const char *CMD_CODE_LIST[32] = {
     "CMD_FAST_SET_PA"       // 0x20
 };
 
-extern const char *if_baudrate[6] = {
+const char *if_baudrate[6] = {
     "9600","19200","38400","76800","115200"
 };
 
-extern const char *rf_baudrate[5] = {
+const char *rf_baudrate[5] = {
     "1200","9600","19200","38400"
 };
 
@@ -493,7 +493,7 @@ void
 HE100_dumpHex(FILE *fdout, unsigned char *bytes, size_t size)
 {
     size_t j=0;
-    fprintf(fdout,"Dumping %zd bytes: ", size);
+    fprintf(fdout,"Dumping %d bytes: ", (unsigned int) size);
     for (j=0;j<size;j++)
     {
         fprintf(fdout,"%02X ",bytes[j]);

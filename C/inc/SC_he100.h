@@ -62,10 +62,10 @@
 #define HE_FAILED_GET_CONFIG        32
 #define HE_FAILED_READ              33
 
-extern const char *HE_STATUS[34];
-extern const char *CMD_CODE_LIST[32];
-extern const char *if_baudrate[6];
-extern const char *rf_baudrate[5];
+//const char *HE_STATUS[34];
+//const char *CMD_CODE_LIST[32];
+//const char *if_baudrate[6];
+//const char *rf_baudrate[5];
 
 // TTY settings
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
