@@ -36,7 +36,9 @@ make-tests () {
     make clean
     make buildBin
     make clean
-    make buildQ6
+    if [ -f "/usr/local/lib/mbgcc/bin/microblazeel-xilinx-linux-gnu-c++" ] ; then
+        make buildQ6
+    fi
 }
 
 make-clean-gtest () {
@@ -45,7 +47,6 @@ make-clean-gtest () {
     if make-tests ; then
         $1 ./he100_lib_testPC
         [ $live ] && sudo ./he100_live_radio_testPC
-        echo -e "The tests are also compiled for Q6, copy over the binaries"
         return 0
     fi;
 }
