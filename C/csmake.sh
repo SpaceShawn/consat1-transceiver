@@ -64,7 +64,7 @@ bb-static-cpp () {
 }
 
 make-run-gtest () {
-  cd test
+  cd tests/gtest
   bash csmaketest.sh $1 #will pass gdm argument to csmaketest.sh
   cd ..
 }

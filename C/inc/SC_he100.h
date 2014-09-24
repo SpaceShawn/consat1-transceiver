@@ -24,8 +24,6 @@
 #include <time.h>
 #include <stdio.h>
 
-#include <openssl/md5.h>
-
 // Transceiver error codes
 #define HE_SUCCESS                  0
 #define HE_FAILED_OPEN_PORT         1
@@ -513,8 +511,4 @@ int HE100_setConfig (int fdin, struct he100_settings he100_new_settings);
 
 void HE100_printSettings(FILE* fdout, struct he100_settings settings);
 
-int HE100_md5sum(unsigned char * input_data, size_t input_data_length, unsigned char * md5sum);
-
-/* Function to write current set config to flash and overwrite default settings */
-int HE100_writeFlash (int fdin, unsigned char *flash_md5sum);
 #endif

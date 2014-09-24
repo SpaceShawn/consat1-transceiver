@@ -32,12 +32,20 @@ quit () {
     exit 0
 }
 
+make-tests () {
+    make clean
+    make buildBin
+    make clean
+    make buildQ6
+}
+
 make-clean-gtest () {
     confirm "Would you like to run the live test (requires radio to be present and active)?" && live=1
     make clean
-    if make ; then
-        $1 ./he100_lib_test
-        [ $live ] && sudo ./he100_live_radio_test
+    if make-tests ; then
+        $1 ./he100_lib_testPC
+        [ $live ] && sudo ./he100_live_radio_testPC
+        echo -e "The tests are also compiled for Q6, copy over the binaries"
         return 0
     fi;
 }
@@ -53,7 +61,7 @@ for arg in "$@"; do
 done
 
 CURRENT_DIR="${PWD##*/}"
-if [ "$CURRENT_DIR" != "test" ]; then fail "This script must be run from HE100_lib/C, not $CURRENT_DIR"; fi;
+if [ "$CURRENT_DIR" != "gtest" ]; then fail "This script must be run from HE100_lib/C, not $CURRENT_DIR"; fi;
 
 usage="usage: csmaketest.sh [options] "
 if [ $# -eq 0 ]; then 

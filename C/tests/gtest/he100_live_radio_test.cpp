@@ -191,34 +191,6 @@ TEST_F(Helium_100_Live_Radio_Test, GetConfig)
     ASSERT_EQ(CS1_SUCCESS,result);
 }
 
-TEST_F(Helium_100_Live_Radio_Test, WriteFlash)
-{
-    struct he100_settings * current_settings;
-    current_settings = (struct he100_settings *) malloc (sizeof(struct he100_settings));
-    int get_config_result = HE100_getConfig(fdin,current_settings);
-    
-    unsigned char settings_array[CFG_PAYLOAD_LENGTH] = {0};
-    int prepare_result = HE100_prepareConfig(settings_array,*current_settings);
-    
-    HE100_dumpHex(stdout,settings_array,CFG_PAYLOAD_LENGTH); 
-
-    //unsigned char md5sum[16] = {0};
-    //int md5sum_result = HE100_md5sum(settings_array,CFG_PAYLOAD_LENGTH,md5sum);
-    unsigned char md5sum[16] = {0x68,0xb3,0x29,0xda,0x98,0x93,0xe3,0x40,0x99,0xc7,0xd8,0xad,0x5c,0xb9,0xc9,0x40};
-
-    FILE *test_log;
-    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
-    HE100_printSettings( test_log, *current_settings );
-    fclose(test_log);
-
-    int write_result = HE100_writeFlash(fdin,md5sum);
-
-    ASSERT_EQ(CS1_SUCCESS,get_config_result);
-    ASSERT_EQ(CS1_SUCCESS,prepare_result);
-    ASSERT_EQ(CS1_SUCCESS,write_result);
-    //ASSERT_EQ(CS1_SUCCESS,md5sum_result);
-}
-/*  
 TEST_F(Helium_100_Live_Radio_Test, TestMaxLength)
 {
     unsigned char data[256] = 
@@ -257,7 +229,6 @@ TEST_F(Helium_100_Live_Radio_Test, TestAllBytes)
         transmit_result
     );
 }
-*/
 /*
 Send Beacon Data
 486510100100217231313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131B4E8

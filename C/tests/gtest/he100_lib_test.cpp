@@ -10,7 +10,7 @@
 #include <SpaceDecl.h>
 
 #define PROCESS "HE100"
-#define LOG_PATH "/home/logs/HE100"
+#define LOG_PATH "/home/logs/"
 
 class Helium_100_Test : public ::testing::Test
 {
@@ -388,25 +388,6 @@ TEST_F(Helium_100_Test, TestCollectValidConfig)
     ASSERT_EQ (0, validation_result);   
 }
 
-/*  
-TEST_F(Helium_100_Test, TestMD5Sum)
-{
-    //$'\x00\x87\x01\x01\x00\x00\xa8\x3c\x02\x00\x08\xab\x06\x00\x56\x41\x33\x4f\x52\x42\x56\x45\x32\x43\x55\x41\x05\x00\x00\x00\x41\x80\x00\x00\'
-    unsigned char expected_checksum[16] = {0xd4,0x1d,0x8c,0xd9,0x8f,0x00,0xb2,0x04,0xe9,0x80,0x09,0x98,0xec,0xf8,0x42,0x7e};
-    unsigned char config1[44] = {0x00,0x87,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
-    unsigned char md5sum[16] = {0};
-    ASSERT_EQ(0,HE100_md5sum(config1, 44, md5sum));
-    HE100_dumpHex (stdout, expected_checksum, 16);
-    HE100_dumpHex (stdout, md5sum, 16);
-    for (z=0; z<11; z++) {
-        ASSERT_EQ(
-            expected_checksum[z],
-            md5sum[z]
-        );
-    }
-}
-*/
-
 void print_binary(int n)
 {
     int r[100]={0},i=0;
@@ -425,7 +406,7 @@ void print_binary(int n)
 
 TEST_F(Helium_100_Test, InterpretFunctionConfig) {
     //unsigned char * config_value = (unsigned char *)0b0111110111011111;
-    printf("Size of function_config: %ld \r\n", sizeof(struct function_config));
+    printf("Size of function_config: %d \r\n", (unsigned) sizeof(struct function_config));
     int config_value = 0x7ddf;
     struct function_config fc1;
     

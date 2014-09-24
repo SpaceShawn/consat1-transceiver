@@ -12,31 +12,37 @@
 # project, except GTEST_HEADERS, which you can use in your own targets
 # but shouldn't modify.
 
+# Where to find user code.
+PROJECT_DIR = ../../../..
+SPACE_LIB_DIR= $(PROJECT_DIR)/space-lib
+USER_DIR = $(PROJECT_DIR)/HE100-lib/C
+TIMER_DIR = $(PROJECT_DIR)/space-timer-lib
+FLETCHER_DIR = $(PROJECT_DIR)/space-lib/checksum
+SHAKES_DIR = $(PROJECT_DIR)/space-lib/shakespeare
+UTLS_DIR= $(SPACE_LIB_DIR)/utls
+SPACE_TIMER_DIR= $(PROJECT_DIR)/space-timer-lib
+GLOBAL_INC_DIR= $(SPACE_LIB_DIR)/include
+MICROINCPATH=-I../inc/Q6/
+PCINCPATH=-I$(USER_DIR)/inc/Q6
+Q6INCPATH=-I$(USER_DIR)/inc/Q6
+INCPATH=-I$(USER_DIR)/inc/ -I$(GLOBAL_INC_DIR)/ -I$(UTLS_DIR)/include -I$(FLETCHER_DIR)/inc -I$(TIMER_DIR)/inc -I$(SHAKES_DIR)/inc
+
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
-GTEST_DIR = ../../../gtest-1.7.0
-
-# Where to find user code.
-USER_DIR = ../../../HE100-lib/C
-TIMER_DIR = ../../../space-timer-lib
-FLETCHER_DIR = ../../../space-lib/checksum
-SHAKES_DIR = ../../../space-lib/shakespeare
-UTLS_DIR= ../../../space-lib/utls
-
-SPACE_TIMER_DIR= ../../../space-timer-lib
-SPACE_LIB_DIR= ../../../space-lib
-GLOBAL_INC_DIR= ../../../space-lib/include
-MICROINCPATH=-I../inc/Q6/
-PCINCPATH=-I../inc/PC/
-INCPATH=-I../inc/ -I$(GLOBAL_INC_DIR)/ -I$(UTLS_DIR)/include -I$(FLETCHER_DIR)/inc -I$(TIMER_DIR)/inc -I$(SHAKES_DIR)/inc
+GTEST_DIR = $(PROJECT_DIR)/gtest-1.7.0
 
 LIBPATH=-L$(TIMER_DIR)/lib -L$(FLETCHER_DIR)/lib -L$(SHAKES_DIR)/lib -L$(UTLS_DIR)/lib -L/usr/lib/x86_64-linux-gnu/
 LIBS=$(LIBPATH) -lcs1_utls -lrt -lssl -lcrypto
+Q6LIBS=$(LIBPATH) -lcs1_utlsQ6 -lrt
 
 # Flags passed to the preprocessor.
 # Set Google Test's header directory as a system directory, such that
 # the compiler doesn't generate warnings in Google Test headers.
 CPPFLAGS += -isystem $(GTEST_DIR)/include
+
+ARCH=PC # DEFAULT
+MICROCC=microblazeel-xilinx-linux-gnu-gcc
+MICROPP=microblazeel-xilinx-linux-gnu-g++
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -pthread
@@ -86,9 +92,14 @@ gtest_main.a : gtest-all.o gtest_main.o
 OBJECTS=Date.o fletcher.o timer.o shakespeare.o SC_he100.o
 HE100_HEADERS=$(USER_DIR)/inc/SC_he100.h
 SHAKESPEARE_HEADERS=$(SPACE_LIB_DIR)/shakespeare/inc/shakespeare.h 
-HEADERS=$(SPACE_TIMER_DIR)/inc/timer.h $(UTLS_DIR)/include/Date.h $(GLOBAL_INC_DIR)/SpaceDecl.h 
+HE100_HEADERS=$(USER_DIR)/inc/PC/he100.h $(USER_DIR)/inc/SC_he100.h
+Q6_HE100_HEADERS=$(USER_DIR)/inc/Q6/he100.h $(USER_DIR)/inc/SC_he100.h
+#HE100_HEADERS=$(USER_DIR)/inc/PC/he100.h $(USER_DIR)/inc/SC_he100.h
+HEADERS=$(SPACE_TIMER_DIR)/inc/timer.h $(UTLS_DIR)/include/Date.h $(GLOBAL_INC_DIR)/SpaceDecl.h $(HE100_HEADERS)
 
 ###########################
+
+TARGETS=he100_lib_test he100_live_radio_test
 
 Date.o : $(UTLS_DIR)/src/Date.cpp $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) -I$(UTLS_DIR)/include/ $(CXXFLAGS) -c $(UTLS_DIR)/src/Date.cpp
@@ -105,14 +116,24 @@ shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(HEADERS) $(SHAKESPEARE_HEADE
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(INCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c
 
-he100_lib_test.o : $(USER_DIR)/test/he100_lib_test.cpp $(HEADERS) $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/test/he100_lib_test.cpp
+he100_lib_test.o : $(USER_DIR)/tests/gtest/he100_lib_test.cpp $(HEADERS) $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/tests/gtest/he100_lib_test.cpp
 
-he100_live_radio_test.o : $(USER_DIR)/test/he100_live_radio_test.cpp $(HEADERS) $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/test/he100_live_radio_test.cpp
+he100_live_radio_test.o : $(USER_DIR)/tests/gtest/he100_live_radio_test.cpp $(HEADERS) $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/tests/gtest/he100_live_radio_test.cpp
 
 he100_lib_test : $(OBJECTS) he100_lib_test.o $(HE100_HEADERS) gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS)
-
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@$(ARCH) $(LIBS)
+	
 he100_live_radio_test : $(OBJECTS) he100_live_radio_test.o gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -lpthread $^ -o $@ $(LIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -lpthread $^ -o $@$(ARCH) $(LIBS)
+
+
+buildQ6 : ARCH=Q6 
+buildQ6 : CXX=$(MICROPP) 
+buildQ6 : LIBS=$(Q6LIBS)
+buildQ6 : $(TARGETS) ;
+	
+buildBin : ARCH=PC
+buildBin : $(TARGETS) ;
+
