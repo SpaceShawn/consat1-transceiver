@@ -375,8 +375,13 @@ HE100_validateFrame (unsigned char *response, size_t length)
 
     // Check first if command byte is a valid command
     if ( HE100_referenceByteSequence(&response[HE_CMD_BYTE],HE_CMD_BYTE) == HE_INVALID_COMMAND ) 
+    {
         return HE_INVALID_COMMAND;
-    else r = 0; // so far so good
+    } 
+    else
+    { 
+        r = 0; // so far so good
+    }
 
     // calculate positions for payload and checksums
     size_t data_length = length - 2; // response minus 2 sync bytes
@@ -462,15 +467,17 @@ HE100_validateFrame (unsigned char *response, size_t length)
         r=HE_FAILED_CHECKSUM;
     }
 
-    if (payload_length==0) {
+    if (payload_length==0 && response[HE_LENGTH_BYTE] != 0) {
+#ifdef CS1_DEBUG
+        HE100_dumpHex(stdout, response, length);
+#endif
         char error[MAX_LOG_BUFFER_LEN];
         sprintf (
                 error, 
                 "Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK %s, %d", 
                 __func__, __LINE__
         );
-        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
-        r=-1;
+        Shakespeare::log(Shakespeare::WARNING, PROCESS, error);
     }
 
     return r;
@@ -498,6 +505,34 @@ HE100_dumpHex(FILE *fdout, unsigned char *bytes, size_t size)
         //fprintf(fdout,"%s ",(char*)&bytes[j]);
     }
     fprintf(fdout,"\r\n");
+    return;
+}
+
+void HE100_snprintfHex(char * output_hex_array, unsigned char * input_byte_array, size_t size)
+{
+    size_t raw_byte_index       = 0;
+    size_t output_hex_index     = raw_byte_index; // both indicies start at 0
+    size_t entry_length         = 3; // length of two hex digits plus a space
+
+    for (raw_byte_index=0;raw_byte_index<size;raw_byte_index++)
+    {
+       output_hex_index=raw_byte_index*entry_length; // output_hex_index is 3 * input_byte_index 
+       
+       if (output_hex_index<MAX_LOG_BUFFER_LEN)
+       {
+           snprintf(
+             output_hex_array+output_hex_index,
+             entry_length,
+             "%02X ",
+             input_byte_array[raw_byte_index]
+           );
+       } 
+       else 
+       {
+         break;
+       }
+    }
+    
     return;
 }
 
@@ -720,11 +755,25 @@ HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_leng
     unsigned char transmission[MAX_FRAME_LENGTH] = {0};
     memset (transmission,'\0',MAX_FRAME_LENGTH);    
 
+    int prepare_result = HE100_prepareTransmission(payload,transmission,payload_length,command);
+#ifdef CS1_DEBUG
+      char debug_msg[MAX_LOG_BUFFER_LEN] = {0};
+      char hex_representation[MAX_LOG_BUFFER_LEN] = {0};
+      HE100_snprintfHex(hex_representation,transmission,payload_length+WRAPPER_LENGTH);      
+      snprintf (debug_msg,MAX_LOG_BUFFER_LEN, "Prepared payload: %s",hex_representation);
+#endif
     // if preparation successful, write the bytes to the radio
-    if (HE100_prepareTransmission(payload,transmission,payload_length,command) == 0) {
-      HE100_dumpHex(stdout,transmission,payload_length+WRAPPER_LENGTH);
+    if ( prepare_result == 0) {
+#ifdef CS1_DEBUG
+      Shakespeare::log(Shakespeare::NOTICE,PROCESS,"Prepare successful");
+      Shakespeare::log(Shakespeare::NOTICE,PROCESS,debug_msg);
+#endif
       return HE100_write(fdin,transmission,payload_length+WRAPPER_LENGTH);
     } else {
+#ifdef CS1_DEBUG
+      Shakespeare::log(Shakespeare::ERROR,PROCESS,"Prepare failed");
+      Shakespeare::log(Shakespeare::ERROR,PROCESS,debug_msg);
+#endif
         return 1;
     }
 }

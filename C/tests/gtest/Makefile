@@ -43,6 +43,8 @@ Q6LIBS=$(LIBPATH) -lcs1_utlsQ6 -lrt
 # the compiler doesn't generate warnings in Google Test headers.
 CPPFLAGS += -isystem $(GTEST_DIR)/include
 
+ENV_FLAGS = -DCS1_DEBUG # to enable debug messages
+
 ARCH=PC # DEFAULT
 MICROCC=microblazeel-xilinx-linux-gnu-gcc
 MICROPP=microblazeel-xilinx-linux-gnu-g++
@@ -116,7 +118,7 @@ shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(HEADERS) $(SHAKESPEARE_HEADE
 	$(CXX) $(CPPFLAGS) -I$(SHAKES_DIR)/inc/ $(EXTERNINCPATH) $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp
 
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(ARCH_HEADERS) $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(EXTERNINCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c
+	$(CXX) $(CPPFLAGS) $(EXTERNINCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c $(ENV_FLAGS)
 
 he100_lib_test.o : $(USER_DIR)/tests/gtest/he100_lib_test.cpp $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(EXTERNINCPATH) -c $(USER_DIR)/tests/gtest/he100_lib_test.cpp

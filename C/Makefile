@@ -6,7 +6,9 @@ MICROPP=microblazeel-xilinx-linux-gnu-g++
 BEAGLECC=arm-linux-gnueabi-g++
 #CFLAGS=-static
 MICROCFLAGS=-mcpu=v8.40.b -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-compare -mno-xl-soft-mul -mno-xl-soft-div -mxl-float-sqrt -mhard-float -mxl-float-convert -mlittle-endian -Wall
+
 DEBUGFLAGS=-pedantic -Wextra -Werror -ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provides macro info to gdb
+ENV_FLAGS = -DCS1_DEBUG # to enable debug messages
 
 SPACE_LIB=../../space-lib
 SPACE_TIMER_LIB=../../space-timer-lib
@@ -22,13 +24,13 @@ PC_LIBRARIES=-ltimer -lshakespeare -lfletcher -lcrypto -lssl
 Q6_LIBRARIES=-ltimer-mbcc -lshakespeare-mbcc -lfletcher-mbcc -lcrypto -lssl
 
 buildBin:
-	$(CXX) $(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o  $(PC_LIBRARIES)
+	$(CXX) $(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o  $(PC_LIBRARIES) $(ENV_FLAGS)
 
 buildQ6:
-	$(MICROPP) $(CXX_FLAGS) $(MICROCFLAGS) $(INCPATH) $(MICROINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-mbcc.o $(Q6_LIBRARIES)
+	$(MICROPP) $(CXX_FLAGS) $(MICROCFLAGS) $(INCPATH) $(MICROINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-mbcc.o $(Q6_LIBRARIES) $(ENV_FLAGS)
 
 buildBB:
-	$(BEAGLECC) $(CXX_FLAGS) $(INCPATH) $(BBINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-BB.o -ltimer-BB -lshakespeare-BB -lfletcher-BB
+	$(BEAGLECC) $(CXX_FLAGS) $(INCPATH) $(BBINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-BB.o -ltimer-BB -lshakespeare-BB -lfletcher-BB $(ENV_FLAGS)
 
 clean:
 	rm -f lib/*

@@ -6,7 +6,7 @@
 #include <SpaceDecl.h>
 #include <shakespeare.h>
 
-#define MAX_TESTED_PAYLOAD 220
+#define MAX_TESTED_PAYLOAD 300
 #define PROCESS "HE100"
 #define LOG_PATH "/home/logs"
 
@@ -21,12 +21,14 @@ class Helium_100_Live_Radio_Test : public ::testing::Test
         const ::testing::TestInfo* const test_info =
               ::testing::UnitTest::GetInstance()->current_test_info();
         char test_description[255] = {0};
+        Shakespeare::log(Shakespeare::NOTICE, PROCESS, ">>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<");
         sprintf(test_description,"We are in test %s of test case %s.",
-                       test_info->name(), test_info->test_case_name());
+                        test_info->name(), test_info->test_case_name());
         Shakespeare::log(Shakespeare::NOTICE, PROCESS, test_description);
       }
       virtual void TearDown() {
         HE100_closePort(fdin);
+        Shakespeare::log(Shakespeare::NOTICE, PROCESS, ">>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<");
       }
       size_t z; // assert loop index
 };
@@ -37,20 +39,6 @@ class Helium_100_Live_Radio_Test : public ::testing::Test
 
 // Pass the function some data and check against expected result
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
-
-TEST_F(Helium_100_Live_Radio_Test, GetConfig)
-{
-    struct he100_settings * settings;
-    settings = (struct he100_settings *) malloc (sizeof(struct he100_settings));
-    int result = HE100_getConfig(fdin,settings);
-
-    FILE *test_log;
-    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
-    HE100_printSettings( test_log, *settings );
-    fclose(test_log);
-
-    ASSERT_EQ(CS1_SUCCESS,result);
-}
 
 TEST_F(Helium_100_Live_Radio_Test, SetConfig)
 {
@@ -66,8 +54,8 @@ TEST_F(Helium_100_Live_Radio_Test, SetConfig)
 
     ASSERT_EQ(CS1_SUCCESS,result);
 }
-/*
-TEST_F(Helium_100_Live_Radio_Test, GetConfigAgain)
+
+TEST_F(Helium_100_Live_Radio_Test, GetConfig)
 {
     struct he100_settings * settings;
     settings = (struct he100_settings *) malloc (sizeof(struct he100_settings));
@@ -144,8 +132,7 @@ TEST_F(Helium_100_Live_Radio_Test, SetBeaconInterval)
     );
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
-*/
-/* 
+
 // test passing invalid PA level
 TEST_F(Helium_100_Live_Radio_Test, InvalidPALevel)
 {
@@ -178,7 +165,6 @@ TEST_F(Helium_100_Live_Radio_Test, FastSetPA)
     );
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
-*/
 
 // Test softReset
 TEST_F(Helium_100_Live_Radio_Test, SoftReset)
@@ -204,6 +190,7 @@ TEST_F(Helium_100_Live_Radio_Test, ReadFirmwareRevision)
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
 
+/*
 TEST_F(Helium_100_Live_Radio_Test, TestMaxLength)
 {
     unsigned char data[256] = 
@@ -242,7 +229,7 @@ TEST_F(Helium_100_Live_Radio_Test, TestAllBytes)
         transmit_result
     );
 }
-
+*/
 /*
 Send Beacon Data
 486510100100217231313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131B4E8
