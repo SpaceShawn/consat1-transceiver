@@ -40,27 +40,22 @@ ensure-directories () {
 
 mbcc-static-c () {
   make buildQ6  
-  ar rcs lib/libhe100-c-mbcc.a lib/he100-mbcc.o
 }
 
 mbcc-static-cpp () {
   make buildQ6
-  ar rcs lib/libhe100-mbcc.a lib/he100-mbcc.o
 }
 
 x86-static-c () {
   make buildBin
-  ar rcs lib/libhe100-c.a lib/he100.o
 }
 
 x86-static-cpp () {
   make buildBin
-  ar rcs lib/libhe100.a lib/he100.o
 }
 
 bb-static-cpp () {
   make buildBB
-  ar rcs lib/libhe100-BB.a lib/he100-BB.o
 }
 
 make-run-gtest () {

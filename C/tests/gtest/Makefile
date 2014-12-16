@@ -94,7 +94,7 @@ gtest_main.a : gtest-all.o gtest_main.o
 
 ###########################
 
-OBJECTS=Date.o fletcher.o timer.o shakespeare.o SC_he100.o
+OBJECTS=Date.o fletcher.o timer.o shakespeare.o SC_he100-translations.o SC_he100.o
 SHAKESPEARE_HEADERS=$(SPACE_LIB_DIR)/shakespeare/inc/shakespeare.h 
 PC_HEADERS=$(USER_DIR)/inc/PC/he100.h
 Q6_HEADERS=$(USER_DIR)/inc/Q6/he100.h
@@ -116,6 +116,9 @@ fletcher.o : $(FLETCHER_DIR)/src/fletcher.c $(HEADERS) $(GTEST_HEADERS)
 
 shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(HEADERS) $(SHAKESPEARE_HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) -I$(SHAKES_DIR)/inc/ $(EXTERNINCPATH) $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp
+
+SC_he100-translations.o:
+	$(CXX) $(CPP_FLAGS) $(DEBUGFLAGS) -c $(USER_DIR)/src/SC_he100-translations.c 
 
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(ARCH_HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(EXTERNINCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c $(ENV_FLAGS)

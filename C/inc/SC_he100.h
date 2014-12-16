@@ -60,10 +60,10 @@
 #define HE_FAILED_GET_CONFIG        32
 #define HE_FAILED_READ              33
 
-//const char *HE_STATUS[34];
-//const char *CMD_CODE_LIST[32];
-//const char *if_baudrate[6];
-//const char *rf_baudrate[5];
+extern const char *HE_STATUS[34];
+extern const char *CMD_CODE_LIST[32];
+extern const char *if_baudrate[6];
+extern const char *rf_baudrate[5];
 
 // TTY settings
 // baudrate settings are defined in <asm/termbits.h> from <termios.h>
@@ -278,6 +278,18 @@ struct he100_settings {
   struct function_config2   function_config2;
   uint8_t                   ext_conf_setting;
 };
+
+extern const char * CFG_FC_LED[4];
+extern const char * CFG_FC_PIN13[4];
+extern const char * CFG_FC_PIN14[4];
+extern const char * CFG_FC_RX_CRC[2];
+extern const char * CFG_FC_TX_CRC[2];
+extern const char * CFG_FC_TELEMETRY[2];
+extern const char * CFG_FC_TELEMETRY_RATE[4];
+extern const char * CFG_FC_TELEMETRY_DUMP[2];
+extern const char * CFG_FC_BEACON_OA_COMMANDS[2];
+extern const char * CFG_FC_BEACON_CODE_UPLOAD[2];
+extern const char * CFG_FC_BEACON_RESET[2];
 
 // function_config
 #define CFG_FC_LED_OFFLOGICLOW              0 //0b00

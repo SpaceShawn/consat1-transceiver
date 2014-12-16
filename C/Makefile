@@ -23,14 +23,32 @@ LIBPATHS=-L../../space-lib/shakespeare/lib -L../../space-timer-lib -L./lib
 PC_LIBRARIES=-ltimer -lshakespeare -lfletcher -lcrypto -lssl
 Q6_LIBRARIES=-ltimer-mbcc -lshakespeare-mbcc -lfletcher-mbcc -lcrypto -lssl
 
-buildBin:
+lib/SC_he100-translations.o:
+	$(CXX) $(CXX_FLAGS) $(DEBUGFLAGS) -static -c src/SC_he100-translations.c -o lib/SC_he100-translations.o 
+
+lib/SC_he100-translationsQ6.o:
+	$(MICROPP) $(CXX_FLAGS) $(DEBUGFLAGS) -static -c src/SC_he100-translations.c -o lib/SC_he100-translationsQ6.o 
+
+buildBinDep: lib/SC_he100-translations.o
 	$(CXX) $(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o  $(PC_LIBRARIES) $(ENV_FLAGS)
 
-buildQ6:
+buildQ6Dep:
 	$(MICROPP) $(CXX_FLAGS) $(MICROCFLAGS) $(INCPATH) $(MICROINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-mbcc.o $(Q6_LIBRARIES) $(ENV_FLAGS)
 
-buildBB:
+buildBBDep:
 	$(BEAGLECC) $(CXX_FLAGS) $(INCPATH) $(BBINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-BB.o -ltimer-BB -lshakespeare-BB -lfletcher-BB $(ENV_FLAGS)
+
+buildQ6: mkdirs buildQ6Dep
+	ar rcs lib/libhe100-mbcc.a lib/SC_he100-translations.o lib/he100-mbcc.o
+
+buildBin: mkdirs buildBinDep
+	ar rcs lib/libhe100.a lib/SC_he100-translations.o lib/he100.o
+
+buildBB: mkdirs buildBBDep
+	ar rcs lib/libhe100-BB.a lib/SC_he100-translations.o lib/he100-BB.o
+
+mkdirs: 
+	mkdir -p $CS1_DIR/HE100-lib/C/lib
 
 clean:
 	rm -f lib/*
