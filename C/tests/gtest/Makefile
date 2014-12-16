@@ -23,9 +23,12 @@ UTLS_DIR= $(SPACE_LIB_DIR)/utls
 SPACE_TIMER_DIR= $(PROJECT_DIR)/space-timer-lib
 GLOBAL_INC_DIR= $(SPACE_LIB_DIR)/include
 MICROINCPATH=-I../inc/Q6/
-PCINCPATH=-I$(USER_DIR)/inc/Q6
+
+EXTERNINCPATH=-I$(USER_DIR)/inc/ -I$(GLOBAL_INC_DIR)/ -I$(UTLS_DIR)/include -I$(FLETCHER_DIR)/inc -I$(TIMER_DIR)/inc -I$(SHAKES_DIR)/inc
+
+PCINCPATH=-I$(USER_DIR)/inc/PC
 Q6INCPATH=-I$(USER_DIR)/inc/Q6
-INCPATH=-I$(USER_DIR)/inc/ -I$(GLOBAL_INC_DIR)/ -I$(UTLS_DIR)/include -I$(FLETCHER_DIR)/inc -I$(TIMER_DIR)/inc -I$(SHAKES_DIR)/inc
+ARCH_INCPATH=$(PCINCPATH)
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -90,12 +93,11 @@ gtest_main.a : gtest-all.o gtest_main.o
 ###########################
 
 OBJECTS=Date.o fletcher.o timer.o shakespeare.o SC_he100.o
-HE100_HEADERS=$(USER_DIR)/inc/SC_he100.h
 SHAKESPEARE_HEADERS=$(SPACE_LIB_DIR)/shakespeare/inc/shakespeare.h 
-HE100_HEADERS=$(USER_DIR)/inc/PC/he100.h $(USER_DIR)/inc/SC_he100.h
-Q6_HE100_HEADERS=$(USER_DIR)/inc/Q6/he100.h $(USER_DIR)/inc/SC_he100.h
-#HE100_HEADERS=$(USER_DIR)/inc/PC/he100.h $(USER_DIR)/inc/SC_he100.h
-HEADERS=$(SPACE_TIMER_DIR)/inc/timer.h $(UTLS_DIR)/include/Date.h $(GLOBAL_INC_DIR)/SpaceDecl.h $(HE100_HEADERS)
+PC_HEADERS=$(USER_DIR)/inc/PC/he100.h
+Q6_HEADERS=$(USER_DIR)/inc/Q6/he100.h
+HEADERS=$(SPACE_TIMER_DIR)/inc/timer.h $(UTLS_DIR)/include/Date.h $(USER_DIR)/inc/SC_he100.h $(GLOBAL_INC_DIR)/SpaceDecl.h
+ARCH_HEADERS=$(PC_HEADERS)
 
 ###########################
 
@@ -108,32 +110,35 @@ timer.o : $(TIMER_DIR)/src/timer.c $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) -I$(TIMER_DIR)/inc/ $(CXXFLAGS) -c $(TIMER_DIR)/src/timer.c
 
 fletcher.o : $(FLETCHER_DIR)/src/fletcher.c $(HEADERS) $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(INCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(FLETCHER_DIR)/src/fletcher.c
+	$(CXX) $(CPPFLAGS) $(EXTERNINCPATH) $(CXXFLAGS) -c $(FLETCHER_DIR)/src/fletcher.c
 
 shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(HEADERS) $(SHAKESPEARE_HEADERS) $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) -I$(SHAKES_DIR)/inc/ $(INCPATH) $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp
+	$(CXX) $(CPPFLAGS) -I$(SHAKES_DIR)/inc/ $(EXTERNINCPATH) $(CXXFLAGS) -c $(SHAKES_DIR)/src/shakespeare.cpp
 
-SC_he100.o : $(USER_DIR)/src/SC_he100.c $(HEADERS) $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(INCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c
+SC_he100.o : $(USER_DIR)/src/SC_he100.c $(ARCH_HEADERS) $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(EXTERNINCPATH) $(PCINCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c
 
 he100_lib_test.o : $(USER_DIR)/tests/gtest/he100_lib_test.cpp $(HEADERS) $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/tests/gtest/he100_lib_test.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(EXTERNINCPATH) -c $(USER_DIR)/tests/gtest/he100_lib_test.cpp
 
 he100_live_radio_test.o : $(USER_DIR)/tests/gtest/he100_live_radio_test.cpp $(HEADERS) $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -c $(USER_DIR)/tests/gtest/he100_live_radio_test.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(EXTERNINCPATH) -c $(USER_DIR)/tests/gtest/he100_live_radio_test.cpp
 
-he100_lib_test : $(OBJECTS) he100_lib_test.o $(HE100_HEADERS) gtest_main.a
+he100_lib_test : $(OBJECTS) he100_lib_test.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@$(ARCH) $(LIBS)
 	
 he100_live_radio_test : $(OBJECTS) he100_live_radio_test.o gtest_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCPATH) -lpthread $^ -o $@$(ARCH) $(LIBS)
-
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(EXTERNINCPATH) -lpthread $^ -o $@$(ARCH) $(LIBS)
 
 buildQ6 : ARCH=Q6 
 buildQ6 : CXX=$(MICROPP) 
 buildQ6 : LIBS=$(Q6LIBS)
+buildQ6 : ARCH_HEADERS=$(Q6_HEADERS)
+buildQ6 : ARCH_INCPATH=$(Q6INCPATH)
 buildQ6 : $(TARGETS) ;
 	
 buildBin : ARCH=PC
+buildBin : ARCH_HEADERS=$(HE100_HEADERS)
+buildBin : ARCH_INCPATH=$(PCINCPATH)
 buildBin : $(TARGETS) ;
 

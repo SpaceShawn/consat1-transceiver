@@ -8,7 +8,7 @@
 
 #define MAX_TESTED_PAYLOAD 220
 #define PROCESS "HE100"
-#define LOG_PATH "/home/logs/HE100"
+#define LOG_PATH "/home/logs"
 
 class Helium_100_Live_Radio_Test : public ::testing::Test
 {
@@ -23,7 +23,7 @@ class Helium_100_Live_Radio_Test : public ::testing::Test
         char test_description[255] = {0};
         sprintf(test_description,"We are in test %s of test case %s.",
                        test_info->name(), test_info->test_case_name());
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, test_description);
+        Shakespeare::log(Shakespeare::NOTICE, PROCESS, test_description);
       }
       virtual void TearDown() {
         HE100_closePort(fdin);
@@ -38,7 +38,49 @@ class Helium_100_Live_Radio_Test : public ::testing::Test
 // Pass the function some data and check against expected result
 unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length, unsigned char *command);
 
-/* 
+TEST_F(Helium_100_Live_Radio_Test, GetConfig)
+{
+    struct he100_settings * settings;
+    settings = (struct he100_settings *) malloc (sizeof(struct he100_settings));
+    int result = HE100_getConfig(fdin,settings);
+
+    FILE *test_log;
+    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
+    HE100_printSettings( test_log, *settings );
+    fclose(test_log);
+
+    ASSERT_EQ(CS1_SUCCESS,result);
+}
+
+TEST_F(Helium_100_Live_Radio_Test, SetConfig)
+{
+    unsigned char config[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+    struct he100_settings settings = HE100_collectConfig(config);
+
+    FILE *test_log;
+    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
+    HE100_printSettings( test_log, settings );
+    fclose(test_log);
+
+    int result = HE100_setConfig(fdin,settings);
+
+    ASSERT_EQ(CS1_SUCCESS,result);
+}
+/*
+TEST_F(Helium_100_Live_Radio_Test, GetConfigAgain)
+{
+    struct he100_settings * settings;
+    settings = (struct he100_settings *) malloc (sizeof(struct he100_settings));
+    int result = HE100_getConfig(fdin,settings);
+
+    FILE *test_log;
+    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
+    HE100_printSettings( test_log, *settings );
+    fclose(test_log);
+
+    ASSERT_EQ(CS1_SUCCESS,result);
+}
+
 // Test writing to the helium device
 TEST_F(Helium_100_Live_Radio_Test, GoodWrite)
 {
@@ -102,7 +144,8 @@ TEST_F(Helium_100_Live_Radio_Test, SetBeaconInterval)
     );
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
-
+*/
+/* 
 // test passing invalid PA level
 TEST_F(Helium_100_Live_Radio_Test, InvalidPALevel)
 {
@@ -135,7 +178,7 @@ TEST_F(Helium_100_Live_Radio_Test, FastSetPA)
     );
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
 }
-
+*/
 
 // Test softReset
 TEST_F(Helium_100_Live_Radio_Test, SoftReset)
@@ -159,36 +202,6 @@ TEST_F(Helium_100_Live_Radio_Test, ReadFirmwareRevision)
         read_firmware_result 
     );
     // TODO READ THE ACTUAL BYTE SEQUENCE RETURNED
-}
-*/
-
-TEST_F(Helium_100_Live_Radio_Test, SetConfig)
-{
-    unsigned char config[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
-    struct he100_settings settings = HE100_collectConfig(config);
-
-    FILE *test_log;
-    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
-    HE100_printSettings( test_log, settings );
-    fclose(test_log);
-
-    int result = HE100_setConfig(fdin,settings);
-
-    ASSERT_EQ(CS1_SUCCESS,result);
-}
-
-TEST_F(Helium_100_Live_Radio_Test, GetConfig)
-{
-    struct he100_settings * settings;
-    settings = (struct he100_settings *) malloc (sizeof(struct he100_settings));
-    int result = HE100_getConfig(fdin,settings);
-
-    FILE *test_log;
-    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
-    HE100_printSettings( test_log, *settings );
-    fclose(test_log);
-
-    ASSERT_EQ(CS1_SUCCESS,result);
 }
 
 TEST_F(Helium_100_Live_Radio_Test, TestMaxLength)
@@ -229,6 +242,7 @@ TEST_F(Helium_100_Live_Radio_Test, TestAllBytes)
         transmit_result
     );
 }
+
 /*
 Send Beacon Data
 486510100100217231313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131B4E8

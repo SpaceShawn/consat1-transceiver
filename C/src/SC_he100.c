@@ -37,7 +37,7 @@
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 // logging 
 #define PROCESS "HE100"
-#define LOG_PATH "/home/logs/HE100"
+#define LOG_PATH "/home/logs"
 #define MAX_LOG_BUFFER_LEN 255
 
 const char *HE_STATUS[34] = {
@@ -193,7 +193,7 @@ HE100_configureInterface (int fdin)
     {
         char error[MAX_LOG_BUFFER_LEN];
         snprintf (error, MAX_LOG_BUFFER_LEN, "get config failed: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_TTY_CONFIG; 
     }
     // attempt to set input and output baud rate to 9600
@@ -201,7 +201,7 @@ HE100_configureInterface (int fdin)
     {
         char error[MAX_LOG_BUFFER_LEN];
         snprintf (error, MAX_LOG_BUFFER_LEN, "failed set BAUD rate: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_SET_BAUD;
     }
 
@@ -269,14 +269,14 @@ HE100_configureInterface (int fdin)
     if ( (apply_settings = tcsetattr(fdin, TCSANOW, &settings)) < 0 ) { // apply attributes
         char error[MAX_LOG_BUFFER_LEN];
         snprintf (error, MAX_LOG_BUFFER_LEN, "failed set config: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_TTY_CONFIG;
     }
     int flush_device = -1;
     if ( (flush_device = tcsetattr(fdin, TCSAFLUSH, &settings)) < 0 ) { // apply attributes
         char error[MAX_LOG_BUFFER_LEN];
         snprintf (error, MAX_LOG_BUFFER_LEN, "failed flush device: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_FLUSH;
     }
     return 0;
@@ -299,14 +299,14 @@ HE100_openPort(void)
     if (fdin == -1) {
         char error[MAX_LOG_BUFFER_LEN];
         snprintf (error, MAX_LOG_BUFFER_LEN, "Unable to open port: %s, %s, %s, %d", port_address, strerror(errno), __func__, __LINE__);
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_OPEN_PORT;
     }
 
     if ( !isatty(fdin) ) {
         char error[MAX_LOG_BUFFER_LEN];
         snprintf (error, MAX_LOG_BUFFER_LEN, "Not a serial device: %s, %s, %s, %d", port_address, strerror(errno), __func__, __LINE__);
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
         return HE_NOT_A_TTY;
     }
 
@@ -325,7 +325,7 @@ HE100_closePort(int fdin)
     {
         char error[MAX_LOG_BUFFER_LEN];
         snprintf (error, MAX_LOG_BUFFER_LEN, "Unable to close serial connection: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
         return HE_FAILED_CLOSE_PORT;
     }
     return 0;
@@ -434,7 +434,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
             logPriority = Shakespeare::ERROR;
             r = HE_INVALID_BYTE_SEQUENCE;
         }
-        Shakespeare::log_shorthand(LOG_PATH, logPriority, PROCESS, output);
+        Shakespeare::log(logPriority, PROCESS, output);
     }
     
     if (h_chk != 0) {
@@ -446,7 +446,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
                 (uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2, 
                 __func__, __LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
         r=HE_FAILED_CHECKSUM;
     }
 
@@ -458,7 +458,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
                 (uint8_t)response[pb1],(uint8_t)response[pb2],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2,
                 __func__, __LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
         r=HE_FAILED_CHECKSUM;
     }
 
@@ -469,7 +469,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
                 "Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK %s, %d", 
                 __func__, __LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
         r=-1;
     }
 
@@ -575,14 +575,14 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
                     {   // memory allocation problem in validateFrame()
                         char error[MAX_LOG_BUFFER_LEN];
                         snprintf (error, MAX_LOG_BUFFER_LEN, "Memory allocation problem: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
-                        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+                        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
                         r=-1;
                     }
                     else
                     {   // something unexpected
                         char error[MAX_LOG_BUFFER_LEN];
                         snprintf (error, MAX_LOG_BUFFER_LEN, "Invalid Data: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
-                        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+                        Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
                         r=-1;
                        
                         // soft reset the transceiver
@@ -593,7 +593,7 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
                         else { 
                             sprintf (log_msg, "Soft Reset FAILED: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
                         }
-                        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, log_msg);
+                        Shakespeare::log(Shakespeare::ERROR, PROCESS, log_msg);
                     }
                     break; // TODO why is this break needed?
                 }
@@ -607,7 +607,7 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
         {   // bad or no read
             char error[MAX_LOG_BUFFER_LEN];
             snprintf (error, MAX_LOG_BUFFER_LEN, "Problem with poll(): %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
-            Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, error);
+            Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
             r = -1;
         }
     }
@@ -1117,7 +1117,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
                 HE_STATUS[HE_INVALID_IF_BAUD_RATE],if_baudrate[he100_new_settings.interface_baud_rate],
                 __func__,__LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_IF_BAUD_RATE;
     } 
     
@@ -1132,7 +1132,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
                 HE_STATUS[HE_INVALID_POWER_AMP_LEVEL],he100_new_settings.tx_power_amp_level,
                 __func__,__LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_POWER_AMP_LEVEL;
     };
 
@@ -1150,7 +1150,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
                 he100_new_settings.tx_power_amp_level,rf_baudrate[he100_new_settings.tx_power_amp_level],
                 __func__,__LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_RF_BAUD_RATE;
     }
    
@@ -1165,7 +1165,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
                 he100_new_settings.rx_modulation,
                 __func__,__LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_RX_MOD; 
     }
 
@@ -1179,7 +1179,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
                 he100_new_settings.tx_modulation,
                 __func__,__LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_TX_MOD;
     }
 
@@ -1193,7 +1193,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
                 HE_STATUS[HE_INVALID_RX_FREQ],he100_new_settings.rx_freq,
                 __func__,__LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_RX_FREQ;
     }
 
@@ -1207,7 +1207,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
                 HE_STATUS[HE_INVALID_TX_FREQ],he100_new_settings.tx_freq,
                 __func__,__LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_TX_FREQ;
     }
 
@@ -1222,7 +1222,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
                 HE_STATUS[HE_INVALID_CALLSIGN],he100_new_settings.source_callsign,he100_new_settings.destination_callsign,
                 __func__,__LINE__
         );
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::ERROR, PROCESS, validation_log_entry);
+        Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_CALLSIGN;
     }
   
