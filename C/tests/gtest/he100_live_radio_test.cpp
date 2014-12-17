@@ -179,7 +179,7 @@ TEST_F(Helium_100_Live_Radio_Test, SoftReset)
 }
 
 // test readFirmwareRevision
-TEST_F(Helium_100_Live_Radio_Test, ReadFirmwareRevision)
+TEST_F(Helium_100_Live_Radio_Test, DISABLED_ReadFirmwareRevision)
 {
     int read_firmware_result = HE100_readFirmwareRevision(fdin);
 
