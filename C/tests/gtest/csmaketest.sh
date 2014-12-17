@@ -35,8 +35,8 @@ quit () {
 make-tests () {
     make clean
     make buildBin
-    make clean
     if [ -f "/usr/local/lib/mbgcc/bin/microblazeel-xilinx-linux-gnu-c++" ] ; then
+        make clean
         make buildQ6
     fi
 }

@@ -66,7 +66,7 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 all : $(TESTS)
 
 clean :
-	rm -f $(TESTS) he100_lib_testPC he100_lib_testQ6 he100_live_radio_testPC he100_live_radio_testQ6 gtest.a gtest_main.a *.o
+	rm -f $(TESTS) gtest.a gtest_main.a *.o
 
 # Builds gtest.a and gtest_main.a.
 
