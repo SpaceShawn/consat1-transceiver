@@ -19,11 +19,13 @@ class Helium_100_Test : public ::testing::Test
         const ::testing::TestInfo* const test_info =
               ::testing::UnitTest::GetInstance()->current_test_info();
         char test_description[255] = {0};
+        Shakespeare::log(Shakespeare::NOTICE, PROCESS, ">>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<");
         sprintf(test_description,"We are in test %s of test case %s.",
-                       test_info->name(), test_info->test_case_name());
-        Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, test_description);
+                        test_info->name(), test_info->test_case_name());
+        Shakespeare::log(Shakespeare::NOTICE, PROCESS, test_description);
     }
     virtual void TearDown() {
+        Shakespeare::log(Shakespeare::NOTICE, PROCESS, ">>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<");
     }
     const static int fdin = 1; // fake file descriptor to simulate HE100
     size_t z; // assert loop index
@@ -371,16 +373,19 @@ TEST_F(Helium_100_Test, TestCollectValidConfig)
 {
     unsigned char config1[44] = {0x00,0x87,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
     unsigned char config2[44] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4F,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x09,0x00,0x00,0x00,0x43,0x00,0x00,0x00}; 
+
     struct he100_settings test_settings_1 = HE100_collectConfig(config1);
     struct he100_settings test_settings_2 = HE100_collectConfig(config2);
+
     int validation_result = 1; 
     validation_result = HE100_validateConfig(test_settings_1);
 
-
     FILE *test_log;
     test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
-    HE100_printSettings( test_log, test_settings_1 );
-    HE100_printSettings( test_log, test_settings_2 );
+    if (test_log != NULL) {
+      HE100_printSettings( test_log, test_settings_1 );
+      HE100_printSettings( test_log, test_settings_2 );
+    }
     fclose(test_log);
 
     ASSERT_EQ (0, validation_result);   
@@ -461,3 +466,4 @@ TEST_F(Helium_100_Test, GoodBits)
 */
 
 // TODO test null bytes, passing wrong length, etc
+// j
