@@ -1,0 +1,304 @@
+946685560:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946685560:NOTICE:HE100:We are in test SetConfig of test case Helium_100_Live_Radio_Test.
+Interface Baud Rate:   9600 [0]
+TX Power Amp Level:    0 [0] 
+RX Baud Rate:          9600 [1] 
+TX Baud Rate:          9600 [1] 
+RX Frequency:          144200 
+TX Frequency:          431000 
+LED:                   OFFLOGICLOW [00] 
+PIN13:                 OFFLOGICLOW [00] 
+PIN14:                 OFFLOGICLOW [00] 
+RXCRC:                 OFF [00] 
+TXCRC:                 ON [01] 
+TELEMETRY:             OFF [00] 
+TELEMETRY RATE:        1/10 Hz [00] 
+TELEMETRY DUMP:        OFF [00] 
+BEACON OA COMMANDS:    OFF [00] 
+CODE UPLOAD:           OFF [00] 
+CODE RESET:            OFF [00] 
+Source Callsign:       VA3ORB 
+Destination Callsign:  VE2CUA± 
+TX Preamble:           1280 
+TX Postamble:          0 
+EXT:                   All Functions off [00] 
+Function Config2       [00][00][00][00]
+946685560:NOTICE:HE100:Prepare successful
+946685560:NOTICE:HE100:Prepared payload: 48
+946685562:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946685606:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946685606:NOTICE:HE100:We are in test TransmitData of test case Helium_100_Live_Radio_Test.
+946685606:NOTICE:HE100:Prepare successful
+946685606:NOTICE:HE100:Prepared payload: 48
+946685608:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946685634:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946685634:NOTICE:HE100:We are in test GetConfig of test case Helium_100_Live_Radio_Test.
+946685634:NOTICE:HE100:Prepare successful
+946685634:NOTICE:HE100:Prepared payload: 48
+Interface Baud Rate:   (null) [200]
+TX Power Amp Level:    26 [67] 
+RX Baud Rate:          CS1_UNDEF_SUB [63] 
+TX Baud Rate:          (null) [72] 
+RX Frequency:          268928788 
+TX Frequency:          268930524 
+LED:                   OFFLOGICLOW [00] 
+PIN13:                 RX Packet Toggle [03] 
+PIN14:                 DIO Over Air Pattern A (latching high) [02] 
+RXCRC:                 OFF [00] 
+TXCRC:                 ON [01] 
+TELEMETRY:             ON [01] 
+TELEMETRY RATE:        1 Hz [01] 
+TELEMETRY DUMP:        ON [01] 
+BEACON OA COMMANDS:    OFF [00] 
+CODE UPLOAD:           OFF [00] 
+CODE RESET:            OFF [00] 
+Source Callsign:       ô‹‹LŒ|l‹ 
+Destination Callsign:  ‹LŒ|l‹ 
+TX Preamble:           4103 
+TX Postamble:          36220 
+EXT:                   All Functions off [00] 
+Function Config2       [00][00][00][00]
+946685636:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686284:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686284:NOTICE:HE100:We are in test SetConfig of test case Helium_100_Live_Radio_Test.
+Interface Baud Rate:   9600 [0]
+TX Power Amp Level:    0 [0] 
+RX Baud Rate:          9600 [1] 
+TX Baud Rate:          9600 [1] 
+RX Frequency:          144200 
+TX Frequency:          431000 
+LED:                   OFFLOGICLOW [00] 
+PIN13:                 OFFLOGICLOW [00] 
+PIN14:                 OFFLOGICLOW [00] 
+RXCRC:                 OFF [00] 
+TXCRC:                 ON [01] 
+TELEMETRY:             OFF [00] 
+TELEMETRY RATE:        1/10 Hz [00] 
+TELEMETRY DUMP:        OFF [00] 
+BEACON OA COMMANDS:    OFF [00] 
+CODE UPLOAD:           OFF [00] 
+CODE RESET:            OFF [00] 
+Source Callsign:       VA3ORB 
+Destination Callsign:  VE2CUA± 
+TX Preamble:           1280 
+TX Postamble:          0 
+EXT:                   All Functions off [00] 
+Function Config2       [00][00][00][00]
+946686284:NOTICE:HE100:Prepare successful
+946686284:NOTICE:HE100:Prepared payload: 48
+946686286:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686286:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686286:NOTICE:HE100:We are in test GetConfig of test case Helium_100_Live_Radio_Test.
+946686286:NOTICE:HE100:Prepare successful
+946686286:NOTICE:HE100:Prepared payload: 48
+Interface Baud Rate:   (null) [200]
+TX Power Amp Level:    26 [67] 
+RX Baud Rate:          CS1_UNDEF_SUB [63] 
+TX Baud Rate:          (null) [72] 
+RX Frequency:          268937252 
+TX Frequency:          268939980 
+LED:                   OFFLOGICLOW [00] 
+PIN13:                 RX Packet Toggle [03] 
+PIN14:                 DIO Over Air ON [01] 
+RXCRC:                 OFF [00] 
+TXCRC:                 ON [01] 
+TELEMETRY:             OFF [00] 
+TELEMETRY RATE:        1/10 Hz [00] 
+TELEMETRY DUMP:        OFF [00] 
+BEACON OA COMMANDS:    OFF [00] 
+CODE UPLOAD:           ON [01] 
+CODE RESET:            ON [01] 
+Source Callsign:       ä°²Ü¯<±l²\° 
+Destination Callsign:  Ü¯<±l²\° 
+TX Preamble:           4103 
+TX Postamble:          45676 
+EXT:                   All Functions off [00] 
+Function Config2       [00][00][00][00]
+946686288:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686288:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686288:NOTICE:HE100:We are in test GoodWrite of test case Helium_100_Live_Radio_Test.
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:We are in test NOOP of test case Helium_100_Live_Radio_Test.
+946686291:NOTICE:HE100:Prepare successful
+946686291:NOTICE:HE100:Prepared payload: 48
+946686291:NOTICE:HE100:ACK>CMD_NOOP:HE100_validateFrame>292
+946686291:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:We are in test TransmitData of test case Helium_100_Live_Radio_Test.
+946686291:NOTICE:HE100:Prepare successful
+946686291:NOTICE:HE100:Prepared payload: 48
+946686291:NOTICE:HE100:ACK>CMD_TRANSMIT_DATA:HE100_validateFrame>292
+946686291:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:We are in test SetBeaconMessage of test case Helium_100_Live_Radio_Test.
+946686291:NOTICE:HE100:Prepare successful
+946686291:NOTICE:HE100:Prepared payload: 48
+946686291:NOTICE:HE100:ACK>CMD_BEACON_DATA:HE100_validateFrame>292
+946686291:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:We are in test SetBeaconInterval of test case Helium_100_Live_Radio_Test.
+946686291:NOTICE:HE100:Prepare successful
+946686291:NOTICE:HE100:Prepared payload: 48
+946686291:NOTICE:HE100:ACK>CMD_BEACON_DATA:HE100_validateFrame>292
+946686291:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:We are in test InvalidPALevel of test case Helium_100_Live_Radio_Test.
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:We are in test FastSetPA of test case Helium_100_Live_Radio_Test.
+946686291:NOTICE:HE100:Prepare successful
+946686291:NOTICE:HE100:Prepared payload: 48
+946686291:NOTICE:HE100:ACK>CMD_BEACON_DATA:HE100_validateFrame>292
+946686291:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686291:NOTICE:HE100:Prepare successful
+946686291:NOTICE:HE100:Prepared payload: 48
+946686291:NOTICE:HE100:ACK>9600:HE100_validateFrame>292
+946686291:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686291:NOTICE:HE100:We are in test SoftReset of test case Helium_100_Live_Radio_Test.
+946686291:NOTICE:HE100:Prepare successful
+946686291:NOTICE:HE100:Prepared payload: 48
+946686291:NOTICE:HE100:ACK>CMD_RESET:HE100_validateFrame>292
+946686291:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686291:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686308:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686308:NOTICE:HE100:We are in test SetConfig of test case Helium_100_Live_Radio_Test.
+Interface Baud Rate:   9600 [0]
+TX Power Amp Level:    0 [0] 
+RX Baud Rate:          9600 [1] 
+TX Baud Rate:          9600 [1] 
+RX Frequency:          144200 
+TX Frequency:          431000 
+LED:                   OFFLOGICLOW [00] 
+PIN13:                 OFFLOGICLOW [00] 
+PIN14:                 OFFLOGICLOW [00] 
+RXCRC:                 OFF [00] 
+TXCRC:                 ON [01] 
+TELEMETRY:             OFF [00] 
+TELEMETRY RATE:        1/10 Hz [00] 
+TELEMETRY DUMP:        OFF [00] 
+BEACON OA COMMANDS:    OFF [00] 
+CODE UPLOAD:           OFF [00] 
+CODE RESET:            OFF [00] 
+Source Callsign:       VA3ORB 
+Destination Callsign:  VE2CUA± 
+TX Preamble:           1280 
+TX Postamble:          0 
+EXT:                   All Functions off [00] 
+Function Config2       [00][00][00][00]
+946686308:NOTICE:HE100:Prepare successful
+946686308:NOTICE:HE100:Prepared payload: 48
+946686310:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686310:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686310:NOTICE:HE100:We are in test GetConfig of test case Helium_100_Live_Radio_Test.
+946686310:NOTICE:HE100:Prepare successful
+946686310:NOTICE:HE100:Prepared payload: 48
+Interface Baud Rate:   (null) [200]
+TX Power Amp Level:    26 [67] 
+RX Baud Rate:          CS1_UNDEF_SUB [63] 
+TX Baud Rate:          (null) [72] 
+RX Frequency:          268937252 
+TX Frequency:          268939980 
+LED:                   OFFLOGICLOW [00] 
+PIN13:                 RX Packet Toggle [03] 
+PIN14:                 DIO Over Air ON [01] 
+RXCRC:                 OFF [00] 
+TXCRC:                 ON [01] 
+TELEMETRY:             OFF [00] 
+TELEMETRY RATE:        1/10 Hz [00] 
+TELEMETRY DUMP:        OFF [00] 
+BEACON OA COMMANDS:    OFF [00] 
+CODE UPLOAD:           ON [01] 
+CODE RESET:            ON [01] 
+Source Callsign:       ä°²Ü¯<±l²\° 
+Destination Callsign:  Ü¯<±l²\° 
+TX Preamble:           4103 
+TX Postamble:          45676 
+EXT:                   All Functions off [00] 
+Function Config2       [00][00][00][00]
+946686312:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686312:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686312:NOTICE:HE100:We are in test GoodWrite of test case Helium_100_Live_Radio_Test.
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:We are in test NOOP of test case Helium_100_Live_Radio_Test.
+946686314:NOTICE:HE100:Prepare successful
+946686314:NOTICE:HE100:Prepared payload: 48
+946686314:NOTICE:HE100:ACK>CMD_NOOP:HE100_validateFrame>292
+946686314:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:We are in test TransmitData of test case Helium_100_Live_Radio_Test.
+946686314:NOTICE:HE100:Prepare successful
+946686314:NOTICE:HE100:Prepared payload: 48
+946686314:NOTICE:HE100:ACK>CMD_TRANSMIT_DATA:HE100_validateFrame>292
+946686314:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:We are in test SetBeaconMessage of test case Helium_100_Live_Radio_Test.
+946686314:NOTICE:HE100:Prepare successful
+946686314:NOTICE:HE100:Prepared payload: 48
+946686314:NOTICE:HE100:ACK>CMD_BEACON_DATA:HE100_validateFrame>292
+946686314:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:We are in test SetBeaconInterval of test case Helium_100_Live_Radio_Test.
+946686314:NOTICE:HE100:Prepare successful
+946686314:NOTICE:HE100:Prepared payload: 48
+946686314:NOTICE:HE100:ACK>CMD_BEACON_DATA:HE100_validateFrame>292
+946686314:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:We are in test InvalidPALevel of test case Helium_100_Live_Radio_Test.
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:We are in test FastSetPA of test case Helium_100_Live_Radio_Test.
+946686314:NOTICE:HE100:Prepare successful
+946686314:NOTICE:HE100:Prepared payload: 48
+946686314:NOTICE:HE100:ACK>CMD_BEACON_DATA:HE100_validateFrame>292
+946686314:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686314:NOTICE:HE100:Prepare successful
+946686314:NOTICE:HE100:Prepared payload: 48
+946686314:NOTICE:HE100:ACK>9600:HE100_validateFrame>292
+946686314:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686314:NOTICE:HE100:We are in test SoftReset of test case Helium_100_Live_Radio_Test.
+946686314:NOTICE:HE100:Prepare successful
+946686314:NOTICE:HE100:Prepared payload: 48
+946686315:NOTICE:HE100:ACK>CMD_RESET:HE100_validateFrame>292
+946686315:WARNING:HE100:Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK HE100_validateFrame, 344
+946686315:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> END TEST <<<<<<<<<<<<<<<<<<<<<<
+946686515:NOTICE:HE100:>>>>>>>>>>>>>>>>>>>>>> NEW TEST <<<<<<<<<<<<<<<<<<<<<<
+946686515:NOTICE:HE100:We are in test SetConfig of test case Helium_100_Live_Radio_Test.
+Interface Baud Rate:   9600 [0]
+TX Power Amp Level:    0 [0] 
+RX Baud Rate:          9600 [1] 
+TX Baud Rate:          9600 [1] 
+RX Frequency:          144200 
+TX Frequency:          431000 
+LED:                   OFFLOGICLOW [00] 
+PIN13:                 OFFLOGICLOW [00] 
+PIN14:                 OFFLOGICLOW [00] 
+RXCRC:                 OFF [00] 
+TXCRC:                 ON [01] 
+TELEMETRY:             OFF [00] 
+TELEMETRY RATE:        1/10 Hz [00] 
+TELEMETRY DUMP:        OFF [00] 
+BEACON OA COMMANDS:    OFF [00] 
+CODE UPLOAD:           OFF [00] 
+CODE RESET:            OFF [00] 
+Source Callsign:       VA3ORB 
+Destination Callsign:  VE2CUA± 
+TX Preamble:           1280 
+TX Postamble:          0 
+EXT:                   All Functions off [00] 
+Function Config2       [00][00][00][00]
+946686515:NOTICE:HE100:Prepare successful
+946686515:NOTICE:HE100:Prepared payload: 48
