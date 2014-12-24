@@ -33,11 +33,14 @@ quit () {
 }
 
 make-tests () {
-    make clean
-    make buildBin
-    if [ -f "/usr/local/lib/mbgcc/bin/microblazeel-xilinx-linux-gnu-c++" ] ; then
+    if $1 = "Q6" ; then
+        if [ -f "/usr/local/lib/mbgcc/bin/microblazeel-xilinx-linux-gnu-c++" ] ; then
+            make clean
+            make buildQ6
+        fi
+    else
         make clean
-        make buildQ6
+        make buildBin
     fi
 }
 
