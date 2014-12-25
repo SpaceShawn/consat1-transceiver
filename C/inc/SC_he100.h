@@ -523,4 +523,6 @@ int HE100_setConfig (int fdin, struct he100_settings he100_new_settings);
 
 void HE100_printSettings(FILE* fdout, struct he100_settings settings);
 
+int HE100_md5sum(unsigned char * input_data, size_t input_data_length, unsigned char * md5sum);
+
 #endif

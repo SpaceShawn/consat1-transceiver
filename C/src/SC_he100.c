@@ -34,6 +34,8 @@
 #include "SpaceDecl.h"
 #include "shakespeare.h"
 
+#include <openssl/md5.h>
+
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 // logging 
 #define PROCESS "HE100"
@@ -1184,5 +1186,29 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
     } else {
         return HE_INVALID_CONFIG;
     }
+}
+
+int
+HE100_md5sum(unsigned char * input_data, size_t input_data_length, unsigned char * md5sum)
+{
+    if (input_data == NULL) return CS1_NULL_POINTER;
+
+    MD5_CTX c;
+    MD5_Init(&c);
+    MD5_Update(&c, input_data, input_data_length);
+    MD5_Final(md5sum, &c);
+
+    //MD5 (input_data, input_data_length, md5sum);
+
+    return 0;
+}
+
+int 
+HE100_writeFlash (int fdin, unsigned char *flash_md5sum)
+{
+    //unsigned char write_flash_payload[CFG_FLASH_LENGTH] = {0};
+    unsigned char write_flash_command[2] = {CMD_TRANSMIT, CMD_WRITE_FLASH};
+    
+    return HE100_dispatchTransmission(fdin, flash_md5sum, CFG_FLASH_LENGTH, write_flash_command); 
 }
 
