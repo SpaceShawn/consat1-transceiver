@@ -1191,14 +1191,16 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
 int
 HE100_md5sum(unsigned char * input_data, size_t input_data_length, unsigned char * md5sum)
 {
-    if (input_data == NULL) return CS1_NULL_POINTER;
+    if (input_data == NULL) {
+        return CS1_NULL_POINTER;
+    }
 
-    MD5_CTX c;
-    MD5_Init(&c);
-    MD5_Update(&c, input_data, input_data_length);
-    MD5_Final(md5sum, &c);
+    //MD5_CTX c;
+    //MD5_Init(&c);
+    //MD5_Update(&c, input_data, input_data_length);
+    //MD5_Final(md5sum, &c);
 
-    //MD5 (input_data, input_data_length, md5sum);
+    MD5 (input_data, input_data_length, md5sum);
 
     return 0;
 }

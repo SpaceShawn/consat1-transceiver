@@ -35,7 +35,7 @@ quit () {
 }
 
 ensure-directories () {
-  mkdir -p $CS1_DIR/HE100-lib/C/lib
+  mkdir -p lib
 }
 
 mbcc-static-c () {

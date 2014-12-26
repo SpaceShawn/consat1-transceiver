@@ -10,8 +10,9 @@ MICROCFLAGS=-mcpu=v8.40.b -mxl-barrel-shift -mxl-multiply-high -mxl-pattern-comp
 DEBUGFLAGS=-pedantic -Wextra -Werror -ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provides macro info to gdb
 ENV_FLAGS = -DCS1_DEBUG # to enable debug messages
 
-SPACE_LIB=../../space-lib
-SPACE_TIMER_LIB=../../space-timer-lib
+CS1_DIR=../../
+SPACE_LIB=$(CS1_DIR)space-lib
+SPACE_TIMER_LIB=$(CS1_DIR)/space-timer-lib
 
 INCPATH=-I./inc/ -I$(SPACE_LIB)/checksum/inc/ -I$(SPACE_LIB)/shakespeare/inc/ -I$(SPACE_TIMER_LIB)/inc/ -I$(SPACE_LIB)/include/
 MICROINCPATH=-I./inc/Q6/
@@ -48,7 +49,7 @@ buildBB: mkdirs buildBBDep
 	ar rcs lib/libhe100-BB.a lib/SC_he100-translations.o lib/he100-BB.o
 
 mkdirs: 
-	mkdir -p $CS1_DIR/HE100-lib/C/lib
+	mkdir -p $(CS1_DIR)/HE100-lib/C/lib
 
 clean:
 	rm -f lib/*

@@ -129,8 +129,6 @@ TEST_F(Helium_100_Test, CorrectPayloadPreparation)
     unsigned char transmit_data_expected[22] = {0x48,0x65,0x10,0x03,0x00,0x0C,0x1F,0x55,0x54,0x65,0x73,0x74,0x20,0x50,0x61,0x79,0x6c,0x6f,0x61,0x64,0x1D,0xD9};
     unsigned char prepare_result[255] = {0}; 
     int r = HE100_prepareTransmission(test_payload, prepare_result, 12, transmit_data_command);
-    //HE100_dumpHex(stdout,transmit_data_expected,22);
-    //HE100_dumpHex(stdout,prepare_result,22);
 
 	  for (z=0; z<transmit_data_payload_length+10; z++) {
         ASSERT_EQ(
@@ -289,7 +287,7 @@ TEST_F(Helium_100_Test, InvalidCommand)
         HE100_validateFrame(bad_response,length)
     );
 }
-/*  
+  
 TEST_F(Helium_100_Test, ValidateFrame)
 {
     unsigned char sv_expected[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
@@ -308,7 +306,7 @@ TEST_F(Helium_100_Test, ValidateFrame)
         HE100_validateFrame(sv_expected3,41)
     );
 }
-*/
+
 // invalid checksum
 // 1 - pass a frame with an invalid checksum to HE100_validateFrame
 // 2 - if an invalid checksum is encountered, the payload should not be persisted,
@@ -466,7 +464,9 @@ TEST_F(Helium_100_Test, TestMD5SumAgainstSniffedBytes)
             HE100_md5sum(sniffed_config_payload, 44, md5sum)
     );
 
+    printf("Dumping expected MD5 checksum:\n");
     HE100_dumpHex (stdout, expected_checksum, 16);
+    printf("Dumping generated checksum:\n");
     HE100_dumpHex (stdout, md5sum, 16);
 
     for (z=0; z<11; z++) {
