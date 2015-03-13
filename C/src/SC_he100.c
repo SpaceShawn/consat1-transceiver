@@ -37,12 +37,9 @@
 #include "SpaceDecl.h"
 #include "shakespeare.h"
 
-<<<<<<< HEAD
 #include <openssl/md5.h>
 
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
-=======
->>>>>>> master
 // logging 
 #define PROCESS "HE100"
 #define MAX_LOG_BUFFER_LEN CS1_MAX_LOG_ENTRY 
