@@ -114,17 +114,15 @@ fi
 # Build x86 
 #
 #------------------------------------------------------------------------------
-if [ $MBCC -ne 1 ]; then
-    echo ""
-    echo "=== Build x86 ==="
-    make buildBin 
+echo ""
+echo "=== Build x86 [REQUIRED EVEN WHEN BUILDING FOR MBCC TO SUPPORT TESTING ==="
+make buildBin 
 
-    if [ $? -ne 0 ]; then
-        echo -e "\e[31m Build x86 failed\e[0m"
-        exit -1
-    else
-        echo -e "\e[32m Build x86 success!\e[0m"
-    fi
+if [ $? -ne 0 ]; then
+    echo -e "\e[31m Build x86 failed\e[0m"
+    exit -1
+else
+    echo -e "\e[32m Build x86 success!\e[0m"
 fi
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
