@@ -28,7 +28,7 @@ buildBin: mkdirs buildBinDep
 	ar rcs lib/libhe100.a lib/SC_he100-translations.o lib/he100.o
 
 buildQ6: mkdirs buildQ6Dep
-	ar rcs lib/libhe100-mbcc.a lib/SC_he100-translations.o lib/he100-mbcc.o
+	ar rcs lib/libhe100-mbcc.a lib/SC_he100-translationsQ6.o lib/he100-mbcc.o
 
 buildBB: mkdirs buildBBDep
 	ar rcs lib/libhe100-BB.a lib/SC_he100-translations.o lib/he100-BB.o
@@ -45,7 +45,7 @@ lib/SC_he100-translationsQ6.o:
 buildBinDep: lib/SC_he100-translations.o
 	$(CXX) $(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o  $(PC_LIBRARIES) $(ENV_FLAGS)
 
-buildQ6Dep: lib/SC_he100-translations.o
+buildQ6Dep: lib/SC_he100-translationsQ6.o
 	$(MICROPP) $(CXX_FLAGS) $(MICROCFLAGS) $(INCPATH) $(MICROINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-mbcc.o $(Q6_LIBRARIES) $(ENV_FLAGS)
 
 buildBBDep: lib/SC_he100-translations.o
