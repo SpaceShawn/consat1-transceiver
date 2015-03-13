@@ -3,7 +3,7 @@
  *
  *       Filename:  SC_he100.c
  *
- *    Description:  Library to expose He100 functionality. Build as static library.
+ *    Description:  Library to implement He100 functionality. Build as static library.
  *
  *        Version:  1.0
  *        Created:  13-09-20 08:23:35 PM
@@ -15,6 +15,8 @@
  *
  * =====================================================================================
  */
+#define _POSIX_SOURCE 1 /* POSIX compliant source */
+
 #include <stdlib.h>
 #include <stdio.h>      /*  Standard input/output definitions */
 #include <stdint.h>     /*  Standard integer types */
@@ -24,25 +26,26 @@
 #include <fcntl.h>      /*  File control definitions */
 #include <errno.h>      /*  Error number definitions */
 #include <termios.h>    /*  POSIX terminal control definitions */
-#include <SC_he100.h>   /*  Helium 100 header file */
 #include "time.h"
 #include <poll.h>
+
 // project includes
+#include <SC_he100.h>   /*  Helium 100 header file */
 #include <he100.h>      /*  exposes the correct serial device location */
 #include "fletcher.h"
 #include <timer.h>
 #include "SpaceDecl.h"
 #include "shakespeare.h"
 
+<<<<<<< HEAD
 #include <openssl/md5.h>
 
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
+=======
+>>>>>>> master
 // logging 
 #define PROCESS "HE100"
-#define LOG_PATH "/home/logs"
-#define MAX_LOG_BUFFER_LEN 255
-
-FILE *fdlog; // library log file
+#define MAX_LOG_BUFFER_LEN CS1_MAX_LOG_ENTRY 
 
 /**
  * Function to configure interface
@@ -65,7 +68,7 @@ HE100_configureInterface (int fdin)
         return HE_FAILED_TTY_CONFIG; 
     }
     // attempt to set input and output baud rate to 9600
-    if (cfsetispeed(&settings, B9600) < 0 || cfsetospeed(&settings, B9600) < 0)
+    if (cfsetispeed(&settings, B9600) < 0 || cfsetospeed(&settings, HE100_BAUDRATE) < 0)
     {
         char error[MAX_LOG_BUFFER_LEN];
         snprintf (error, MAX_LOG_BUFFER_LEN, "failed set BAUD rate: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);

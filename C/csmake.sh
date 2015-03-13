@@ -1,97 +1,169 @@
-#! /bin/bash
-if [ -z "$BASH_VERSION" ]; then exec bash "$0" "$@"; fi;
-# csmake.sh
-# Copyright (C) 2014 spaceconcordia <spaceconcordia@mustang>
+#!/bin/bash
+#**********************************************************************************************************************
 #
-# Distributed under terms of the MIT license.
+# AUTHORS : Space Concordia 2014, Joseph
 #
-# colors: echo -e "${red}Text${NC}"
-NC='\e[0m';black='\e[0;30m';darkgrey='\e[1;30m';blue='\e[0;34m';lightblue='\e[1;34m';green='\e[0;32m';lightgreen='\e[1;32m';cyan='\e[0;36m';lightcyan='\e[1;36m';red='\e[0;31m';lightred='\e[1;31m';purple='\e[0;35m';lightpurple='\e[1;35m';orange='\e[0;33m';yellow='\e[1;33m';lightgrey='\e[0;37m';yellow='\e[1;37m';
+# FILE : cscomtest.sh
+# 
+# PURPOSE : csmake template
+#           -g      Group
+#           -q      build for Q6
+#           -n      TestName
+#           -s      skip the tests
+#           -u      usage
+#           -v      verbose (to get all DEBUG output)
+# 
+#       ex. ./cscomtest.sh                  =>   run ALL the tests
+#           ./cscomtest.sh -g deletelog     =>   run ALL deletelog tests
+#           ./cscomtest.sh -n nameOfTheTest
+#
+#**********************************************************************************************************************
 
-set -e
+set -e # exit on error
 
-declare -a SysReqs=('dialog' 'whiptail')
-for item in ${SysReqs[*]}; do command -v $item >/dev/null 2>&1 || { echo >&2 "I require $item but it's not installed.  Aborting."; exit 1; }; done
-
-confirm () { #https://stackoverflow.com/a/3232082
-    read -r -p "${1:-[y/N]} [y/N] " response
-    case $response in
-        [yY][eE][sS]|[yY]) 
-            true
-            ;;
-        *)
-            false
-            ;;
-    esac
-}
-
-fail () {
-    echo -e "${red}$1 ABORTING...${NC}" 
-    exit 1
-}
-quit () {
-    echo -e "$1 exiting..."
-    exit 0
-}
+ALLTESTS="./bin/AllTests"
+ARGUMENTS=""
+GROUP=""
+TODEVNULL=1
+MBCC=0
+MULTIPLE_RUN=1
+CLEAN=0
+SKIP_TEST=0
+GROUP_LIST=() # insert the group of the test here.
 
 ensure-directories () {
   mkdir -p lib
 }
 
-mbcc-static-c () {
-  make buildQ6  
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#
+# NAME : usage
+#
+#------------------------------------------------------------------------------
+usage()
+{
+    echo "usage : cscomtest.sh  [-u] [-g testGroup] [-n testName] [-m numberOfRuns][-v][-s]"
+    echo "          -c clean before build"
+    echo "          -m numberOfRuns : run the specified tests 'numberOfRuns' times and stop if error" 
+    echo "          -q build for Q6"
+    echo "          -s skip the tests"
+    echo "          -u usage"
+    echo "          -v verbose : to get all DEBUG info (N.B. DEBUG info can be turned on/off in the makefile ... -DDEBUG)"
+    printf "%s" "          -g group   : one of those -> " 
+    for gr in ${GROUP_LIST[@]}; do
+        printf "%s " $gr
+    done
+    echo
 }
 
-mbcc-static-cpp () {
-  make buildQ6
-}
-
-x86-static-c () {
-  make buildBin
-}
-
-x86-static-cpp () {
-  make buildBin
-}
-
-bb-static-cpp () {
-  make buildBB
-}
-
-make-run-gtest () {
-  cd tests/gtest
-  bash csmaketest.sh $1 #will pass gdm argument to csmaketest.sh
-  cd ..
-}
-
-for arg in "$@"; do
-    case $arg in
-        "Q6")
-            mbcc-static-cpp; quit;
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#
+# Parsing command line arguments
+#
+#------------------------------------------------------------------------------
+argType=""
+while getopts "cqg:n:uvm:s" opt; do
+    case "$opt" in
+        c) CLEAN=1
+        ;; 
+        g) GROUP=$OPTARG
         ;;
-        "PC")
-            x86-static-cpp; quit;
+        m) MULTIPLE_RUN=$OPTARG
         ;;
-        "BB")
-            bb-static-cpp; quit;
+        n) SINGLE_TEST="-n $OPTARG" 
         ;;
-        "test")
-            make-run-gtest
+        q) MBCC=1
         ;;
-        "gdb")
-            make-run-gtest gdb
+        s) SKIP_TEST=1 
+        ;;
+        u)
+            usage
+            exit 0;
+        ;;
+        v) TODEVNULL=0 ;;
     esac
 done
 
-CURRENT_DIR="${PWD##*/}"
-if [ "$CURRENT_DIR" != "C" ]; then fail "This script must be run from HE100_lib/C, not $CURRENT_DIR"; fi;
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#
+# Test groups
+#
+#------------------------------------------------------------------------------
+if [ "$GROUP" != "" ]; then
+    case $GROUP in 
+        'getlog')       ARGUMENTS="-g GetLogTestGroup" ;;  # <----- this is just as an example, add your test groups!
+    esac
+fi
 
-usage="usage: csmake.sh [options] "
-if [ $# -eq 0 ]; then 
-    echo "No arguments supplied... $usage"
-    echo "Running default conditions"
-    x86-static-cpp
-    make-run-gtest
-fi 
+ARGUMENTS="$ARGUMENTS $SINGLE_TEST" 
 
-quit # exit cleanly
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#
+# Clean
+#
+#------------------------------------------------------------------------------
+if [ $CLEAN -eq 1 ]; then
+    echo ""
+    echo "=== Clean ==="
+    make clean || exit 1
+fi
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#
+# Build x86 
+#
+#------------------------------------------------------------------------------
+echo ""
+echo "=== Build x86 [REQUIRED EVEN WHEN BUILDING FOR MBCC TO SUPPORT TESTING ==="
+make buildBin 
+
+if [ $? -ne 0 ]; then
+    echo -e "\e[31m Build x86 failed\e[0m"
+    exit -1
+else
+    echo -e "\e[32m Build x86 success!\e[0m"
+fi
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#
+# Build mbcc 
+#
+#------------------------------------------------------------------------------
+if [ $MBCC -ne 0 ]; then
+    echo ""
+    echo "=== Build mbcc ==="
+    make buildQ6 
+
+    if [ $? -ne 0 ]; then
+        echo -e "\e[31m Build mbcc failed\e[0m"
+        exit -1
+    else
+        echo -e "\e[32m Build mbcc success!\e[0m"
+    fi
+fi
+
+
+
+#
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#
+# PURPOSE : run/build the tests
+#
+#-----------------------------------------------------------------------------
+if [ $SKIP_TEST -eq 0 ]; then
+    echo ""
+    echo "=== Build tests ==="
+
+    cd tests/gtest
+    bash csmaketest.sh 
+    cd ..
+
+    if [ $? -ne 0 ]; then
+        echo -e "\e[31m Build tests failed\e[0m"
+        exit -1
+    else
+        echo -e "\e[32m Build tests success!\e[0m"
+    fi
+fi
+
