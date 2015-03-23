@@ -44,6 +44,13 @@
 #define PROCESS "HE100"
 #define MAX_LOG_BUFFER_LEN CS1_MAX_LOG_ENTRY 
 
+// TODO put this in cs1_utls
+char endian(void)
+{
+  short x=0x0100;
+  return(*(char *)&x);
+}
+
 /**
  * Function to configure interface
  * @param fdin - the file descriptor representing the serial device
@@ -750,20 +757,20 @@ HE100_collectConfig (unsigned char * buffer)
     settings.rx_modulation = buffer[CFG_RX_MOD_BYTE]; 
     settings.tx_modulation = buffer[CFG_TX_MOD_BYTE]; 
     
-    // swap endianess 
-    // TODO CONDITIONAL ENDIANNESS conversion
-    settings.rx_freq = 
-          buffer[CFG_RX_FREQ_BYTE4] << 24 |
-          buffer[CFG_RX_FREQ_BYTE3] << 16 |
-          buffer[CFG_RX_FREQ_BYTE2] << 8  |
-          buffer[CFG_RX_FREQ_BYTE1]  
-    ;
-    settings.tx_freq = 
-          buffer[CFG_TX_FREQ_BYTE4] << 24 |
-          buffer[CFG_TX_FREQ_BYTE3] << 16 | 
-          buffer[CFG_TX_FREQ_BYTE2] << 8  |
-          buffer[CFG_TX_FREQ_BYTE1]  
-    ;
+    if (isLittleEndian) { // swap endianess 
+        settings.rx_freq = 
+              buffer[CFG_RX_FREQ_BYTE4] << 24 |
+              buffer[CFG_RX_FREQ_BYTE3] << 16 |
+              buffer[CFG_RX_FREQ_BYTE2] << 8  |
+              buffer[CFG_RX_FREQ_BYTE1]  
+        ;
+        settings.tx_freq = 
+              buffer[CFG_TX_FREQ_BYTE4] << 24 |
+              buffer[CFG_TX_FREQ_BYTE3] << 16 | 
+              buffer[CFG_TX_FREQ_BYTE2] << 8  |
+              buffer[CFG_TX_FREQ_BYTE1]  
+        ;
+    }
     
     memcpy(
             settings.source_callsign,
@@ -910,30 +917,38 @@ HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings setti
     );
 
     unsigned char * rx_freq = (unsigned char *)&settings.rx_freq;
-    uint32_t big_endian_rx_freq = 
-          rx_freq[3] << 24 |
-          rx_freq[2] << 16 |
-          rx_freq[1] << 8  |
-          rx_freq[0]  
-    ;
-    memcpy(
-        &prepared_bytes[CFG_RX_FREQ_BYTE1],
-        &big_endian_rx_freq,
-        sizeof(settings.rx_freq)
-    );
     unsigned char * tx_freq = (unsigned char *)&settings.tx_freq;
-    uint32_t big_endian_tx_freq =
-          tx_freq[3] << 24 |
-          tx_freq[2] << 16 |
-          tx_freq[1] << 8  |
-          tx_freq[0]  
-    ;
+    uint32_t big_endian_tx_freq, big_endian_rx_freq;
+
+    if (isLittleEndian) { // swap endianess 
+        big_endian_rx_freq = 
+              rx_freq[3] << 24 |
+              rx_freq[2] << 16 |
+              rx_freq[1] << 8  |
+              rx_freq[0]  
+        ;
+        memcpy(
+            &prepared_bytes[CFG_RX_FREQ_BYTE1],
+            &big_endian_rx_freq,
+            sizeof(settings.rx_freq)
+        );
+        big_endian_tx_freq =
+              tx_freq[3] << 24 |
+              tx_freq[2] << 16 |
+              tx_freq[1] << 8  |
+              tx_freq[0]  
+        ;
+    }
+    else {
+       memcpy(&big_endian_rx_freq, rx_freq, sizeof(uint32_t)); 
+       memcpy(&big_endian_tx_freq, tx_freq, sizeof(uint32_t)); 
+    }
+
     memcpy(
         &prepared_bytes[CFG_TX_FREQ_BYTE1],
         &big_endian_tx_freq,
         sizeof(settings.tx_freq)
     );
-
     memcpy(
         &prepared_bytes[CFG_SRC_CALL_BYTE],
         settings.source_callsign,
@@ -946,10 +961,17 @@ HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings setti
     );
 
     unsigned char * tx_preamble = (unsigned char *)&settings.tx_preamble;
-    uint16_t big_endian_tx_preamble = 
-        tx_preamble[0] << 8 | 
-        tx_preamble[1]
-    ; 
+    uint16_t big_endian_tx_preamble;
+
+    if (isLittleEndian) { // swap endianess 
+        big_endian_tx_preamble = 
+            tx_preamble[0] << 8 | 
+            tx_preamble[1]
+        ; 
+    }
+    else {
+        memcpy(&big_endian_tx_preamble, tx_preamble, sizeof(uint16_t));
+    }
     memcpy(
         &prepared_bytes[CFG_TX_PREAM_BYTE],
         &big_endian_tx_preamble,
@@ -957,10 +979,17 @@ HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings setti
     );
 
     unsigned char * tx_postamble = (unsigned char *)&settings.tx_postamble;
-    uint16_t big_endian_tx_postamble = 
-        tx_postamble[0] << 8 |
-        tx_postamble[1]
-    ; 
+    uint16_t big_endian_tx_postamble;
+    if (isLittleEndian) { // swap endianess 
+        big_endian_tx_postamble = 
+            tx_postamble[0] << 8 |
+            tx_postamble[1]
+        ; 
+    }
+    else {
+        memcpy(&big_endian_tx_postamble, tx_postamble, sizeof(uint16_t));
+    }
+
     memcpy(
         &prepared_bytes[CFG_TX_POSTAM_BYTE],
         &big_endian_tx_postamble,
@@ -1201,6 +1230,9 @@ HE100_md5sum(unsigned char * input_data, size_t input_data_length, unsigned char
     //MD5_Final(md5sum, &c);
 
     MD5 (input_data, input_data_length, md5sum);
+
+    // TODO correct endianness to send back to radio
+    // supposedly, "MD5 uses big-endian convention at bit level, then little-endian convention at byte level."
 
     return 0;
 }
