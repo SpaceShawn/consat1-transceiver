@@ -47,7 +47,6 @@ lib/SC_serial.o:
 buildBinDep: lib/SC_he100-translations.o lib/SC_serial.o
 	$(CXX) $(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o  $(PC_LIBRARIES) $(ENV_FLAGS)
 
-
 # Q6 architecture
 
 lib/SC_he100-translationsQ6.o:
