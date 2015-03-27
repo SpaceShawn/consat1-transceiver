@@ -1,13 +1,13 @@
 #include "gtest/gtest.h"
 #include <stdio.h>
 #include <fcntl.h>
-#include <SC_he100.h>
+#include <SC_he100.h>       /* Helium 100 Definitions */
 #include <timer.h>
 #include <fletcher.h>
 #include <Date.h>
 #include <shakespeare.h>
 //#include <SC_he100.h>
-#include <SpaceDecl.h>
+#include <SpaceDecl.h>      /* Space Concordia Global Includes */
 
 #define PROCESS "HE100"
 #define LOG_PATH "/home/logs/"
@@ -34,7 +34,8 @@ class Helium_100_Test : public ::testing::Test
     //unsigned char setcfg_ack[8]     = {0x48,0x65,0x20,0x06,0x0A,0x0A,0x3A,0xB0};
 };
 
-TEST_F(Helium_100_Test, ReadTest) {
+TEST_F(Helium_100_Test, ReadTest) 
+{
     Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, "ReadTest");
     // prepare mock bytes to test with
     unsigned char mock_bytes[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
@@ -86,11 +87,12 @@ TEST_F(Helium_100_Test, ReadTest) {
 // with a previously captured transmission from the Radio itself
 TEST_F(Helium_100_Test, VerifyHeliumFrame)
 {
-    unsigned char helium_expected[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
     unsigned char helium_payload_bytes[26] = {0x86,0xA2,0x40,0x40,0x40,0x40,0x60,0xAC,0x8A,0x64,0x86,0xAA,0x82,0xE1,0x03,0xF0,0x6B,0x65,0x6E,0x77,0x6F,0x6F,0x64,0x0D,0x8D,0x08};
     unsigned char helium_receive_command[2] = {0x20, 0x04};
     unsigned char helium_result[255] = {0};
     int r = HE100_prepareTransmission(helium_payload_bytes, helium_result, 26, helium_receive_command);
+
+    unsigned char helium_expected[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
 
     for (z=0; z<36; z++) {
         ASSERT_EQ(
@@ -126,13 +128,14 @@ TEST_F(Helium_100_Test, CorrectPayloadPreparation)
     size_t transmit_data_payload_length = 12;
     unsigned char test_payload[13] = "Test Payload"; // 12
     unsigned char transmit_data_command[2] = {0x10, 0x03};
-    unsigned char transmit_data_expected[22] = {0x48,0x65,0x10,0x03,0x00,0x0C,0x1F,0x55,0x54,0x65,0x73,0x74,0x20,0x50,0x61,0x79,0x6c,0x6f,0x61,0x64,0x1D,0xD9};
     unsigned char prepare_result[255] = {0}; 
     int r = HE100_prepareTransmission(test_payload, prepare_result, 12, transmit_data_command);
     //HE100_dumpHex(stdout,transmit_data_expected,22);
     //HE100_dumpHex(stdout,prepare_result,22);
 
-	  for (z=0; z<transmit_data_payload_length+10; z++) {
+    unsigned char transmit_data_expected[22] = {0x48,0x65,0x10,0x03,0x00,0x0C,0x1F,0x55,0x54,0x65,0x73,0x74,0x20,0x50,0x61,0x79,0x6c,0x6f,0x61,0x64,0x1D,0xD9};
+
+	for (z=0; z<transmit_data_payload_length+10; z++) {
         ASSERT_EQ(
             transmit_data_expected[z],
             prepare_result[z]
@@ -145,15 +148,15 @@ TEST_F(Helium_100_Test, CorrectPayloadPreparation)
 TEST_F(Helium_100_Test, CorrectNoopPayload)
 {
     unsigned char noop_payload[1] = {0};
-    unsigned char he100_noop_expected_value[8] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
-    unsigned char noop_command[2] = {0x10, 0x01};
-    //unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
+    unsigned char noop_command[2] = {CMD_TRANSMIT, CMD_NOOP};
     unsigned char noop_result[255] = {0};
     int r = HE100_prepareTransmission(noop_payload, noop_result, 0, noop_command);
     //HE100_dumpHex(stdout, he100_noop_expected_value, 8);
     //HE100_dumpHex(stdout, noop_result, 8);
 
-	  for (z=0; z<8; z++) {
+    unsigned char he100_noop_expected_value[8] = {0x48,0x65,0x10,0x01,0x00,0x00,0x11,0x43};
+
+	for (z=0; z<8; z++) {
         ASSERT_EQ(
             he100_noop_expected_value[z],
             noop_result[z]
@@ -167,13 +170,13 @@ TEST_F(Helium_100_Test, CorrectSoftResetPayload)
 {
     size_t soft_reset_payload_length = 0;
     unsigned char soft_reset_payload[1] = {0};
-    //unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
-    unsigned char soft_reset_command[2] = {0x10, 0x02};
-    unsigned char he100_soft_reset_expected_value[8] = {0x48,0x65,0x10,0x02,0x00,0x00,0x12,0x46};
+    unsigned char soft_reset_command[2] = {CMD_TRANSMIT, CMD_RESET};
     unsigned char soft_reset_actual_result[255] = {0};
     int r = HE100_prepareTransmission(soft_reset_payload, soft_reset_actual_result, soft_reset_payload_length, soft_reset_command);
 
-	  for (z=0; z<soft_reset_payload_length+8; z++) {
+    unsigned char he100_soft_reset_expected_value[8] = {0x48,0x65,0x10,0x02,0x00,0x00,0x12,0x46};
+
+    for (z=0; z<soft_reset_payload_length+8; z++) {
         ASSERT_EQ(
             he100_soft_reset_expected_value[z],
             soft_reset_actual_result[z]
@@ -409,7 +412,8 @@ void print_binary(int n)
     printf("\n");
 }
 
-TEST_F(Helium_100_Test, InterpretFunctionConfig) {
+TEST_F(Helium_100_Test, InterpretFunctionConfig) 
+{
     //unsigned char * config_value = (unsigned char *)0b0111110111011111;
     printf("Size of function_config: %d \r\n", (unsigned) sizeof(struct function_config));
     int config_value = 0x7ddf;
@@ -432,7 +436,8 @@ TEST_F(Helium_100_Test, InterpretFunctionConfig) {
     ASSERT_EQ(CFG_FC_LED_RXTOG,fc1.led);
 }
 
-TEST_F(Helium_100_Test, PrepareConfig) {
+TEST_F(Helium_100_Test, PrepareConfig) 
+{
     unsigned char config1[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
     unsigned char config_result[CFG_PAYLOAD_LENGTH] = {0};
     struct he100_settings test_settings = HE100_collectConfig(config1);

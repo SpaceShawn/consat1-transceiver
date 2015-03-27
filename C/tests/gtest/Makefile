@@ -22,13 +22,24 @@ SHAKES_DIR = $(PROJECT_DIR)/space-lib/shakespeare
 UTLS_DIR= $(SPACE_LIB_DIR)/utls
 SPACE_TIMER_DIR= $(PROJECT_DIR)/space-timer-lib
 GLOBAL_INC_DIR= $(SPACE_LIB_DIR)/include
-MICROINCPATH=-I../inc/Q6/
 
+# Include paths
 EXTERNINCPATH=-I$(USER_DIR)/inc/ -I$(GLOBAL_INC_DIR)/ -I$(UTLS_DIR)/include -I$(FLETCHER_DIR)/inc -I$(TIMER_DIR)/inc -I$(SHAKES_DIR)/inc
-
+HEINCPATH=-I$(USER_DIR)/inc
 PCINCPATH=-I$(USER_DIR)/inc/PC
 Q6INCPATH=-I$(USER_DIR)/inc/Q6
 ARCH_INCPATH=$(PCINCPATH)
+
+# Headers
+SHAKESPEARE_HEADERS=$(SPACE_LIB_DIR)/shakespeare/inc/shakespeare.h 
+PC_HEADERS=$(USER_DIR)/inc/PC/he100.h
+Q6_HEADERS=$(USER_DIR)/inc/Q6/he100.h
+HEADERS=$(SPACE_TIMER_DIR)/inc/timer.h $(UTLS_DIR)/include/Date.h $(USER_DIR)/inc/SC_he100.h $(USER_DIR)/inc/SC_serial.h $(GLOBAL_INC_DIR)/SpaceDecl.h
+ARCH_HEADERS=$(PC_HEADERS)
+
+OBJECTS=Date.o fletcher.o timer.o shakespeare.o SC_he100-translations.o SC_serial.o SC_he100.o
+
+###########################
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -94,15 +105,6 @@ gtest_main.a : gtest-all.o gtest_main.o
 
 ###########################
 
-OBJECTS=Date.o fletcher.o timer.o shakespeare.o SC_he100-translations.o SC_he100.o
-SHAKESPEARE_HEADERS=$(SPACE_LIB_DIR)/shakespeare/inc/shakespeare.h 
-PC_HEADERS=$(USER_DIR)/inc/PC/he100.h
-Q6_HEADERS=$(USER_DIR)/inc/Q6/he100.h
-HEADERS=$(SPACE_TIMER_DIR)/inc/timer.h $(UTLS_DIR)/include/Date.h $(USER_DIR)/inc/SC_he100.h $(GLOBAL_INC_DIR)/SpaceDecl.h
-ARCH_HEADERS=$(PC_HEADERS)
-
-###########################
-
 TARGETS=he100_lib_test he100_live_radio_test
 
 Date.o : $(UTLS_DIR)/src/Date.cpp $(HEADERS) $(GTEST_HEADERS)
@@ -119,6 +121,9 @@ shakespeare.o : $(SHAKES_DIR)/src/shakespeare.cpp $(HEADERS) $(SHAKESPEARE_HEADE
 
 SC_he100-translations.o:
 	$(CXX) $(CPP_FLAGS) $(DEBUGFLAGS) -c $(USER_DIR)/src/SC_he100-translations.c 
+
+SC_serial.o:
+	$(CXX) $(CPP_FLAGS) $(DEBUGFLAGS) -c $(EXTERNINCPATH) $(ARCH_INCPATH) $(HEINCPATH) $(USER_DIR)/src/SC_serial.c 
 
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(ARCH_HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(EXTERNINCPATH) $(ARCH_INCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c $(ENV_FLAGS)

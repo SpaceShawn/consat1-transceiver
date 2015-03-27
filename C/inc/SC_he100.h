@@ -23,8 +23,9 @@
 #include <stddef.h>
 #include <time.h>
 #include <stdio.h>
-#include <HE100_constants.h> // contains all constants specific to hardware bytes
+#include <HE100_constants.h>    // contains all constants specific to hardware bytes
 #include <HE100_TTY_settings.h> // contains all constants specific to hardware bytes
+#include <SC_serial.h>          // contains serial access functionality
 
 //  function_config bit values
 struct function_config {
@@ -89,21 +90,6 @@ typedef struct {
     uint32_t tx_frequency_offset; //Up to 20 kHz
     uint32_t rx_frequency_offset; //Up to 20 kHz
 } RADIO_RF_CONFIGURATION_TYPE;
-
-/**
- * Function to configure serial interface
- * @param fdin - the file descriptor representing the serial device
- * @return int - exit status 
- * REF: http://man7.org/linux/man-pages/man3/termios.3.html
- * REF: http://www.unixguide.net/unix/programming/3.6.2.shtml
- */
-int HE100_configureInterface (int);
-
-/* Function to open HE100 device on configured seial port address */
-int HE100_openPort (void);
-
-/* Function to close serial device connection at given file descriptor */
-int HE100_closePort (int);
 
 /* Function to write a char array to a serial device at given file descriptor */
 int HE100_write (int fdin, unsigned char *bytes, size_t size);
@@ -208,7 +194,6 @@ int HE100_softReset(int fdin);
  * no arguments
  */
 int HE100_readFirmwareRevision(int fdin);
-
 
 /* Function to return an array of config struct from Helium 100 */
 struct he100_settings HE100_collectConfig (unsigned char * buffer);
