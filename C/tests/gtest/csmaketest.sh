@@ -45,11 +45,9 @@ make-tests () {
 }
 
 make-clean-gtest () {
-    confirm "Would you like to run the live test (requires radio to be present and active)?" && live=1
     make clean
     if make-tests ; then
         $1 ./he100_lib_testPC
-        [ $live ] && sudo ./he100_live_radio_testPC
         return 0
     fi;
 }
