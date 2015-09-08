@@ -248,8 +248,40 @@ void HE100_snprintfHex(char * output_hex_array, unsigned char * input_byte_array
     return;
 }
 
-// @param payload - the buffered bytes returned parsed from the radio
-// @returns int - # of bytes read
+
+/**
+ * The HE100_read function obtains communication payloads from the 
+ * serial device and returns an execution status.
+ *
+ * It reads bytes in single-file from the serial device and
+ * appends them to a reference array.
+ *
+ * A timer is set to poll a the file descriptor which 
+ * handles the serial connection to the RX pin of the Radio. 
+ * It does some preliminary parsing to identify the incoming frames,
+ * and copies the payload data to a reference buffer if successful.
+ * If not sucessful, it logs an error using Shakespeare
+ *
+ * Parameters:
+ * payload - the buffered bytes returned parsed from the radio
+ * fdin - file descriptor for serial communication
+ * payload - a reference buffer to pass sucessfully parsed data
+ *
+ * return r 
+ * - if successful, return the number of payload bytes recieved (total minus metabytes) 
+ * - if not successful for any reason, return -1 
+ *
+ * Notes: 
+ * this function is doing too much
+ *  1 start timer
+ *  2 poll
+ *  3 looping read byte
+ *   3a set breakpoint as appropriate 
+ *  4 validate frame upon reaching breakpoint
+ *   4a if valid: strip and pass payload data through reference buffer
+ *   4b if invalid: log error and exit return -1
+ * TODO: split step 4 into another function, test
+ **/
 int
 HE100_read (int fdin, time_t read_time, unsigned char * payload)
 {
@@ -303,12 +335,13 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
             }
             if (i==breakcond) 
             {
+                // TODO this section might be split into another function
                 if (i>0) 
                 {   // we are at the expected end of our message, time to validate
                     int SVR_result = HE100_validateFrame(response, breakcond);
                     if ( SVR_result == 0 ) 
                     {   // valid frame
-                        r = 0; 
+                        r = 0; // TODO why is this set to zero here if only to be reset to payload_length?
                         size_t payload_length;
                         if (breakcond >= 10) {
                             payload_length = breakcond - WRAPPER_LENGTH;
