@@ -115,8 +115,8 @@ int HE100_dumpBinary (FILE *fdout, unsigned char *bytes, size_t size);
 void HE100_dumpHex (FILE *fdout, unsigned char *bytes, size_t size);
 
 /**
- * Function to read bytes in single-file from the serial device and
- * append them to and return a response array
+ * The HE100_read function obtains communication payloads from the 
+ * serial device and returns an execution status.
  *
  * @param fdin - the file descriptor representing the serial device
  * @param payload - a buffer you pass with 255 bytes of memory in which to place
