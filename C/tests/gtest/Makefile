@@ -34,7 +34,7 @@ ARCH_INCPATH=$(PCINCPATH)
 SHAKESPEARE_HEADERS=$(SPACE_LIB_DIR)/shakespeare/inc/shakespeare.h 
 PC_HEADERS=$(USER_DIR)/inc/PC/he100.h
 Q6_HEADERS=$(USER_DIR)/inc/Q6/he100.h
-HEADERS=$(SPACE_TIMER_DIR)/inc/timer.h $(UTLS_DIR)/include/Date.h $(USER_DIR)/inc/SC_he100.h $(USER_DIR)/inc/SC_serial.h $(GLOBAL_INC_DIR)/SpaceDecl.h
+HEADERS=$(SPACE_TIMER_DIR)/inc/timer.h $(UTLS_DIR)/include/Date.h $(USER_DIR)/inc/SC_he100.h $(UTLS_DIR)/include/SC_serial.h $(GLOBAL_INC_DIR)/SpaceDecl.h
 ARCH_HEADERS=$(PC_HEADERS)
 
 OBJECTS=Date.o fletcher.o timer.o shakespeare.o SC_he100-translations.o SC_serial.o SC_he100.o
@@ -123,7 +123,7 @@ SC_he100-translations.o:
 	$(CXX) $(CPP_FLAGS) $(DEBUGFLAGS) -c $(USER_DIR)/src/SC_he100-translations.c 
 
 SC_serial.o:
-	$(CXX) $(CPP_FLAGS) $(DEBUGFLAGS) -c $(EXTERNINCPATH) $(ARCH_INCPATH) $(HEINCPATH) $(USER_DIR)/src/SC_serial.c 
+	$(CXX) $(CPP_FLAGS) $(DEBUGFLAGS) -c $(EXTERNINCPATH) $(ARCH_INCPATH) $(HEINCPATH) $(UTLS_DIR)/src/SC_serial.c 
 
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(ARCH_HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(EXTERNINCPATH) $(ARCH_INCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c $(ENV_FLAGS)

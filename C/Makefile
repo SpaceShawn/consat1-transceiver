@@ -11,10 +11,11 @@ DEBUGFLAGS=-pedantic -Wextra -Werror -ggdb -g -gdwarf-2 -g3 #gdwarf-2 + g3 provi
 ENV_FLAGS = -DCS1_DEBUG # to enable debug messages
 
 CS1_DIR=../../
-SPACE_LIB=$(CS1_DIR)space-lib
-SPACE_TIMER_LIB=$(CS1_DIR)/space-timer-lib
+SPACE_LIB=$(CS1_DIR)space-lib/
+UTLS_DIR=$(SPACE_LIB)utls/
+SPACE_TIMER_LIB=$(CS1_DIR)/space-timer-lib/
 
-INCPATH=-I./inc/ -I$(SPACE_LIB)/checksum/inc/ -I$(SPACE_LIB)/shakespeare/inc/ -I$(SPACE_TIMER_LIB)/inc/ -I$(SPACE_LIB)/include/
+INCPATH=-I./inc/ -I$(UTLS_DIR)/include -I$(SPACE_LIB)/checksum/inc/ -I$(SPACE_LIB)/shakespeare/inc/ -I$(SPACE_TIMER_LIB)/inc/ -I$(SPACE_LIB)/include/
 MICROINCPATH=-I./inc/Q6/
 PCINCPATH=-I./inc/PC/
 BBINCPATH=-I./inc/BB/
@@ -42,7 +43,7 @@ lib/SC_he100-translations.o:
 	$(CXX) $(CXX_FLAGS) $(DEBUGFLAGS) -static -c src/SC_he100-translations.c -o lib/SC_he100-translations.o 
 
 lib/SC_serial.o:
-	$(CXX) $(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_serial.c -o lib/SC_serial.o  $(PC_LIBRARIES) $(ENV_FLAGS)
+	$(CXX) $(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c $(UTLS_DIR)src/SC_serial.c -o lib/SC_serial.o  $(PC_LIBRARIES) $(ENV_FLAGS)
 
 buildBinDep: lib/SC_he100-translations.o lib/SC_serial.o
 	$(CXX) $(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100.o  $(PC_LIBRARIES) $(ENV_FLAGS)
@@ -56,18 +57,18 @@ buildQ6Dep: lib/SC_he100-translations.o lib/SC_serialQ6.o
 	$(MICROPP) $(CXX_FLAGS) $(MICROCFLAGS) $(INCPATH) $(MICROINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-mbcc.o $(Q6_LIBRARIES) $(ENV_FLAGS)
 
 lib/SC_serialQ6.o:
-	$(MICROPP) $(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_serial.c -o lib/SC_serialQ6.o  $(Q6_LIBRARIES) $(ENV_FLAGS)
+	$(MICROPP) $(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c $(UTLS_DIR)src/SC_serial.c -o lib/SC_serialQ6.o  $(Q6_LIBRARIES) $(ENV_FLAGS)
 
 # BB architecture
 
 buildBBDep: lib/SC_he100-translations.o lib/SC_serial.o
-	$(BEAGLECC) $(CXX_FLAGS) $(INCPATH) $(BBINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_he100.c -o lib/he100-BB.o -ltimer-BB -lshakespeare-BB -lfletcher-BB $(ENV_FLAGS)
+	$(BEAGLECC) $(CXX_FLAGS) $(INCPATH) $(BBINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c $(UTLS_DIR)src/SC_serial.c -o lib/he100-BB.o -ltimer-BB -lshakespeare-BB -lfletcher-BB $(ENV_FLAGS)
 
 lib/SC_he100-translationsBB.o:
 	$(BEAGLECC) $(CXX_FLAGS) $(DEBUGFLAGS) -static -c src/SC_he100-translations.c -o lib/SC_he100-translationsBB.o 
 
 lib/SC_serialBB.o:
-	$(BEAGLECC)$(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c src/SC_serial.c -o lib/SC_serialBB.o  $(BB_LIBRARIES) $(ENV_FLAGS)
+	$(BEAGLECC)$(CXX_FLAGS) $(INCPATH) $(PCINCPATH) $(LIBPATHS) $(DEBUGFLAGS) -static -c $(UTLS_DIR)src/SC_serial.c -o lib/SC_serialBB.o  $(BB_LIBRARIES) $(ENV_FLAGS)
 
 clean:
 	rm -f lib/*

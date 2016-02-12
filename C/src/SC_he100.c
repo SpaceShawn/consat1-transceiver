@@ -25,7 +25,7 @@
 #include <errno.h>      /*  Error number definitions */
 #include <poll.h>       /*  Definitions for the poll() function */
 
-// serial include
+// serial library from utls 
 #include <SC_serial.h>
 
 // TODO group and document these includes
@@ -62,6 +62,7 @@ HE100_write (int fdin, unsigned char *bytes, size_t size)
     unsigned char response_buffer[MAX_FRAME_LENGTH]; // TODO this will not be used, fault of refactoring decision
 
     int valid_bytes_returned = 0;
+
     if (bytes[HE_CMD_BYTE] != CMD_GET_CONFIG) // some commands manually manage reading responses
     { // Issue a read to check for ACK/NOACK
         valid_bytes_returned = HE100_read(fdin, 2, response_buffer);

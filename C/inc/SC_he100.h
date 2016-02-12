@@ -24,7 +24,6 @@
 #include <time.h>
 #include <stdio.h>
 #include <HE100_constants.h>    // contains all constants specific to hardware bytes
-#include <HE100_TTY_settings.h> // contains all constants specific to hardware bytes
 #include <SC_serial.h>          // contains serial access functionality
 
 //  function_config bit values
