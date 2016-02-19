@@ -125,8 +125,8 @@ SC_he100-translations.o:
 SC_serial.o:
 	$(CXX) $(CPP_FLAGS) $(DEBUGFLAGS) -c $(EXTERNINCPATH) $(ARCH_INCPATH) $(HEINCPATH) $(UTLS_DIR)/src/SC_serial.c 
 
-SC_he100.o : $(USER_DIR)/src/SC_he100.c $(ARCH_HEADERS) $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(EXTERNINCPATH) $(ARCH_INCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c $(ENV_FLAGS)
+SC_he100.o : $(USER_DIR)/src/SC_he100.cpp $(ARCH_HEADERS) $(GTEST_HEADERS)
+	$(CXX) $(CPPFLAGS) $(EXTERNINCPATH) $(ARCH_INCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.cpp $(ENV_FLAGS)
 
 he100_lib_test.o : $(USER_DIR)/tests/gtest/he100_lib_test.cpp $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(EXTERNINCPATH) -c $(USER_DIR)/tests/gtest/he100_lib_test.cpp

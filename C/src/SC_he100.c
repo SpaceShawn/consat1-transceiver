@@ -26,7 +26,7 @@
 #include <poll.h>       /*  Definitions for the poll() function */
 
 // serial library from utls 
-#include <SC_serial.h>
+#include "SC_serial.h"
 
 // TODO group and document these includes
 #include "time.h"
