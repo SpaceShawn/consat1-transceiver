@@ -6,6 +6,7 @@
 #include <Date.h>
 #include <SpaceDecl.h>
 #include <shakespeare.h>
+#include <he100.h>
 
 #define MAX_TESTED_PAYLOAD 300
 #define PROCESS "HE100"
@@ -17,7 +18,7 @@ class Helium_100_Live_Radio_Test : public ::testing::Test
       int fdin;
     protected:
       virtual void SetUp() {
-        fdin = SC_openPort(); 
+        fdin = SC_openPort(port_address); 
         if (fdin==-1) exit(EXIT_FAILURE);
         const ::testing::TestInfo* const test_info =
               ::testing::UnitTest::GetInstance()->current_test_info();
