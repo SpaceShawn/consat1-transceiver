@@ -123,7 +123,7 @@ SC_he100-translations.o:
 	$(CXX) $(CPP_FLAGS) $(DEBUGFLAGS) -c $(USER_DIR)/src/SC_he100-translations.c 
 
 SC_serial.o:
-	$(CXX) $(CPP_FLAGS) $(DEBUGFLAGS) -c $(EXTERNINCPATH) $(ARCH_INCPATH) $(HEINCPATH) $(UTLS_DIR)/src/SC_serial.c 
+	$(CXX) $(CPP_FLAGS) $(DEBUGFLAGS) -c $(EXTERNINCPATH) $(ARCH_INCPATH) $(HEINCPATH) $(UTLS_DIR)/src/SC_serial.cpp 
 
 SC_he100.o : $(USER_DIR)/src/SC_he100.c $(ARCH_HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(EXTERNINCPATH) $(ARCH_INCPATH) $(CXXFLAGS) -c $(USER_DIR)/src/SC_he100.c $(ENV_FLAGS)
@@ -131,8 +131,8 @@ SC_he100.o : $(USER_DIR)/src/SC_he100.c $(ARCH_HEADERS) $(GTEST_HEADERS)
 he100_lib_test.o : $(USER_DIR)/tests/gtest/he100_lib_test.cpp $(HEADERS) $(GTEST_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(EXTERNINCPATH) -c $(USER_DIR)/tests/gtest/he100_lib_test.cpp
 
-he100_live_radio_test.o : $(USER_DIR)/tests/gtest/he100_live_radio_test.cpp $(HEADERS) $(GTEST_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(EXTERNINCPATH) -c $(USER_DIR)/tests/gtest/he100_live_radio_test.cpp
+he100_live_radio_test.o : $(USER_DIR)/tests/gtest/he100_live_radio_test.cpp $(HEADERS) $(GTEST_HEADERS) $(ARCH_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_INCPATH) $(EXTERNINCPATH) -c $(USER_DIR)/tests/gtest/he100_live_radio_test.cpp
 
 he100_lib_test : $(OBJECTS) he100_lib_test.o gtest_main.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@$(ARCH) $(LIBS)
