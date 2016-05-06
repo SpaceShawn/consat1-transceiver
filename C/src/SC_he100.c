@@ -618,29 +618,29 @@ HE100_readFirmwareRevision(int fdin)
 struct he100_settings
 HE100_collectConfig (unsigned char * buffer)
 {
-    he100_settings settings; 
-    settings.interface_baud_rate = buffer[CFG_IF_BAUD_BYTE]; 
-    settings.tx_power_amp_level = buffer[CFG_PA_BYTE]; 
-    settings.rx_rf_baud_rate = buffer[CFG_RF_RX_BAUD_BYTE]; 
-    settings.tx_rf_baud_rate = buffer[CFG_RF_TX_BAUD_BYTE]; 
-    settings.rx_modulation = buffer[CFG_RX_MOD_BYTE]; 
-    settings.tx_modulation = buffer[CFG_TX_MOD_BYTE]; 
-    
-    // swap endianess 
+    he100_settings settings;
+    settings.interface_baud_rate = buffer[CFG_IF_BAUD_BYTE];
+    settings.tx_power_amp_level = buffer[CFG_PA_BYTE];
+    settings.rx_rf_baud_rate = buffer[CFG_RF_RX_BAUD_BYTE];
+    settings.tx_rf_baud_rate = buffer[CFG_RF_TX_BAUD_BYTE];
+    settings.rx_modulation = buffer[CFG_RX_MOD_BYTE];
+    settings.tx_modulation = buffer[CFG_TX_MOD_BYTE];
+
+    // swap endianess
     // TODO CONDITIONAL ENDIANNESS conversion
-    settings.rx_freq = 
+    settings.rx_freq =
           buffer[CFG_RX_FREQ_BYTE4] << 24 |
           buffer[CFG_RX_FREQ_BYTE3] << 16 |
           buffer[CFG_RX_FREQ_BYTE2] << 8  |
-          buffer[CFG_RX_FREQ_BYTE1]  
+          buffer[CFG_RX_FREQ_BYTE1]
     ;
-    settings.tx_freq = 
+    settings.tx_freq =
           buffer[CFG_TX_FREQ_BYTE4] << 24 |
-          buffer[CFG_TX_FREQ_BYTE3] << 16 | 
+          buffer[CFG_TX_FREQ_BYTE3] << 16 |
           buffer[CFG_TX_FREQ_BYTE2] << 8  |
-          buffer[CFG_TX_FREQ_BYTE1]  
+          buffer[CFG_TX_FREQ_BYTE1]
     ;
-    
+
     memcpy(
             settings.source_callsign,
             (unsigned char*)buffer+CFG_SRC_CALL_BYTE,
@@ -653,15 +653,15 @@ HE100_collectConfig (unsigned char * buffer)
             CFG_CALLSIGN_LEN
     );
 
-    settings.tx_preamble = 
-        buffer[CFG_TX_PREAM_BYTE] << 8 | 
+    settings.tx_preamble =
+        buffer[CFG_TX_PREAM_BYTE] << 8 |
         buffer[CFG_TX_PREAM_BYTE+1]
-    ; 
+    ;
 
-    settings.tx_postamble = 
+    settings.tx_postamble =
         buffer[CFG_TX_POSTAM_BYTE] << 8 |
         buffer[CFG_TX_POSTAM_BYTE+1]
-    ; 
+    ;
 
     memcpy (
             &settings.function_config,
@@ -677,7 +677,7 @@ HE100_collectConfig (unsigned char * buffer)
             // CFG_FUNCTION_CONFIG2_LENGTH
     );
 
-    settings.ext_conf_setting = buffer[CFG_EXT_BYTE]; 
+    settings.ext_conf_setting = buffer[CFG_EXT_BYTE];
 
     //memcpy (&settings,buffer+WRAPPER_LENGTH,CFG_PAYLOAD_LENGTH); // copies char buf into struct
     return settings;

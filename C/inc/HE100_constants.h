@@ -143,6 +143,8 @@ extern const char *rf_baudrate[5];
 #define CFG_TX_MOD_BYTE     5 // 6th byte
 #define CFG_RX_MOD_DEFAULT  0x00 // GFSK
 #define CFG_TX_MOD_DEFAULT  0x00 // GFSK
+#define CFG_RX_MOD_GFSK     CFG_RX_MOD_DEFAULT
+#define CFG_TX_MOD_GFSK     CFG_TX_MOD_DEFAULT
 // RX TX FREQ config
 #define CFG_RX_FREQ_BYTE1   6 // 7th byte
 #define CFG_RX_FREQ_BYTE2   7 // 8th byte
@@ -164,7 +166,6 @@ extern const char *rf_baudrate[5];
 #define CFG_SRC_CALL_DEF    "VA3ORB"
 #define CFG_DST_CALL_DEF    "VE2CUA"
 #define CFG_CALLSIGN_LEN    6
-
 // PREAMBLE/POSTAMBLE config
 #define CFG_TX_PREAM_BYTE   26 // 27th byte
 #define CFG_TX_PREAM_DEF    0
