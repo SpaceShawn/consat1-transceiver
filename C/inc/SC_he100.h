@@ -26,8 +26,11 @@
 #include <HE100_constants.h>    // contains all constants specific to hardware bytes
 #include <SC_serial.h>          // contains serial access functionality
 
-//  function_config bit values
-struct function_config {
+#define BE 1
+#define LE 0
+
+// function_config bit values - 16-bit
+struct function_config { 
     unsigned led:2;
     unsigned pin13:2;           
     unsigned pin14:2;
@@ -42,8 +45,11 @@ struct function_config {
     unsigned beacon_0:1;
 };
 
-// function_config2 bit values
+// function_config2 bit values - 16-bit
 struct function_config2 {
+    unsigned t0:4;
+    unsigned t4:4;
+    unsigned t8:4;
     unsigned tbd:1;
     unsigned txcw:1;
     unsigned rxcw:1;
@@ -57,16 +63,19 @@ struct he100_settings {
     uint8_t                   tx_rf_baud_rate; // Radio TX RF Baud Rate (9600=0x00)
     uint8_t                   rx_modulation; // (0x00 = GFSK)
     uint8_t                   tx_modulation; // (0x00 = GFSK)
-    uint32_t 	                rx_freq; // Channel Rx Frequency default 144200
-    uint32_t 	                tx_freq; // Channel Tx Frequency default 431000
-    unsigned char	            source_callsign[7]; // VA3ORB, default NOCALL
+    uint32_t 	              rx_freq; // Channel Rx Frequency default 144200
+    uint32_t 	              tx_freq; // Channel Tx Frequency default 431000
+    unsigned char	          source_callsign[7]; // VA3ORB, default NOCALL
     unsigned char             destination_callsign[7]; // VE2CUA, default CQ
     uint16_t                  tx_preamble; // AX25 Mode Tx Preamble byte length (0x00 = 20 flags)
     uint16_t                  tx_postamble; // AX25 Mode Tx Postamble byte length (0x00 = 20 flags)
+    uint16_t                  rx_preamble; // AX25 Mode Rx Preamble byte length (0x00 = 20 flags)
+    uint16_t                  rx_postamble; // AX25 Mode Rx Postamble byte length (0x00 = 20 flags)
     struct function_config    function_config; 
     struct function_config2   function_config2;
-    uint8_t                   ext_conf_setting;
 };
+
+char endian(void);
 
 /**
  * Telemetry structure
@@ -199,8 +208,11 @@ struct he100_settings HE100_collectConfig (unsigned char * buffer);
 //int HE100_getConfig (int fdin);
 int HE100_getConfig (int fdin, struct he100_settings * settings);
 
+// swap endianness of anything larger than 1 byte in the config array
+int HE100_configEndianness (struct he100_settings & settings);
+
 //int HE100_validateConfig (struct he100_settings he100_new_settings, unsigned char * set_config_payload );
-int HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings settings);
+int HE100_prepareConfig (unsigned char &prepared_bytes, struct he100_settings settings);
 int HE100_validateConfig (struct he100_settings he100_new_settings);
 
 /* Function to configure the Helium board based on altered input struct he100_settings */

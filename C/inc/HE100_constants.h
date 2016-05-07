@@ -189,15 +189,8 @@ extern const char *rf_baudrate[5];
 #define CFG_FUNCTION_CONFIG_LENGTH  2 // bytes
 
 #define CFG_FUNCTION_CONFIG2_BYTE   32
-#define CFG_FUNCTION_CONFIG2_LENGTH 1 // byte
+#define CFG_FUNCTION_CONFIG2_LENGTH 2 // bytes
 
-// EXT Functions config
-#define CFG_EXT_BYTE          33 // 34th byte
-#define CFG_EXT_DEF           0x00  
-#define CFG_EXT_OFF           0x00
-#define CFG_EXT_PING_ON       0x10
-#define CFG_EXT_CODEUPLOAD_ON 0x20
-#define CFG_EXT_RESET_ON      0x40
 
 // DEPRECATED
 // RX CRC config

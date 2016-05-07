@@ -374,8 +374,8 @@ TEST_F(Helium_100_Test, SetBeaconInterval)
 
 TEST_F(Helium_100_Test, TestCollectValidConfig)
 {
-    unsigned char config1[44] = {0x00,0x87,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
-    unsigned char config2[44] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4F,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x09,0x00,0x00,0x00,0x43,0x00,0x00,0x00}; 
+    unsigned char config1[CFG_FRAME_LENGTH] = {0x00,0x87,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+    unsigned char config2[CFG_FRAME_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4F,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x09,0x00,0x00,0x00,0x43,0x00,0x00,0x00}; 
 
     struct he100_settings test_settings_1 = HE100_collectConfig(config1);
     struct he100_settings test_settings_2 = HE100_collectConfig(config2);
@@ -396,23 +396,43 @@ TEST_F(Helium_100_Test, TestCollectValidConfig)
     ASSERT_EQ (0, validation_result);   
 }
 
-TEST_F(Helium_100_Test, TestCollectValidConfig)
+TEST_F(Helium_100_Test, PrepareConfig) 
 {
-    unsigned char config1[44] = {0};
+    unsigned char config1[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+    unsigned char config_result[CFG_PAYLOAD_LENGTH] = {0};
+    struct he100_settings test_settings = HE100_collectConfig(config1);
+    ASSERT_EQ(
+        CS1_SUCCESS,
+        HE100_prepareConfig(*config_result, test_settings)
+    );
+    for (z=0; z<CFG_PAYLOAD_LENGTH; z++) {
+        ASSERT_EQ(
+            config1[z],
+            config_result[z]
+        );
+    }
+}
+
+TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
+{
+    /*
+    unsigned char config1[CFG_FRAME_LENGTH] = {0};
     config1[CFG_IF_BAUD_BYTE] = CFG_IF_BAUD_9600;
     config1[CFG_PA_BYTE] = 111;
     config1[CFG_RF_RX_BAUD_BYTE] = CFG_RF_BAUD_9600;
     config1[CFG_RF_TX_BAUD_BYTE] = CFG_RF_BAUD_9600;
     config1[CFG_RX_MOD_BYTE] = CFG_RX_MOD_GFSK;
     config1[CFG_TX_MOD_BYTE] = CFG_TX_MOD_GFSK;
-    config1[CFG_RX_FREQ_BYTE1] = CFG_RX_FREQ_DEFAULT; // 144200L
-    //config1[CFG_RX_FREQ_BYTE2] = 
-    //config1[CFG_RX_FREQ_BYTE3] = 
-    //config1[CFG_RX_FREQ_BYTE4] = 
-    config1[CFG_TX_FREQ_BYTE1] = CFG_TX_FREQ_DEFAULT; // 431000L
-    //config1[CFG_TX_FREQ_BYTE2] = 
-    //config1[CFG_TX_FREQ_BYTE3] = 
-    //config1[CFG_TX_FREQ_BYTE4] = 
+    //config1[CFG_RX_FREQ_BYTE1] = CFG_RX_FREQ_DEFAULT; // 144200L
+    config1[CFG_RX_FREQ_BYTE1] = 0xa8;
+    config1[CFG_RX_FREQ_BYTE2] = 0x3c;
+    config1[CFG_RX_FREQ_BYTE3] = 0x02;
+    config1[CFG_RX_FREQ_BYTE4] = 0x00;
+    //config1[CFG_TX_FREQ_BYTE1] = CFG_TX_FREQ_DEFAULT; // 431000L
+    config1[CFG_TX_FREQ_BYTE1] = 0x08;
+    config1[CFG_TX_FREQ_BYTE2] = 0xab;
+    config1[CFG_TX_FREQ_BYTE3] = 0x06;
+    config1[CFG_TX_FREQ_BYTE4] = 0x00;
     config1[CFG_SRC_CALL_BYTE] = CFG_SRC_CALL_DEF; // "VA3ORB"
     config1[CFG_DST_CALL_BYTE] = CFG_DST_CALL_DEF; // "VE2CUA" 
     config1[CFG_TX_PREAM_BYTE] = CFG_TX_PREAM_DEF; // zero preamble bytes
@@ -420,9 +440,75 @@ TEST_F(Helium_100_Test, TestCollectValidConfig)
     config1[CFG_TX_POSTAM_BYTE] = CFG_TX_POSTAM_DEF; // zero postamble bytes  
     config1[CFG_RX_PREAM_BYTE] = CFG_RX_PREAM_DEF;  
     config1[CFG_RX_POSTAM_BYTE] = CFG_RX_POSTAM_DEF;  
-    
+    config1[CFG_FUNCTION_CONFIG_BYTE] = 0; 
+    config1[CFG_FUNCTION_CONFIG_BYTE+1] = 0; 
+    config1[CFG_FUNCTION_CONFIG2_BYTE] = 0;
+    config1[CFG_FUNCTION_CONFIG2_BYTE+1] = 0;
+    */
 
-    {0x00,0x87,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+    unsigned char config1a[CFG_FRAME_LENGTH] = {0x00,0x6f,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+
+    char source_callsign[7] = "VA3ORB";
+    char destination_callsign[7] = "VE2CUA";
+
+    struct he100_settings config1b;
+    struct function_config fc1;
+    fc1.led=0;
+    fc1.pin13=0;           
+    fc1.pin14=0;
+    fc1.crc_tx=0;
+    fc1.crc_rx=0; 
+    fc1.telemetry_dump_status=0; // enable telemetry dump
+    fc1.telemetry_rate=0; // logging rate 0 1/10 Hz, 1 1 Hz, 2 2 Hz, 3 4 Hz
+    fc1.telemetry_status=0;  // enable telemetry logging 
+    fc1.beacon_radio_reset_status=0; // enable radio reset
+    fc1.beacon_code_upload_status=0; // enable code upload
+    fc1.beacon_oa_cmd_status=0; // enable OA Commands
+    fc1.beacon_0=0;
+
+    struct function_config2 fc2;
+    fc2.t0=0;
+    fc2.t4=0;
+    fc2.t8=0;
+    fc2.tbd=0;
+    fc2.txcw=0;
+    fc2.rxcw=0;
+    fc2.rafc=0;
+
+    config1b.interface_baud_rate = CFG_IF_BAUD_9600;
+    config1b.tx_power_amp_level = 111;
+    config1b.rx_rf_baud_rate = CFG_RF_BAUD_9600;
+    config1b.tx_rf_baud_rate = CFG_RF_BAUD_9600;
+    config1b.rx_modulation = CFG_RX_MOD_GFSK;
+    config1b.tx_modulation = CFG_TX_MOD_GFSK;
+    config1b.rx_freq = 144200L;
+    config1b.tx_freq = 431000L;
+    memcpy (&config1b.source_callsign,&source_callsign,CFG_CALLSIGN_LEN);
+    memcpy (&config1b.destination_callsign,&destination_callsign,CFG_CALLSIGN_LEN);
+    config1b.tx_preamble = CFG_TX_PREAM_DEF;
+    config1b.tx_postamble = CFG_TX_POSTAM_DEF;
+    config1b.rx_preamble = CFG_RX_PREAM_DEF;
+    config1b.rx_postamble = CFG_RX_POSTAM_DEF;
+    config1b.function_config = fc1;
+    config1b.function_config2 = fc2;
+
+    HE100_configEndianness(config1b);
+
+    //unsigned char config2[CFG_FRAME_LENGTH]={0};
+    unsigned char config2[CFG_PAYLOAD_LENGTH] = {0};
+    ASSERT_EQ(
+        CS1_SUCCESS,
+        HE100_prepareConfig(*config2, config1b)
+    );
+
+    // check that config1 is the same as config1a
+    for (z=0; z<CFG_FRAME_LENGTH; z++) {
+        printf ("Byte: %d\t 0x%X\t :\t 0x%X\n",z,config1a[z],config2[z]);
+        ASSERT_EQ(
+            config1a[z],
+            config2[z]
+        );
+    }
 }
 
 void print_binary(int n)
@@ -465,22 +551,6 @@ TEST_F(Helium_100_Test, InterpretFunctionConfig)
     ASSERT_EQ(CFG_FC_LED_RXTOG,fc1.led);
 }
 
-TEST_F(Helium_100_Test, PrepareConfig) 
-{
-    unsigned char config1[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
-    unsigned char config_result[CFG_PAYLOAD_LENGTH] = {0};
-    struct he100_settings test_settings = HE100_collectConfig(config1);
-    ASSERT_EQ(
-        CS1_SUCCESS,
-        HE100_prepareConfig(config_result, test_settings)
-    );
-    for (z=0; z<CFG_PAYLOAD_LENGTH; z++) {
-        ASSERT_EQ(
-            config1[z],
-            config_result[z]
-        );
-    }
-}
 
 /*
 Send Beacon Data

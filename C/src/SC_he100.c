@@ -43,6 +43,12 @@
 #define PROCESS "HE100"
 #define MAX_LOG_BUFFER_LEN CS1_MAX_LOG_ENTRY 
 
+char endian(void)
+{
+  short x=0x0100;
+  return(*(char *)&x);
+}
+
 /**
  * Function to write a given byte sequence to the serial device
  * @param fdin - the file descriptor representing the serial device
@@ -628,18 +634,29 @@ HE100_collectConfig (unsigned char * buffer)
 
     // swap endianess
     // TODO CONDITIONAL ENDIANNESS conversion
-    settings.rx_freq =
-          buffer[CFG_RX_FREQ_BYTE4] << 24 |
-          buffer[CFG_RX_FREQ_BYTE3] << 16 |
-          buffer[CFG_RX_FREQ_BYTE2] << 8  |
-          buffer[CFG_RX_FREQ_BYTE1]
-    ;
-    settings.tx_freq =
-          buffer[CFG_TX_FREQ_BYTE4] << 24 |
-          buffer[CFG_TX_FREQ_BYTE3] << 16 |
-          buffer[CFG_TX_FREQ_BYTE2] << 8  |
-          buffer[CFG_TX_FREQ_BYTE1]
-    ;
+    if (endian()==LE){
+        settings.rx_freq =
+              buffer[CFG_RX_FREQ_BYTE4] << 24 |
+              buffer[CFG_RX_FREQ_BYTE3] << 16 |
+              buffer[CFG_RX_FREQ_BYTE2] << 8  |
+              buffer[CFG_RX_FREQ_BYTE1]
+        ;
+        settings.tx_freq =
+              buffer[CFG_TX_FREQ_BYTE4] << 24 |
+              buffer[CFG_TX_FREQ_BYTE3] << 16 |
+              buffer[CFG_TX_FREQ_BYTE2] << 8  |
+              buffer[CFG_TX_FREQ_BYTE1]
+        ;
+        settings.tx_preamble =
+            buffer[CFG_TX_PREAM_BYTE] << 8 |
+            buffer[CFG_TX_PREAM_BYTE+1]
+        ;
+
+        settings.tx_postamble =
+            buffer[CFG_TX_POSTAM_BYTE] << 8 |
+            buffer[CFG_TX_POSTAM_BYTE+1]
+        ;
+    }
 
     memcpy(
             settings.source_callsign,
@@ -653,15 +670,6 @@ HE100_collectConfig (unsigned char * buffer)
             CFG_CALLSIGN_LEN
     );
 
-    settings.tx_preamble =
-        buffer[CFG_TX_PREAM_BYTE] << 8 |
-        buffer[CFG_TX_PREAM_BYTE+1]
-    ;
-
-    settings.tx_postamble =
-        buffer[CFG_TX_POSTAM_BYTE] << 8 |
-        buffer[CFG_TX_POSTAM_BYTE+1]
-    ;
 
     memcpy (
             &settings.function_config,
@@ -676,8 +684,6 @@ HE100_collectConfig (unsigned char * buffer)
             sizeof(struct function_config2)
             // CFG_FUNCTION_CONFIG2_LENGTH
     );
-
-    settings.ext_conf_setting = buffer[CFG_EXT_BYTE];
 
     //memcpy (&settings,buffer+WRAPPER_LENGTH,CFG_PAYLOAD_LENGTH); // copies char buf into struct
     return settings;
@@ -715,8 +721,7 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     fprintf(fdout,"TX Preamble:           %d \r\n", settings.tx_preamble);
     fprintf(fdout,"TX Postamble:          %d \r\n", settings.tx_postamble);
 
-    char ext_conf_value[32] = {0}; 
-    // validate EXT functions
+    /*
     switch (settings.ext_conf_setting)
     {
         case 0 :
@@ -736,6 +741,7 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
            break;
     }
     fprintf(fdout,"EXT:                   %s [%02X] \r\n", ext_conf_value, settings.ext_conf_setting);
+    */
    
     struct function_config2 fc2 = settings.function_config2;
     fprintf(
@@ -751,105 +757,117 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
  * to the transceiver
  **/
 int 
-HE100_prepareConfig (unsigned char * prepared_bytes, struct he100_settings settings) {
+HE100_prepareConfig (unsigned char & prepared_bytes, struct he100_settings settings) {
 
     // TODO should this be changed with the serial connection as well?
     memcpy(
-        &prepared_bytes[CFG_IF_BAUD_BYTE],
-        (unsigned char*)&settings.interface_baud_rate,
+        &prepared_bytes+CFG_IF_BAUD_BYTE,
+        &settings.interface_baud_rate,
         sizeof(settings.interface_baud_rate)
     );
     memcpy(
-        &prepared_bytes[CFG_PA_BYTE],
-        (unsigned char*)&settings.tx_power_amp_level,
+        &prepared_bytes+CFG_PA_BYTE,
+        &settings.tx_power_amp_level,
         sizeof(settings.tx_power_amp_level)
     );
     memcpy(
-        &prepared_bytes[CFG_RF_RX_BAUD_BYTE],
-        (unsigned char*)&settings.rx_rf_baud_rate,
+        &prepared_bytes+CFG_RF_RX_BAUD_BYTE,
+        &settings.rx_rf_baud_rate,
         sizeof(settings.rx_rf_baud_rate)
     );
     memcpy(
-        &prepared_bytes[CFG_RF_TX_BAUD_BYTE],
+        &prepared_bytes+CFG_RF_TX_BAUD_BYTE,
         &settings.tx_rf_baud_rate,
         sizeof(settings.tx_rf_baud_rate)
     );
     memcpy(
-        &prepared_bytes[CFG_RX_MOD_BYTE],
+        &prepared_bytes+CFG_RX_MOD_BYTE,
         &settings.rx_modulation,
         sizeof(settings.rx_modulation)
     );
     memcpy(
-        &prepared_bytes[CFG_TX_MOD_BYTE],
+        &prepared_bytes+CFG_TX_MOD_BYTE,
         &settings.tx_modulation,
         sizeof(settings.tx_modulation)
     );
 
-    unsigned char * rx_freq = (unsigned char *)&settings.rx_freq;
-    uint32_t big_endian_rx_freq = 
-          rx_freq[3] << 24 |
-          rx_freq[2] << 16 |
-          rx_freq[1] << 8  |
-          rx_freq[0]  
-    ;
+    if (endian()==LE) {
+        unsigned char * rx_freq = (unsigned char *)&settings.rx_freq;
+        uint32_t big_endian_rx_freq = 
+              rx_freq[3] << 24 |
+              rx_freq[2] << 16 |
+              rx_freq[1] << 8  |
+              rx_freq[0]  
+        ;
+        settings.rx_freq = big_endian_rx_freq;
+    }
     memcpy(
-        &prepared_bytes[CFG_RX_FREQ_BYTE1],
-        &big_endian_rx_freq,
+        &prepared_bytes+CFG_RX_FREQ_BYTE1,
+        &settings.rx_freq,
         sizeof(settings.rx_freq)
     );
-    unsigned char * tx_freq = (unsigned char *)&settings.tx_freq;
-    uint32_t big_endian_tx_freq =
-          tx_freq[3] << 24 |
-          tx_freq[2] << 16 |
-          tx_freq[1] << 8  |
-          tx_freq[0]  
-    ;
+    if (endian()==LE) {
+        unsigned char * tx_freq = (unsigned char *)&settings.tx_freq;
+        uint32_t big_endian_tx_freq =
+              tx_freq[3] << 24 |
+              tx_freq[2] << 16 |
+              tx_freq[1] << 8  |
+              tx_freq[0]  
+        ;
+        settings.tx_freq = big_endian_tx_freq;
+    }
     memcpy(
-        &prepared_bytes[CFG_TX_FREQ_BYTE1],
-        &big_endian_tx_freq,
+        &prepared_bytes+CFG_TX_FREQ_BYTE1,
+        &settings.tx_freq,
         sizeof(settings.tx_freq)
     );
 
     memcpy(
-        &prepared_bytes[CFG_SRC_CALL_BYTE],
+        &prepared_bytes+CFG_SRC_CALL_BYTE,
         settings.source_callsign,
         CFG_CALLSIGN_LEN
     );
     memcpy(
-        &prepared_bytes[CFG_DST_CALL_BYTE],
+        &prepared_bytes+CFG_DST_CALL_BYTE,
         &settings.destination_callsign,
         CFG_CALLSIGN_LEN
     );
 
-    unsigned char * tx_preamble = (unsigned char *)&settings.tx_preamble;
-    uint16_t big_endian_tx_preamble = 
-        tx_preamble[0] << 8 | 
-        tx_preamble[1]
-    ; 
+    if (endian()==LE) {
+        unsigned char * tx_preamble = (unsigned char *)&settings.tx_preamble;
+        uint16_t big_endian_tx_preamble = 
+            tx_preamble[0] << 8 | 
+            tx_preamble[1]
+        ; 
+        settings.tx_preamble = big_endian_tx_preamble;
+    }
     memcpy(
-        &prepared_bytes[CFG_TX_PREAM_BYTE],
-        &big_endian_tx_preamble,
+        &prepared_bytes+CFG_TX_PREAM_BYTE,
+        &settings.tx_preamble,
         sizeof(settings.tx_preamble)
     );
 
-    unsigned char * tx_postamble = (unsigned char *)&settings.tx_postamble;
-    uint16_t big_endian_tx_postamble = 
-        tx_postamble[0] << 8 |
-        tx_postamble[1]
-    ; 
+    if (endian()==LE) {
+        unsigned char * tx_postamble = (unsigned char *)&settings.tx_postamble;
+        uint16_t big_endian_tx_postamble = 
+            tx_postamble[0] << 8 |
+            tx_postamble[1]
+        ;
+        settings.tx_postamble = big_endian_tx_postamble; 
+    }
     memcpy(
-        &prepared_bytes[CFG_TX_POSTAM_BYTE],
-        &big_endian_tx_postamble,
+        &prepared_bytes+CFG_TX_POSTAM_BYTE,
+        &settings.tx_postamble,
         sizeof(settings.tx_postamble)
     );
 
     memcpy(
-        &prepared_bytes[CFG_FUNCTION_CONFIG_BYTE],
+        &prepared_bytes+CFG_FUNCTION_CONFIG_BYTE,
         &settings.function_config,
         CFG_FUNCTION_CONFIG_LENGTH
     );
     memcpy(
-        &prepared_bytes[CFG_FUNCTION_CONFIG2_BYTE],
+        &prepared_bytes+CFG_FUNCTION_CONFIG2_BYTE,
         &settings.function_config2,
         CFG_FUNCTION_CONFIG2_LENGTH
     );
@@ -890,6 +908,43 @@ HE100_getConfig (int fdin, struct he100_settings * settings)
     return result;
 }
 
+int HE100_configEndianness (struct he100_settings & settings)
+{
+    if(endian()==LE) {
+        // swap endianness conditionally, user never swaps it when setting
+        unsigned char * tx_preamble_buf = (unsigned char *)&settings.tx_preamble;
+        unsigned char * tx_postamble_buf = (unsigned char *)&settings.tx_postamble;
+        settings.tx_preamble =
+            tx_preamble_buf[0] << 8 |
+            tx_postamble_buf[1]
+        ;
+         
+        settings.tx_postamble =
+            tx_postamble_buf[0] << 8 |
+            tx_postamble_buf[1]
+        ;
+        
+        unsigned char * rx_freq = (unsigned char *)&settings.rx_freq;
+        uint32_t big_endian_rx_freq = 
+              rx_freq[3] << 24 |
+              rx_freq[2] << 16 |
+              rx_freq[1] << 8  |
+              rx_freq[0]  
+        ;
+        settings.rx_freq = big_endian_rx_freq;
+
+        unsigned char * tx_freq = (unsigned char *)&settings.tx_freq;
+        uint32_t big_endian_tx_freq = 
+              tx_freq[3] << 24 |
+              tx_freq[2] << 16 |
+              tx_freq[1] << 8  |
+              tx_freq[0]  
+        ;
+        settings.tx_freq = big_endian_tx_freq;
+    }
+    return HE_SUCCESS;
+}
+
 /**  
  *  This function validates a he100_settings struct
  *  and converts to char array for safe deployment
@@ -897,6 +952,7 @@ HE100_getConfig (int fdin, struct he100_settings * settings)
 int 
 HE100_validateConfig (struct he100_settings he100_new_settings)
 {
+
     char validation_log_entry[MAX_LOG_BUFFER_LEN];
 
     // validate new interface baud rate setting
@@ -904,7 +960,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
             he100_new_settings.interface_baud_rate >= MAX_IF_BAUD_RATE 
         //&&  he100_new_settings.interface_baud_rate <= MIN_IF_BAUD_RATE // always true
         // TODO WHY // &&  he100_new_settings.interface_baud_rate != CFG_DEF_IF_BAUD 
-    ) 
+    )
     {
         sprintf(validation_log_entry,"%s %s ^%s@%d",
                 HE_STATUS[HE_INVALID_IF_BAUD_RATE],if_baudrate[he100_new_settings.interface_baud_rate],
@@ -913,7 +969,6 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_IF_BAUD_RATE;
     } 
-    
 
     // validate new power amplification level
     if (
@@ -928,6 +983,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_POWER_AMP_LEVEL;
     };
+
 
     // validate new rf baud rates
     if (
@@ -976,6 +1032,7 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
         return HE_INVALID_TX_MOD;
     }
 
+
     // validate new RX setting
     if ( 
         (he100_new_settings.rx_freq <= MIN_UPPER_FREQ && he100_new_settings.rx_freq >= MAX_UPPER_FREQ)
@@ -1022,20 +1079,26 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
     // validate TX Test CW (USE DEFAULTS) 
 
     // validate EXT functions
+    /*
     switch (he100_new_settings.ext_conf_setting)
     {
-        case 0 : /* all EXT functions off */
+        case 0 : 
+           // all EXT functions off 
            break; 
-        case CFG_EXT_PING_ON: /* ping on */        
+        case CFG_EXT_PING_ON: 
+           // ping on
            break;
-        case CFG_EXT_CODEUPLOAD_ON: /* code upload on */ 
+        case CFG_EXT_CODEUPLOAD_ON: 
+           // code upload on
            break; 
-        case CFG_EXT_RESET_ON: /* reset on */
+        case CFG_EXT_RESET_ON: 
+           // reset on
            break; 
         default : 
            return HE_INVALID_EXT;
            break;
     } // if no valid option, go with default
+    */
 
     return 0;
 }
@@ -1053,7 +1116,7 @@ HE100_setConfig (int fdin, struct he100_settings he100_new_settings)
     validate_result = HE100_validateConfig(he100_new_settings);
 
     if (validate_result==HE_SUCCESS) {
-        prepare_result = HE100_prepareConfig(set_config_payload,he100_new_settings);
+        prepare_result = HE100_prepareConfig(*set_config_payload,he100_new_settings);
     }
 
     if (prepare_result == HE_SUCCESS) {
