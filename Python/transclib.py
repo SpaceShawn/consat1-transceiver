@@ -122,9 +122,6 @@ def SC_listen(ser):
       print "Payload Check: ", data[len(data)-2], data[len(data)-1], "\r\n"
       print "\r\nPayload: ", payload,"\r\n"
 
-def SC_setBAUD():
-  return bytearray.fromhex('48 65 10 05 00 2e 43 7d 01 00 00 00 00 00 00 00 02 04 02 06 04 a 00 00 20 a7 06 00 80 32 02 00 4e 4f 43 41 4c 4c 4e 4f 43 41 4c 4c a 64 60 00 00 00 00 00 00 00 de 35')
-
 def SC_testTransmit():
 ## weirdness: "A payload checksum is then used to verify the accuracy of the payload. The checksum is calculated across all pertinent bytes of the message excluding the two sync characters of each message 'He'
 ## possible interpretation:
@@ -245,7 +242,7 @@ def SC_transmit(payload):
   return transmission
 
 def SC_setConfig():
-  return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4F 52 42 56 45 32 43 55 41 09 00 00 00 41 00 00 00 31 70');
+  return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4f 52 42 56 45 32 43 55 41 05 00 00 00 41 80 00 00 31 70');
 
 def SC_writeFlash():
   return bytearray.fromhex('48 65 10 08 00 10 28 68 0B 91 F1 D5 4F 93 2D C6 38 2D C6 9F 19 79 00 CF 1A 33')

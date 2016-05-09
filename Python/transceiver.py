@@ -81,8 +81,7 @@ def SC_printMenu():
   print 'setbaud - sbaud - set the BAUD from 9600 to 38400\r'
   print 'setbeacon - sbeacon - set the Beacon rate from input\r'
   print 'setledpulse - slp - set the LED to pulse every 2.5 seconds\r'
-  print 'setledtx - sltx - set the LED to pulse on transmit\r'
-  print 'setledrx - slrx - set the LED to pulse on receive\r'
+  print 'setconfig - sc - set the radio config\r'
   print 'setpoweramp - spa - set the power amplification based on input'
   print 'writeflash - wf - stores the current configuration in radio flash'
   print 'exit - q - and close the serial port\r\n'
@@ -166,9 +165,9 @@ if ser.isOpen():
       else:
         print "incorrect input"
 
-    #elif ((input == "setconfig") | (input == "sc")):
-     # input=SC_setConfig()
-     # SC_writeCallback(input)
+    elif ((input == "setconfig") | (input == "sc")):
+      input=SC_setConfig()
+      SC_writeCallback(input)
    
     elif ((input == "looptransmit") | (input == "lt")):
       payload="A123456789B123456789C123456789D123456789E123456789F123456789G123456789H123456789I123456789J123456789K123456789L123456789M123456789N123456789O123456789P123456789Q123456789R123456789S"
@@ -192,14 +191,6 @@ if ser.isOpen():
 
     elif ((input == "setledpulse") | (input == "slp")):
       input=SC_setLEDPulse()
-      SC_writeCallback(input)
-
-    elif ((input == "setledtx") | (input == "sltx")):
-      input=SC_setLEDTx()
-      SC_writeCallback(input)
-
-    elif ((input == "setledrx") | (input == "slrx")):
-      input=SC_setLEDRx()
       SC_writeCallback(input)
 
     elif ((input == "checksum") | (input == "cs")):
