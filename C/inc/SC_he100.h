@@ -69,8 +69,6 @@ struct he100_settings {
     unsigned char             destination_callsign[7]; // VE2CUA, default CQ
     uint16_t                  tx_preamble; // AX25 Mode Tx Preamble byte length (0x00 = 20 flags)
     uint16_t                  tx_postamble; // AX25 Mode Tx Postamble byte length (0x00 = 20 flags)
-    uint16_t                  rx_preamble; // AX25 Mode Rx Preamble byte length (0x00 = 20 flags)
-    uint16_t                  rx_postamble; // AX25 Mode Rx Postamble byte length (0x00 = 20 flags)
     struct function_config    function_config; 
     struct function_config2   function_config2;
 };
@@ -209,7 +207,7 @@ struct he100_settings HE100_collectConfig (unsigned char * buffer);
 int HE100_getConfig (int fdin, struct he100_settings * settings);
 
 // swap endianness of anything larger than 1 byte in the config array
-int HE100_configEndianness (struct he100_settings & settings);
+int HE100_swapConfigEndianness (struct he100_settings & settings);
 
 //int HE100_validateConfig (struct he100_settings he100_new_settings, unsigned char * set_config_payload );
 int HE100_prepareConfig (unsigned char &prepared_bytes, struct he100_settings settings);

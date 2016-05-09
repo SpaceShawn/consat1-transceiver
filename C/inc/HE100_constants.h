@@ -114,6 +114,7 @@ extern const char *rf_baudrate[5];
 #define CFG_PAYLOAD_LENGTH  34
 #define CFG_FLASH_LENGTH    16
 #define CFG_HUMAN_LENGTH    1500
+extern const char *CFG_BYTE_LIST[CFG_FRAME_LENGTH];
 // Interface BAUD RATE config
 #define CFG_IF_BAUD_BYTE    0 // 1st byte
 #define CFG_DEF_IF_BAUD     0
@@ -168,26 +169,20 @@ extern const char *rf_baudrate[5];
 #define CFG_CALLSIGN_LEN    6
 // PREAMBLE/POSTAMBLE config
 #define CFG_TX_PREAM_BYTE   26 // 27th byte
+#define CFG_TX_PREAM_LEN    2
 #define CFG_TX_PREAM_DEF    0
 #define CFG_TX_PREAM_MIN    0
 #define CFG_TX_PREAM_MAX    10
 #define CFG_TX_POSTAM_BYTE  28 // 29th byte
+#define CFG_TX_POSTAM_LEN   2
 #define CFG_TX_POSTAM_DEF   0
 #define CFG_TX_POSTAM_MIN   0
 #define CFG_TX_POSTAM_MAX   10
-#define CFG_RX_PREAM_BYTE   26 // 27th byte
-#define CFG_RX_PREAM_DEF    0
-#define CFG_RX_PREAM_MIN    0
-#define CFG_RX_PREAM_MAX    10
-#define CFG_RX_POSTAM_BYTE   28 // 29th byte
-#define CFG_RX_POSTAM_DEF    0
-#define CFG_RX_POSTAM_MIN    0
-#define CFG_RX_POSTAM_MAX    10
 // TODO these are 16-bit variables, fix them
 
+// FUNCTION CONFIG 
 #define CFG_FUNCTION_CONFIG_BYTE    30
 #define CFG_FUNCTION_CONFIG_LENGTH  2 // bytes
-
 #define CFG_FUNCTION_CONFIG2_BYTE   32
 #define CFG_FUNCTION_CONFIG2_LENGTH 2 // bytes
 

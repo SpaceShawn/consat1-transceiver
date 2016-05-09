@@ -635,6 +635,9 @@ HE100_collectConfig (unsigned char * buffer)
     // swap endianess
     // TODO CONDITIONAL ENDIANNESS conversion
     if (endian()==LE){
+
+        uint16_t fc1_t = 0;
+        uint16_t fc2_t = 0;
         settings.rx_freq =
               buffer[CFG_RX_FREQ_BYTE4] << 24 |
               buffer[CFG_RX_FREQ_BYTE3] << 16 |
@@ -647,6 +650,7 @@ HE100_collectConfig (unsigned char * buffer)
               buffer[CFG_TX_FREQ_BYTE2] << 8  |
               buffer[CFG_TX_FREQ_BYTE1]
         ;
+
         settings.tx_preamble =
             buffer[CFG_TX_PREAM_BYTE] << 8 |
             buffer[CFG_TX_PREAM_BYTE+1]
@@ -656,6 +660,28 @@ HE100_collectConfig (unsigned char * buffer)
             buffer[CFG_TX_POSTAM_BYTE] << 8 |
             buffer[CFG_TX_POSTAM_BYTE+1]
         ;
+
+        fc1_t =
+            buffer[CFG_FUNCTION_CONFIG_BYTE] << 8 |
+            buffer[CFG_FUNCTION_CONFIG_BYTE+1]
+        ;
+
+        memcpy (
+                (unsigned char*)buffer+CFG_FUNCTION_CONFIG_BYTE,
+                &fc1_t,
+                sizeof(struct function_config)
+        );
+
+        fc2_t =
+            buffer[CFG_FUNCTION_CONFIG2_BYTE] << 8 |
+            buffer[CFG_FUNCTION_CONFIG2_BYTE+1]
+        ;
+
+        memcpy (
+                (unsigned char*)buffer+CFG_FUNCTION_CONFIG2_BYTE,
+                &fc2_t,
+                sizeof(struct function_config2)
+        );
     }
 
     memcpy(
@@ -670,6 +696,33 @@ HE100_collectConfig (unsigned char * buffer)
             CFG_CALLSIGN_LEN
     );
 
+    /*
+    unsigned led:2;
+    unsigned pin13:2;           
+    unsigned pin14:2;
+    unsigned crc_tx:1;
+    unsigned crc_rx:1; 
+    unsigned telemetry_dump_status:1; // enable telemetry dump
+    unsigned telemetry_rate:2; // logging rate 0 1/10 Hz, 1 1 Hz, 2 2 Hz, 3 4 Hz
+    unsigned telemetry_status:1;  // enable telemetry logging 
+    unsigned beacon_radio_reset_status:1; // enable radio reset
+    unsigned beacon_code_upload_status:1; // enable code upload
+    unsigned beacon_oa_cmd_status:1; // enable OA Commands
+    unsigned beacon_0:1;
+    uint16_t fc1 = (uint16_t)*buffer+CFG_FUNCTION_CONFIG_BYTE;
+    settings.function_config.led                        = fc1 & 0xf;
+    settings.function_config.pin13                      = fc1 & (0xf << 2);
+    settings.function_config.pin14                      = fc1 & (0xf << 4);
+    settings.function_config.crc_tx                     = fc1 & (0xf << 5);
+    settings.function_config.crc_rx                     = fc1 & (0xf << 6);
+    settings.function_config.telemetry_dump_status      = fc1 & (0xf << 7);
+    settings.function_config.telemetry_rate             = fc1 & (0xf << 9);
+    settings.function_config.telemetry_status           = fc1 & (0xf << 10);
+    settings.function_config.beacon_radio_reset_status  = fc1 & (0xf << 11);
+    settings.function_config.beacon_code_upload_status  = fc1 & (0xf << 12);
+    settings.function_config.beacon_oa_cmd_status       = fc1 & (0xf << 13);
+    settings.function_config.beacon_oa_cmd_status       = fc1 & (0xf << 14);
+    */
 
     memcpy (
             &settings.function_config,
@@ -678,6 +731,26 @@ HE100_collectConfig (unsigned char * buffer)
             // CFG_FUNCTION_CONFIG_LENGTH
     );
 
+    /*
+    struct function_config2 {
+        unsigned t0:4;
+        unsigned t4:4;
+        unsigned t8:4;
+        unsigned tbd:1;
+        unsigned txcw:1;
+        unsigned rxcw:1;
+        unsigned rafc:1;
+    };
+    uint16_t fc2 = (uint16_t)*buffer+CFG_FUNCTION_CONFIG2_BYTE;
+    settings.function_config2.t0        = fc2 & ( 0xf << 0  );
+    settings.function_config2.t4        = fc2 & ( 0xf << 4  );
+    settings.function_config2.t8        = fc2 & ( 0xf << 8  );
+    settings.function_config2.tbd       = fc2 & ( 0xf << 9  );
+    settings.function_config2.txcw      = fc2 & ( 0xf << 10 );
+    settings.function_config2.rxcw      = fc2 & ( 0xf << 11 );
+    settings.function_config2.rafc      = fc2 & ( 0xf << 12 );
+    */
+
     memcpy (
             &settings.function_config2,
             (unsigned char*)buffer+CFG_FUNCTION_CONFIG2_BYTE,
@@ -685,7 +758,6 @@ HE100_collectConfig (unsigned char * buffer)
             // CFG_FUNCTION_CONFIG2_LENGTH
     );
 
-    //memcpy (&settings,buffer+WRAPPER_LENGTH,CFG_PAYLOAD_LENGTH); // copies char buf into struct
     return settings;
 }
 
@@ -757,7 +829,7 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
  * to the transceiver
  **/
 int 
-HE100_prepareConfig (unsigned char & prepared_bytes, struct he100_settings settings) {
+HE100_prepareConfig (unsigned char &prepared_bytes, struct he100_settings settings) {
 
     // TODO should this be changed with the serial connection as well?
     memcpy(
@@ -790,86 +862,45 @@ HE100_prepareConfig (unsigned char & prepared_bytes, struct he100_settings setti
         &settings.tx_modulation,
         sizeof(settings.tx_modulation)
     );
-
-    if (endian()==LE) {
-        unsigned char * rx_freq = (unsigned char *)&settings.rx_freq;
-        uint32_t big_endian_rx_freq = 
-              rx_freq[3] << 24 |
-              rx_freq[2] << 16 |
-              rx_freq[1] << 8  |
-              rx_freq[0]  
-        ;
-        settings.rx_freq = big_endian_rx_freq;
-    }
     memcpy(
         &prepared_bytes+CFG_RX_FREQ_BYTE1,
         &settings.rx_freq,
         sizeof(settings.rx_freq)
     );
-    if (endian()==LE) {
-        unsigned char * tx_freq = (unsigned char *)&settings.tx_freq;
-        uint32_t big_endian_tx_freq =
-              tx_freq[3] << 24 |
-              tx_freq[2] << 16 |
-              tx_freq[1] << 8  |
-              tx_freq[0]  
-        ;
-        settings.tx_freq = big_endian_tx_freq;
-    }
     memcpy(
         &prepared_bytes+CFG_TX_FREQ_BYTE1,
         &settings.tx_freq,
         sizeof(settings.tx_freq)
     );
-
     memcpy(
         &prepared_bytes+CFG_SRC_CALL_BYTE,
         settings.source_callsign,
-        CFG_CALLSIGN_LEN
+        sizeof(settings.source_callsign)
     );
     memcpy(
         &prepared_bytes+CFG_DST_CALL_BYTE,
         &settings.destination_callsign,
-        CFG_CALLSIGN_LEN
+        sizeof(settings.destination_callsign)
     );
-
-    if (endian()==LE) {
-        unsigned char * tx_preamble = (unsigned char *)&settings.tx_preamble;
-        uint16_t big_endian_tx_preamble = 
-            tx_preamble[0] << 8 | 
-            tx_preamble[1]
-        ; 
-        settings.tx_preamble = big_endian_tx_preamble;
-    }
     memcpy(
         &prepared_bytes+CFG_TX_PREAM_BYTE,
         &settings.tx_preamble,
-        sizeof(settings.tx_preamble)
+        CFG_TX_PREAM_LEN
     );
-
-    if (endian()==LE) {
-        unsigned char * tx_postamble = (unsigned char *)&settings.tx_postamble;
-        uint16_t big_endian_tx_postamble = 
-            tx_postamble[0] << 8 |
-            tx_postamble[1]
-        ;
-        settings.tx_postamble = big_endian_tx_postamble; 
-    }
     memcpy(
         &prepared_bytes+CFG_TX_POSTAM_BYTE,
         &settings.tx_postamble,
-        sizeof(settings.tx_postamble)
+        CFG_TX_POSTAM_LEN
     );
-
     memcpy(
         &prepared_bytes+CFG_FUNCTION_CONFIG_BYTE,
         &settings.function_config,
-        CFG_FUNCTION_CONFIG_LENGTH
+        sizeof(settings.function_config)
     );
     memcpy(
         &prepared_bytes+CFG_FUNCTION_CONFIG2_BYTE,
         &settings.function_config2,
-        CFG_FUNCTION_CONFIG2_LENGTH
+        sizeof(settings.function_config2)
     );
 
     return HE_SUCCESS;
@@ -908,40 +939,48 @@ HE100_getConfig (int fdin, struct he100_settings * settings)
     return result;
 }
 
-int HE100_configEndianness (struct he100_settings & settings)
+int HE100_swapConfigEndianness (struct he100_settings &settings)
 {
-    if(endian()==LE) {
-        // swap endianness conditionally, user never swaps it when setting
-        unsigned char * tx_preamble_buf = (unsigned char *)&settings.tx_preamble;
-        unsigned char * tx_postamble_buf = (unsigned char *)&settings.tx_postamble;
-        settings.tx_preamble =
-            tx_preamble_buf[0] << 8 |
-            tx_postamble_buf[1]
-        ;
-         
-        settings.tx_postamble =
-            tx_postamble_buf[0] << 8 |
-            tx_postamble_buf[1]
-        ;
-        
-        unsigned char * rx_freq = (unsigned char *)&settings.rx_freq;
-        uint32_t big_endian_rx_freq = 
-              rx_freq[3] << 24 |
-              rx_freq[2] << 16 |
-              rx_freq[1] << 8  |
-              rx_freq[0]  
-        ;
-        settings.rx_freq = big_endian_rx_freq;
+    uint32_t b0,b1,b2,b3=0;
 
-        unsigned char * tx_freq = (unsigned char *)&settings.tx_freq;
-        uint32_t big_endian_tx_freq = 
-              tx_freq[3] << 24 |
-              tx_freq[2] << 16 |
-              tx_freq[1] << 8  |
-              tx_freq[0]  
-        ;
-        settings.tx_freq = big_endian_tx_freq;
-    }
+    // swap endianness conditionally, user never swaps it when setting
+    uint16_t tx_preamble_buf = settings.tx_preamble;
+    uint16_t tx_preamble_swapped = 0;
+    uint16_t tx_postamble_buf = settings.tx_postamble;
+    uint16_t tx_postamble_swapped = 0;
+    b0=b1=b2=b3=0;
+
+    b0 = (tx_preamble_buf & 0x00FF) << 8u;
+    b1 = (tx_preamble_buf & 0xFF00) >> 8u;
+    tx_preamble_swapped = b0 | b1;
+    settings.tx_preamble = tx_preamble_swapped;
+
+    b0=b1=b2=b3=0;
+    b0 = (tx_postamble_buf & 0x00FF) << 8u;
+    b1 = (tx_postamble_buf & 0xFF00) >> 8u;
+    tx_postamble_swapped = b0 | b1;
+    settings.tx_postamble = tx_postamble_swapped;
+    
+    uint32_t rx_freq = settings.rx_freq;
+    uint32_t swap_endian_rx_freq = 0;
+    b0=b1=b2=b3=0;
+    b0 = (rx_freq & 0x000000FF) << 24u;
+    b1 = (rx_freq & 0x0000FF00) << 8u;
+    b2 = (rx_freq & 0x00FF0000) >> 8u;
+    b3 = (rx_freq & 0xFF000000) >> 24u;
+    swap_endian_rx_freq = b0 | b1 | b2 | b3;
+    settings.rx_freq = swap_endian_rx_freq;
+
+    uint32_t tx_freq = settings.tx_freq;
+    uint32_t swap_endian_tx_freq = 0;
+    b0=b1=b2=b3=0;
+    b0 = (tx_freq & 0x000000FF) << 24u;
+    b1 = (tx_freq & 0x0000FF00) << 8u;
+    b2 = (tx_freq & 0x00FF0000) >> 8u;
+    b3 = (tx_freq & 0xFF000000) >> 24u;
+    swap_endian_tx_freq = b0 | b1 | b2 | b3;
+    settings.tx_freq = swap_endian_tx_freq;
+
     return HE_SUCCESS;
 }
 

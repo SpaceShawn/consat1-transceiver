@@ -398,14 +398,21 @@ TEST_F(Helium_100_Test, TestCollectValidConfig)
 
 TEST_F(Helium_100_Test, PrepareConfig) 
 {
-    unsigned char config1[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+    unsigned char config1[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x00,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+    //unsigned char config1[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x01,0x02,0x03,0x04,0x41,0x80,0x00,0x00};
+
     unsigned char config_result[CFG_PAYLOAD_LENGTH] = {0};
     struct he100_settings test_settings = HE100_collectConfig(config1);
+
+    //HE100_swapConfigEndianness(test_settings);
+
     ASSERT_EQ(
         CS1_SUCCESS,
         HE100_prepareConfig(*config_result, test_settings)
     );
+    printf ("Byte: x \t CFG_BYTE_LIST             \t Exp\t :\t Act\n");
     for (z=0; z<CFG_PAYLOAD_LENGTH; z++) {
+        printf ("Byte: %d \t %s \t 0x%X\t :\t 0x%X\n",z,CFG_BYTE_LIST[z],config1[z],config_result[z]);
         ASSERT_EQ(
             config1[z],
             config_result[z]
@@ -446,7 +453,7 @@ TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
     config1[CFG_FUNCTION_CONFIG2_BYTE+1] = 0;
     */
 
-    unsigned char config1a[CFG_FRAME_LENGTH] = {0x00,0x6f,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+    unsigned char config1a[CFG_FRAME_LENGTH] = {0x00,0x6f,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
     char source_callsign[7] = "VA3ORB";
     char destination_callsign[7] = "VE2CUA";
@@ -481,29 +488,27 @@ TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
     config1b.tx_rf_baud_rate = CFG_RF_BAUD_9600;
     config1b.rx_modulation = CFG_RX_MOD_GFSK;
     config1b.tx_modulation = CFG_TX_MOD_GFSK;
-    config1b.rx_freq = 144200L;
-    config1b.tx_freq = 431000L;
+    config1b.rx_freq = 144200L; // 0x23348
+    config1b.tx_freq = 431000L; // 0x69398 
     memcpy (&config1b.source_callsign,&source_callsign,CFG_CALLSIGN_LEN);
     memcpy (&config1b.destination_callsign,&destination_callsign,CFG_CALLSIGN_LEN);
     config1b.tx_preamble = CFG_TX_PREAM_DEF;
     config1b.tx_postamble = CFG_TX_POSTAM_DEF;
-    config1b.rx_preamble = CFG_RX_PREAM_DEF;
-    config1b.rx_postamble = CFG_RX_POSTAM_DEF;
     config1b.function_config = fc1;
     config1b.function_config2 = fc2;
 
-    HE100_configEndianness(config1b);
+    //HE100_swapConfigEndianness(config1b);
 
-    //unsigned char config2[CFG_FRAME_LENGTH]={0};
     unsigned char config2[CFG_PAYLOAD_LENGTH] = {0};
     ASSERT_EQ(
         CS1_SUCCESS,
         HE100_prepareConfig(*config2, config1b)
     );
 
+    printf ("Byte: x \t CFG_BYTE_LIST             \t Exp\t :\t Act\n");
     // check that config1 is the same as config1a
-    for (z=0; z<CFG_FRAME_LENGTH; z++) {
-        printf ("Byte: %d\t 0x%X\t :\t 0x%X\n",z,config1a[z],config2[z]);
+    for (z=0; z<CFG_PAYLOAD_LENGTH; z++) {
+        printf ("Byte: %d \t %s \t 0x%X\t :\t 0x%X\n",z,CFG_BYTE_LIST[z],config1a[z],config2[z]);
         ASSERT_EQ(
             config1a[z],
             config2[z]
