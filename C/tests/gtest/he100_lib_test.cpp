@@ -505,6 +505,8 @@ TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
         HE100_prepareConfig(*config2, config1b)
     );
 
+    struct he100_settings settings = HE100_collectConfig(config2);
+
     printf ("Byte: x \t CFG_BYTE_LIST             \t Exp\t :\t Act\n");
     // check that config1 is the same as config1a
     for (z=0; z<CFG_PAYLOAD_LENGTH; z++) {

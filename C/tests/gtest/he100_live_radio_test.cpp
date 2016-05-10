@@ -48,15 +48,79 @@ unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length
 
 TEST_F(Helium_100_Live_Radio_Test, SetConfig)
 {
+    FILE *test_log;
+
+    /*
     unsigned char config[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
     struct he100_settings settings = HE100_collectConfig(config);
+    */
 
-    FILE *test_log;
+    struct he100_settings settings;
+
+    char source_callsign[] = "VA3ORB";
+    char destination_callsign[] = "VE2CUA";
+
+    struct function_config fc1;
+    fc1.led=0;
+    fc1.pin13=0;           
+    fc1.pin14=0;
+    fc1.crc_tx=0;
+    fc1.crc_rx=0; 
+    fc1.telemetry_dump_status=0; // enable telemetry dump
+    fc1.telemetry_rate=0; // logging rate 0 1/10 Hz, 1 1 Hz, 2 2 Hz, 3 4 Hz
+    fc1.telemetry_status=0;  // enable telemetry logging 
+    fc1.beacon_radio_reset_status=0; // enable radio reset
+    fc1.beacon_code_upload_status=0; // enable code upload
+    fc1.beacon_oa_cmd_status=0; // enable OA Commands
+    fc1.beacon_0=0;
+
+    struct function_config2 fc2;
+    fc2.t0=0;
+    fc2.t4=0;
+    fc2.t8=0;
+    fc2.tbd=0;
+    fc2.txcw=0;
+    fc2.rxcw=0;
+    fc2.rafc=0;
+
+    settings.interface_baud_rate = CFG_IF_BAUD_9600;
+    settings.tx_power_amp_level = 50;
+    settings.rx_rf_baud_rate = CFG_RF_BAUD_9600;
+    settings.tx_rf_baud_rate = CFG_RF_BAUD_9600;
+    settings.rx_modulation = CFG_RX_MOD_GFSK;
+    settings.tx_modulation = CFG_TX_MOD_GFSK;
+    settings.rx_freq = 144200L; // 0x23348
+    settings.tx_freq = 431000L; // 0x69398 
+    memcpy (&settings.source_callsign,&source_callsign,CFG_CALLSIGN_LEN);
+    memcpy (&settings.destination_callsign,&destination_callsign,CFG_CALLSIGN_LEN);
+    settings.tx_preamble = CFG_TX_PREAM_DEF;
+    settings.tx_postamble = CFG_TX_POSTAM_DEF;
+    settings.function_config = fc1;
+    settings.function_config2 = fc2;
+
+    //HE100_swapConfigEndianness(settings);
+
     test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
-    HE100_printSettings( test_log, settings );
-    fclose(test_log);
+    if (test_log != NULL) {
+        HE100_printSettings( test_log, settings );
+        fclose(test_log);
+    }
 
-    int result = HE100_setConfig(fdin,settings);
+    unsigned char settings_array[CFG_PAYLOAD_LENGTH] = {0};
+    ASSERT_EQ(
+        CS1_SUCCESS,
+        HE100_prepareConfig(*settings_array, settings)
+    );
+
+    struct he100_settings settings2 = HE100_collectConfig(settings_array);
+
+    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
+    if (test_log != NULL) {
+        HE100_printSettings( test_log, settings2 );
+        fclose(test_log);
+    }
+
+    int result = HE100_setConfig(fdin,settings2);
 
     ASSERT_EQ(CS1_SUCCESS,result);
 }
