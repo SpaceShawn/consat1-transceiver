@@ -48,7 +48,10 @@ unsigned char * HE100_prepareTransmission (unsigned char *payload, size_t length
 
 TEST_F(Helium_100_Live_Radio_Test, SetConfig)
 {
-    unsigned char config0[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+    unsigned char config_old[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
+
+    unsigned char config_manual[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+    /*
     unsigned char config[CFG_PAYLOAD_LENGTH];
     config[CFG_IF_BAUD_BYTE] = CFG_IF_BAUD_9600;
     config[CFG_PA_BYTE] = 0;
@@ -56,12 +59,10 @@ TEST_F(Helium_100_Live_Radio_Test, SetConfig)
     config[CFG_RF_TX_BAUD_BYTE] = CFG_RF_BAUD_9600;
     config[CFG_RX_MOD_BYTE] = CFG_RX_MOD_GFSK;
     config[CFG_TX_MOD_BYTE] = CFG_TX_MOD_GFSK;
-    //config[CFG_RX_FREQ_BYTE1] = CFG_RX_FREQ_DEFAULT; // 144200L
     config[CFG_RX_FREQ_BYTE1] = 0x48;
     config[CFG_RX_FREQ_BYTE2] = 0x33;
     config[CFG_RX_FREQ_BYTE3] = 0x02;
     config[CFG_RX_FREQ_BYTE4] = 0x00;
-    //config[CFG_TX_FREQ_BYTE1] = CFG_TX_FREQ_DEFAULT; // 431000L
     config[CFG_TX_FREQ_BYTE1] = 0x98;
     config[CFG_TX_FREQ_BYTE2] = 0x93;
     config[CFG_TX_FREQ_BYTE3] = 0x06;
@@ -69,14 +70,13 @@ TEST_F(Helium_100_Live_Radio_Test, SetConfig)
 
     char source_callsign[7] = "VA3ORB";
     char destination_callsign[7] = "VE2CUA";
-    //config[CFG_SRC_CALL_BYTE] = CFG_SRC_CALL_DEF; // "VA3ORB"
     memcpy(config+CFG_SRC_CALL_BYTE, &source_callsign,7);
-    //config[CFG_DST_CALL_BYTE] = CFG_DST_CALL_DEF; // "VE2CUA"
     memcpy(config+CFG_DST_CALL_BYTE, &destination_callsign,7);
 
-    config[CFG_TX_PREAM_BYTE] = CFG_TX_PREAM_DEF;
-    config[CFG_TX_PREAM_BYTE] = CFG_TX_PREAM_DEF;
-    config[CFG_TX_POSTAM_BYTE] = CFG_TX_POSTAM_DEF;
+    config[CFG_TX_PREAM_BYTE] = 0; //CFG_TX_PREAM_DEF;
+    config[CFG_TX_PREAM_BYTE+1] = 0; //CFG_TX_PREAM_DEF;
+    config[CFG_TX_POSTAM_BYTE] = 0; //CFG_TX_POSTAM_DEF;
+    config[CFG_TX_POSTAM_BYTE+1] = 0; //CFG_TX_POSTAM_DEF;
     config[CFG_FUNCTION_CONFIG_BYTE] = 0;
     config[CFG_FUNCTION_CONFIG_BYTE+1] = 0;
     config[CFG_FUNCTION_CONFIG2_BYTE] = 0;
@@ -90,13 +90,18 @@ TEST_F(Helium_100_Live_Radio_Test, SetConfig)
             config[z]
         );
     }
-
-    struct he100_settings settings = HE100_collectConfig(config);
+    */
+    //struct he100_settings settings = HE100_collectConfig(config_manual);
+    //struct he100_settings settings = HE100_collectConfig(config);
+    struct he100_settings settings = HE100_collectConfig(config_old);
 
     FILE *test_log;
-    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
-    HE100_printSettings( test_log, settings );
-    fclose(test_log);
+    if (test_log != NULL)
+    {
+        test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
+        HE100_printSettings( test_log, settings );
+        fclose(test_log);
+    }
 
     int result = HE100_setConfig(fdin,settings);
 
@@ -110,9 +115,12 @@ TEST_F(Helium_100_Live_Radio_Test, GetConfig)
     int result = HE100_getConfig(fdin,settings);
 
     FILE *test_log;
-    test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
-    HE100_printSettings( test_log, *settings );
-    fclose(test_log);
+    if (test_log != NULL)
+    {
+        test_log = Shakespeare::open_log(LOG_PATH,PROCESS);
+        HE100_printSettings( test_log, *settings );
+        fclose(test_log);
+    }
 
     ASSERT_EQ(CS1_SUCCESS,result);
 }

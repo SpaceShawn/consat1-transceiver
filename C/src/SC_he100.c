@@ -137,7 +137,10 @@ HE100_validateFrame (unsigned char *response, size_t length)
         p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
     }
 
-    if (response[HE_LENGTH_BYTE_0] == response[HE_LENGTH_BYTE] ) /* ACK or NOACK or EMPTY length */
+    if (
+            response[HE_LENGTH_BYTE_0] == response[HE_LENGTH_BYTE] 
+        ||  response[HE_LENGTH_BYTE_0] == HE_NOACK
+       ) /* ACK or NOACK or EMPTY length */
     {
         char output[MAX_LOG_BUFFER_LEN];
         Shakespeare::Priority logPriority;
@@ -188,7 +191,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
 
     if (payload_length==0 && response[HE_LENGTH_BYTE] != 0) {
 #ifdef CS1_DEBUG
-        HE100_dumpHex(stdout, response, length);
+        //HE100_dumpHex(stdout, response, length);
 #endif
         char error[MAX_LOG_BUFFER_LEN];
         sprintf (
@@ -507,12 +510,11 @@ HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_leng
 
     int prepare_result = HE100_prepareTransmission(payload,transmission,payload_length,command);
 #ifdef CS1_DEBUG
-      char debug_msg[MAX_LOG_BUFFER_LEN] = {0};
-      char hex_representation[MAX_LOG_BUFFER_LEN] = {0};
-      HE100_snprintfHex(hex_representation,transmission,payload_length+WRAPPER_LENGTH);      
-      snprintf (debug_msg,MAX_LOG_BUFFER_LEN, "Prepared payload: %s",hex_representation);
+    char debug_msg[MAX_LOG_BUFFER_LEN] = {0};
+    char hex_representation[MAX_LOG_BUFFER_LEN] = {0};
+    HE100_snprintfHex(hex_representation,transmission,payload_length+WRAPPER_LENGTH);      
+    snprintf (debug_msg,MAX_LOG_BUFFER_LEN, "Prepared payload: %s",hex_representation);
 #endif
-    // if preparation successful, write the bytes to the radio
     if ( prepare_result == 0) {
 #ifdef CS1_DEBUG
       Shakespeare::log(Shakespeare::NOTICE,PROCESS,"Prepare successful");
@@ -666,22 +668,26 @@ HE100_collectConfig (unsigned char * buffer)
             buffer[CFG_FUNCTION_CONFIG_BYTE+1]
         ;
 
+        /*
         memcpy (
                 (unsigned char*)buffer+CFG_FUNCTION_CONFIG_BYTE,
                 &fc1_t,
                 sizeof(struct function_config)
         );
+        */
 
         fc2_t =
             buffer[CFG_FUNCTION_CONFIG2_BYTE] << 8 |
             buffer[CFG_FUNCTION_CONFIG2_BYTE+1]
         ;
 
+        /*
         memcpy (
                 (unsigned char*)buffer+CFG_FUNCTION_CONFIG2_BYTE,
                 &fc2_t,
                 sizeof(struct function_config2)
         );
+        */
     }
 
     memcpy(
@@ -723,13 +729,27 @@ HE100_collectConfig (unsigned char * buffer)
     settings.function_config.beacon_oa_cmd_status       = fc1 & (0xf << 13);
     settings.function_config.beacon_oa_cmd_status       = fc1 & (0xf << 14);
     */
+    settings.function_config.led                        = 0;
+    settings.function_config.pin13                      = 0;
+    settings.function_config.pin14                      = 0;
+    settings.function_config.crc_tx                     = 0;
+    settings.function_config.crc_rx                     = 0;
+    settings.function_config.telemetry_dump_status      = 0;
+    settings.function_config.telemetry_rate             = 0;
+    settings.function_config.telemetry_status           = 0;
+    settings.function_config.beacon_radio_reset_status  = 0;
+    settings.function_config.beacon_code_upload_status  = 0;
+    settings.function_config.beacon_oa_cmd_status       = 0;
+    settings.function_config.beacon_oa_cmd_status       = 0;
 
+    /*
     memcpy (
             &settings.function_config,
             (unsigned char*)buffer+CFG_FUNCTION_CONFIG_BYTE,
             sizeof(struct function_config)
             // CFG_FUNCTION_CONFIG_LENGTH
     );
+    */
 
     /*
     struct function_config2 {
@@ -750,13 +770,22 @@ HE100_collectConfig (unsigned char * buffer)
     settings.function_config2.rxcw      = fc2 & ( 0xf << 11 );
     settings.function_config2.rafc      = fc2 & ( 0xf << 12 );
     */
+    settings.function_config2.t0        = 0;
+    settings.function_config2.t4        = 0;
+    settings.function_config2.t8        = 0;
+    settings.function_config2.tbd       = 0;
+    settings.function_config2.txcw      = 0;
+    settings.function_config2.rxcw      = 0;
+    settings.function_config2.rafc      = 0;
 
+    /*
     memcpy (
             &settings.function_config2,
             (unsigned char*)buffer+CFG_FUNCTION_CONFIG2_BYTE,
             sizeof(struct function_config2)
             // CFG_FUNCTION_CONFIG2_LENGTH
     );
+    */
 
     return settings;
 }
