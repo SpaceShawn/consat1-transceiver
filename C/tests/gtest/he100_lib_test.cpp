@@ -388,8 +388,8 @@ TEST_F(Helium_100_Test, TestCollectValidConfig)
     if (test_log != NULL) {
       HE100_printSettings( test_log, test_settings_1 );
       HE100_printSettings( test_log, test_settings_2 );
-      fclose(test_log);
     }
+    fclose(test_log);
 
     ASSERT_EQ (0, validation_result);   
     validation_result = HE100_validateConfig(test_settings_2);
