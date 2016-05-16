@@ -4,6 +4,9 @@ from transclib import *
 import ConfigParser
 import signal # for interrupt handler
 
+from threading import Thread
+from time import sleep
+
 config = ConfigParser.ConfigParser()
 config.read('transceiver.ini')
 print config.sections()
@@ -47,29 +50,8 @@ def signal_handler(signal, frame):
   sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
-def SC_writeCallback(input):
-  ser.write(input)
-  out = ''	
-  time.sleep(1);
-
-  while ser.inWaiting() > 0:
-    out += ser.read(1)
-    
-  if out!= '':
-    print 'Response:'    
-    response = toHex(out)
-    print response
-    if ((response == '486520060a0a3ab0') | (response == '486520010a0a35a1') | (response == '486520030a0a37a7') | (response == '486520200a0a54fe')):
-      print 'Acknowledge'
-    elif (response == '48652001ffff1f80'):
-      print 'Not-Acknowledge'
-    elif (bytearray.fromhex(response) == input):
-      print 'Serial device is off'
-  else :
-    print 'You suck'
-  print '\r'
-
 def SC_printMenu():
+  print 'conv - k - enter conversation mode \r'
   print 'checksum - cs - return a checksum of the entered text \r'
   print 'noop - np - send no-op sequence\r'
   print 'listen - l - listen for incoming communication\r'
@@ -89,6 +71,36 @@ def SC_printMenu():
 #  print "error opening serial port: " + str(e)
 #  exit()
 
+def SC_writeCallback(input):
+  ser.write(input)
+  out = ''	
+  time.sleep(1);
+
+  while ser.inWaiting() > 0:
+    out += ser.read(1)
+    
+  if out!= '':
+    print 'Response:'    
+    response = toHex(out)
+    print response
+    if ( (response[4] == '0a') and (response[5] == '0a') ):
+      print 'Acknowledge'
+    elif ((response[4] == 'ff') and (response[5] == 'ff') ):
+      print 'Not-Acknowledge'
+    elif (bytearray.fromhex(response) == input):
+      print 'Serial device is off'
+  else :
+    print 'Unknown problem, maybe radio is off'
+  print '\r'
+
+def SC_transmitPrompt():
+  while True:
+    print 'Enter a message to transmit'
+    input=raw_input()
+    if len(input) == 0:
+        input = " "
+    SC_writeCallback(SC_transmit(input))
+
 if ser.isOpen():
   print 'Enter commands for the transceiver below.\r\nType "menu" for predefined commands, and "exit" to quit'
   input=1
@@ -102,6 +114,15 @@ if ser.isOpen():
     elif input == "menu":
       SC_printMenu()
 
+    elif ((input == "conv") | (input == "k")):
+      ta = Thread( target=SC_transmitPrompt() )
+      tb = Thread( target=SC_listen(ser) )
+
+      ta.start()
+      tb.start()
+    
+      ta.join()
+       
     elif ((input == "listen") | (input == "l")):
       SC_listen(ser) 
 
@@ -114,9 +135,7 @@ if ser.isOpen():
       SC_writeCallback(input)
 
     elif ((input == "transmit") | (input == "t")):
-      print 'Enter a message to transmit'
-      input=raw_input()
-      SC_writeCallback(SC_transmit(input))
+      SC_transmitPrompt()
 
     elif ((input == "testtransmit") | (input == "tt")):
       input = SC_testTransmit()
