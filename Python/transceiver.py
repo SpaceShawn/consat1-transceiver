@@ -122,6 +122,7 @@ if ser.isOpen():
       tb.start()
     
       ta.join()
+      tb.join()
        
     elif ((input == "listen") | (input == "l")):
       SC_listen(ser) 
