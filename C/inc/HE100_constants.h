@@ -22,40 +22,41 @@
  */
 
 // Transceiver error codes
-#define HE_SUCCESS                  0
-#define HE_FAILED_OPEN_PORT         1
-#define HE_FAILED_CLOSE_PORT        2
-#define HE_NOT_A_TTY                3 
-#define HE_INVALID_COMMAND          4
-#define HE_NOT_READY                5
-#define HE_POWER_OFF                6
-#define HE_FAILED_TTY_CONFIG        7
-#define HE_FAILED_SET_BAUD          8
-#define HE_FAILED_FLUSH             9
-#define HE_FAILED_CHECKSUM          10
-#define HE_FAILED_NACK              11
-#define HE_INVALID_BYTE_SEQUENCE    12
-#define HE_EMPTY_RESPONSE           13
-#define HE_INVALID_POWER_AMP_LEVEL  14
-#define HE_INVALID_IF_BAUD_RATE     15
-#define HE_INVALID_RF_BAUD_RATE     16
-#define HE_INVALID_RX_MOD           17
-#define HE_INVALID_TX_MOD           18
-#define HE_INVALID_RX_FREQ          19
-#define HE_INVALID_TX_FREQ          20
-#define HE_INVALID_CALLSIGN         21
-#define HE_INVALID_TX_PREAM         22
-#define HE_INVALID_TX_POSTAM        23
-#define HE_INVALID_RX_PREAM         24
-#define HE_INVALID_RX_POSTAM        25
-#define HE_INVALID_CRC              26
-#define HE_INVALID_DIO_PIN13        27
-#define HE_INVALID_RXTX_TEST        28
-#define HE_INVALID_EXT              29
-#define HE_INVALID_LED              30
-#define HE_INVALID_CONFIG           31
-#define HE_FAILED_GET_CONFIG        32
-#define HE_FAILED_READ              33
+#define HE_SUCCESS                      0
+#define HE_FAILED_OPEN_PORT             1
+#define HE_FAILED_CLOSE_PORT            2
+#define HE_NOT_A_TTY                    3 
+#define HE_INVALID_COMMAND              4
+#define HE_NOT_READY                    5
+#define HE_POWER_OFF                    6
+#define HE_FAILED_TTY_CONFIG            7
+#define HE_FAILED_SET_BAUD              8
+#define HE_FAILED_FLUSH                 9
+#define HE_FAILED_CHECKSUM              10
+#define HE_FAILED_NACK                  11
+#define HE_INVALID_BYTE_SEQUENCE        12
+#define HE_EMPTY_RESPONSE               13
+#define HE_INVALID_POWER_AMP_LEVEL      14
+#define HE_INVALID_IF_BAUD_RATE         15
+#define HE_INVALID_RF_BAUD_RATE         16
+#define HE_INVALID_RX_MOD               17
+#define HE_INVALID_TX_MOD               18
+#define HE_INVALID_RX_FREQ              19
+#define HE_INVALID_TX_FREQ              20
+#define HE_INVALID_CALLSIGN             21
+#define HE_INVALID_TX_PREAM             22
+#define HE_INVALID_TX_POSTAM            23
+#define HE_INVALID_RX_PREAM             24
+#define HE_INVALID_RX_POSTAM            25
+#define HE_INVALID_CRC                  26
+#define HE_INVALID_DIO_PIN13            27
+#define HE_INVALID_RXTX_TEST            28
+#define HE_INVALID_EXT                  29
+#define HE_INVALID_LED                  30
+#define HE_INVALID_CONFIG               31
+#define HE_FAILED_GET_CONFIG            32
+#define HE_FAILED_READ                  33
+#define HE_FAILED_PREPARE_TRANSMISSION  34
 
 extern const char *HE_STATUS[34];
 extern const char *CMD_CODE_LIST[32];

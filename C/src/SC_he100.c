@@ -166,8 +166,9 @@ HE100_validateFrame (unsigned char *response, size_t length)
     
     if (h_chk != 0) {
        char error[MAX_LOG_BUFFER_LEN];
-       sprintf (
+       snprintf (
                 error, 
+                MAX_LOG_BUFFER_LEN,
                 "Invalid header checksum. Incoming: [%d,%d] Calculated: [%d,%d] %s, %d", 
                 (uint8_t)response[HE_HEADER_CHECKSUM_BYTE_1],(uint8_t)response[HE_HEADER_CHECKSUM_BYTE_2],
                 (uint8_t)h_chksum.sum1,(uint8_t)h_chksum.sum2, 
@@ -179,8 +180,9 @@ HE100_validateFrame (unsigned char *response, size_t length)
 
     if (p_chk != 0) {
         char error[MAX_LOG_BUFFER_LEN];
-        sprintf (
+        snprintf (
                 error, 
+                MAX_LOG_BUFFER_LEN,
                 "Invalid payload checksum. Incoming: [%d,%d] Calculated: [%d,%d] %s, %d", 
                 (uint8_t)response[pb1],(uint8_t)response[pb2],(uint8_t)p_chksum.sum1,(uint8_t)p_chksum.sum2,
                 __func__, __LINE__
@@ -194,8 +196,9 @@ HE100_validateFrame (unsigned char *response, size_t length)
         //HE100_dumpHex(stdout, response, length);
 #endif
         char error[MAX_LOG_BUFFER_LEN];
-        sprintf (
+        snprintf (
                 error, 
+                MAX_LOG_BUFFER_LEN,
                 "Unrecognized byte sequence. Zero length payload should be indicated by zero length byte, or by ACK/NACK %s, %d", 
                 __func__, __LINE__
         );
@@ -362,24 +365,44 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
                     else if (SVR_result == CS1_NULL_MALLOC) 
                     {   // memory allocation problem in validateFrame()
                         char error[MAX_LOG_BUFFER_LEN];
-                        snprintf (error, MAX_LOG_BUFFER_LEN, "Memory allocation problem: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+                        snprintf (
+                            error, 
+                            MAX_LOG_BUFFER_LEN, 
+                            "Memory allocation problem: %d, %s, %s, %d", 
+                            fdin, strerror(errno), __func__, __LINE__
+                        );
                         Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
                         r=-1;
                     }
                     else
                     {   // something unexpected
                         char error[MAX_LOG_BUFFER_LEN];
-                        snprintf (error, MAX_LOG_BUFFER_LEN, "Invalid Data: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
+                        snprintf (
+                            error, 
+                            MAX_LOG_BUFFER_LEN, 
+                            "Invalid Data: %d, %d, %s, %d", 
+                            fdin, SVR_result, __func__, __LINE__
+                        );
                         Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
                         r=-1;
                        
                         // soft reset the transceiver
                         char log_msg[MAX_LOG_BUFFER_LEN]; // prepare to log result of soft reset
                         if ( HE100_softReset(fdin) == 0 ) {
-                            sprintf (log_msg, "Soft Reset written successfully!: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
+                            snprintf (
+                                log_msg, 
+                                MAX_LOG_BUFFER_LEN,
+                                "Soft Reset written successfully!: %d, %d, %s, %d", 
+                                fdin, SVR_result, __func__, __LINE__
+                            );
                         } 
                         else { 
-                            sprintf (log_msg, "Soft Reset FAILED: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
+                            snprintf (
+                                log_msg, 
+                                MAX_LOG_BUFFER_LEN,
+                                "Soft Reset FAILED: %d, %d, %s, %d", 
+                                fdin, SVR_result, __func__, __LINE__
+                            );
                         }
                         Shakespeare::log(Shakespeare::ERROR, PROCESS, log_msg);
                     }
@@ -394,7 +417,12 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
         else if (ret_value == -1) 
         {   // bad or no read
             char error[MAX_LOG_BUFFER_LEN];
-            snprintf (error, MAX_LOG_BUFFER_LEN, "Problem with poll(): %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+            snprintf (
+                error, 
+                MAX_LOG_BUFFER_LEN, 
+                "Problem with poll(): %d, %s, %s, %d", 
+                fdin, strerror(errno), __func__, __LINE__
+            );
             Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
             r = -1;
         }
@@ -526,7 +554,7 @@ HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_leng
       Shakespeare::log(Shakespeare::ERROR,PROCESS,"Prepare failed");
       Shakespeare::log(Shakespeare::ERROR,PROCESS,debug_msg);
 #endif
-        return 1;
+        return HE_FAILED_PREPARE_TRANSMISSION;
     }
 }
 
@@ -1030,9 +1058,12 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
         // TODO WHY // &&  he100_new_settings.interface_baud_rate != CFG_DEF_IF_BAUD 
     )
     {
-        sprintf(validation_log_entry,"%s %s ^%s@%d",
-                HE_STATUS[HE_INVALID_IF_BAUD_RATE],if_baudrate[he100_new_settings.interface_baud_rate],
-                __func__,__LINE__
+        snprintf(
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s %s ^%s@%d",
+            HE_STATUS[HE_INVALID_IF_BAUD_RATE],if_baudrate[he100_new_settings.interface_baud_rate],
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_IF_BAUD_RATE;
@@ -1044,9 +1075,12 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
             && he100_new_settings.tx_power_amp_level <= MIN_PA_LEVEL // always true
     ) 
     { 
-        sprintf(validation_log_entry,"%s BAUD:%d ^%s@%d",
-                HE_STATUS[HE_INVALID_POWER_AMP_LEVEL],he100_new_settings.tx_power_amp_level,
-                __func__,__LINE__
+        snprintf(
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s BAUD:%d ^%s@%d",
+            HE_STATUS[HE_INVALID_POWER_AMP_LEVEL],he100_new_settings.tx_power_amp_level,
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_POWER_AMP_LEVEL;
@@ -1061,11 +1095,14 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
         &&  he100_new_settings.tx_rf_baud_rate <= MIN_RF_BAUD_RATE // always true
     ) 
     {
-        sprintf(validation_log_entry,"%s MAX:%d MIN:%d INDEX:%d BAUD:%s ^%s@%d",
-                HE_STATUS[HE_INVALID_RF_BAUD_RATE],
-                MAX_RF_BAUD_RATE, MIN_RF_BAUD_RATE,
-                he100_new_settings.tx_power_amp_level,rf_baudrate[he100_new_settings.tx_power_amp_level],
-                __func__,__LINE__
+        snprintf(
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s MAX:%d MIN:%d INDEX:%d BAUD:%s ^%s@%d",
+            HE_STATUS[HE_INVALID_RF_BAUD_RATE],
+            MAX_RF_BAUD_RATE, MIN_RF_BAUD_RATE,
+            he100_new_settings.tx_power_amp_level,rf_baudrate[he100_new_settings.tx_power_amp_level],
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_RF_BAUD_RATE;
@@ -1076,12 +1113,15 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
             he100_new_settings.rx_modulation != CFG_RX_MOD_DEFAULT
     )
     {
-        sprintf(validation_log_entry,"%s [rx] expected[%d] actual[%d] ^%s@%d",
-                HE_STATUS[HE_INVALID_RX_MOD],
-                CFG_RX_MOD_DEFAULT,
-                he100_new_settings.rx_modulation,
-                __func__,__LINE__
-        );
+        snprintf(
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s [rx] expected[%d] actual[%d] ^%s@%d",
+            HE_STATUS[HE_INVALID_RX_MOD],
+            CFG_RX_MOD_DEFAULT,
+            he100_new_settings.rx_modulation,
+            __func__,__LINE__
+    );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_RX_MOD; 
     }
@@ -1090,11 +1130,14 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
          he100_new_settings.tx_modulation != CFG_TX_MOD_DEFAULT        
     )
     {
-        sprintf(validation_log_entry,"%s expected[%d] actual[%d] ^%s@%d",
-                HE_STATUS[HE_INVALID_TX_MOD],
-                CFG_TX_MOD_DEFAULT,
-                he100_new_settings.tx_modulation,
-                __func__,__LINE__
+        snprintf(
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s expected[%d] actual[%d] ^%s@%d",
+            HE_STATUS[HE_INVALID_TX_MOD],
+            CFG_TX_MOD_DEFAULT,
+            he100_new_settings.tx_modulation,
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_TX_MOD;
@@ -1107,9 +1150,12 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
      || (he100_new_settings.rx_freq <= MIN_LOWER_FREQ && he100_new_settings.rx_freq >= MAX_LOWER_FREQ)
     )
     { 
-        sprintf(validation_log_entry,"%s rx:%d ^%s@%d",
-                HE_STATUS[HE_INVALID_RX_FREQ],he100_new_settings.rx_freq,
-                __func__,__LINE__
+        snprintf(
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s rx:%d ^%s@%d",
+            HE_STATUS[HE_INVALID_RX_FREQ],he100_new_settings.rx_freq,
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_RX_FREQ;
@@ -1121,9 +1167,12 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
      || (he100_new_settings.tx_freq <= MIN_LOWER_FREQ && he100_new_settings.tx_freq >= MAX_LOWER_FREQ)
     )
     {
-        sprintf(validation_log_entry,"%s tx:%d ^%s@%d",
-                HE_STATUS[HE_INVALID_TX_FREQ],he100_new_settings.tx_freq,
-                __func__,__LINE__
+        snprintf(
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s tx:%d ^%s@%d",
+            HE_STATUS[HE_INVALID_TX_FREQ],he100_new_settings.tx_freq,
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_TX_FREQ;
@@ -1136,9 +1185,12 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
      || ( memcmp(he100_new_settings.destination_callsign, CFG_DST_CALL_DEF, 1 ) != 0 )
     )
     {
-        sprintf(validation_log_entry,"%s source:%s destination:%s ^%s@%d",
-                HE_STATUS[HE_INVALID_CALLSIGN],he100_new_settings.source_callsign,he100_new_settings.destination_callsign,
-                __func__,__LINE__
+        snprintf(
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s source:%s destination:%s ^%s@%d",
+            HE_STATUS[HE_INVALID_CALLSIGN],he100_new_settings.source_callsign,he100_new_settings.destination_callsign,
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_CALLSIGN;
