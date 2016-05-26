@@ -457,12 +457,12 @@ TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
     config1a[CFG_RF_TX_BAUD_BYTE] = CFG_RF_BAUD_9600;
     config1a[CFG_RX_MOD_BYTE] = CFG_RX_MOD_GFSK;
     config1a[CFG_TX_MOD_BYTE] = CFG_TX_MOD_GFSK;
-    //config1a[CFG_RX_FREQ_BYTE1] = CFG_RX_FREQ_DEFAULT; // 144200L
+    // CFG_RX_FREQ_DEFAULT 144200L
     config1a[CFG_RX_FREQ_BYTE1] = 0x48;
     config1a[CFG_RX_FREQ_BYTE2] = 0x33;
     config1a[CFG_RX_FREQ_BYTE3] = 0x02;
     config1a[CFG_RX_FREQ_BYTE4] = 0x00;
-    //config1a[CFG_TX_FREQ_BYTE1] = CFG_TX_FREQ_DEFAULT; // 431000L
+    // CFG_TX_FREQ_DEFAULT 431000L
     config1a[CFG_TX_FREQ_BYTE1] = 0x98;
     config1a[CFG_TX_FREQ_BYTE2] = 0x93;
     config1a[CFG_TX_FREQ_BYTE3] = 0x06;
@@ -484,11 +484,10 @@ TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
     config1a[CFG_TX_PREAM_BYTE] = CFG_TX_PREAM_DEF; // zero preamble bytes
     config1a[CFG_TX_POSTAM_BYTE] = CFG_TX_POSTAM_DEF; // zero postamble bytes  
     config1a[CFG_TX_POSTAM_BYTE] = CFG_TX_POSTAM_DEF; // zero postamble bytes  
-    config1a[CFG_FUNCTION_CONFIG_BYTE] = 0; 
-    config1a[CFG_FUNCTION_CONFIG_BYTE+1] = 0; 
+    config1a[CFG_FUNCTION_CONFIG_BYTE] = 3; 
+    config1a[CFG_FUNCTION_CONFIG_BYTE+1] = 0; // LED ON
     config1a[CFG_FUNCTION_CONFIG2_BYTE] = 0;
     config1a[CFG_FUNCTION_CONFIG2_BYTE+1] = 0;
-    
 
     /* 
      * Method 2 - use the configuration structures
@@ -499,27 +498,27 @@ TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
      */
     struct he100_settings config1b;
     struct function_config fc1;
-    fc1.led=0;
-    fc1.pin13=0;           
-    fc1.pin14=0;
-    fc1.crc_tx=0;
-    fc1.crc_rx=0; 
-    fc1.telemetry_dump_status=0; // enable telemetry dump
-    fc1.telemetry_rate=0; // logging rate 0 1/10 Hz, 1 1 Hz, 2 2 Hz, 3 4 Hz
-    fc1.telemetry_status=0;  // enable telemetry logging 
-    fc1.beacon_radio_reset_status=0; // enable radio reset
-    fc1.beacon_code_upload_status=0; // enable code upload
-    fc1.beacon_oa_cmd_status=0; // enable OA Commands
-    fc1.beacon_0=0;
+    fc1.led                       = CFG_FC_LED_RXTOG;
+    fc1.pin13                     = CFG_FC_PIN13_OFFLOGICLOW;
+    fc1.pin14                     = CFG_FC_PIN14_OFFLOGICLOW;
+    fc1.crc_tx                    = CFG_FC_RX_CRC_OFF; 
+    fc1.crc_rx                    = CFG_FC_TX_CRC_OFF;
+    fc1.telemetry_dump_status     = CFG_FC_TELEMETRY_DUMP_OFF;
+    fc1.telemetry_rate            = CFG_FC_TELEMETRY_RATE_P10HZ;
+    fc1.telemetry_status          = CFG_FC_TELEMETRY_OFF;
+    fc1.beacon_radio_reset_status = CFG_FC_BEACON_CODE_RESET_OFF;
+    fc1.beacon_code_upload_status = CFG_FC_BEACON_CODE_UPLOAD_OFF;
+    fc1.beacon_oa_cmd_status      = CFG_FC_BEACON_OA_COMMANDS_OFF;
+    fc1.beacon_0=0; // LEAVE 0 - factory settings restore flag
 
     struct function_config2 fc2;
-    fc2.t0=0;
-    fc2.t4=0;
-    fc2.t8=0;
-    fc2.tbd=0;
-    fc2.txcw=0;
-    fc2.rxcw=0;
-    fc2.rafc=0;
+    fc2.t0   = 0;  // leave 0, unknown
+    fc2.t4   = 0;  // leave 0, unknown
+    fc2.t8   = 0;  // leave 0, unknown
+    fc2.tbd  = 0; // leave 0, unknown
+    fc2.txcw = CFG_FC_TXCW_OFF;
+    fc2.rxcw = CFG_FC_RXCW_OFF;
+    fc2.rafc = CFG_FC_RAFC_OFF;
 
     config1b.interface_baud_rate = CFG_IF_BAUD_9600;
     config1b.tx_power_amp_level = 111;
@@ -555,6 +554,11 @@ TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
         HE100_prepareConfig(*config2, config1b)
     );
 
+    uint16_t fc1_int = (uint16_t)config2[CFG_FUNCTION_CONFIG_BYTE];
+    print_binary(fc1_int);
+    uint16_t fc2_int = (uint16_t)config2[CFG_FUNCTION_CONFIG2_BYTE];
+    print_binary(fc2_int);
+
     printf ("Byte: x \t CFG_BYTE_LIST             \t Exp\t :\t Act\n");
     // check that config1 is the same as config1a
     for (z=0; z<CFG_PAYLOAD_LENGTH; z++) {
@@ -566,31 +570,17 @@ TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
     }
 }
 
-void print_binary(int n)
-{
-    int r[100]={0},i=0;
-    while(n>0)
-    {
-        r[i]=n%2;
-        n=n/2;
-        i++;
-    }
-    for(;i>=0;i--)
-    {
-        printf("%d",r[i]);
-    }
-    printf("\n");
-}
-
 TEST_F(Helium_100_Test, InterpretFunctionConfig) 
 {
     //unsigned char * config_value = (unsigned char *)0b0111110111011111;
-    printf("Size of function_config: %d \r\n", (unsigned) sizeof(struct function_config));
+    
+    printf("Size of function_config: %d \r\n", CFG_FUNCTION_CONFIG_LENGTH);
     int config_value = 0x7ddf;
-    struct function_config fc1;
+    int config2_value = 0x0000;
+
+    struct function_config  fc1;
     
     print_binary(config_value);
-
     memcpy (&fc1,&config_value,CFG_FUNCTION_CONFIG_LENGTH);
     ASSERT_EQ(0,fc1.beacon_0);
     ASSERT_EQ(CFG_FC_BEACON_CODE_RESET_ON,fc1.beacon_oa_cmd_status);
@@ -604,6 +594,26 @@ TEST_F(Helium_100_Test, InterpretFunctionConfig)
     ASSERT_EQ(CFG_FC_PIN14_DIOOVERAIR_ON,fc1.pin14);
     ASSERT_EQ(CFG_FC_PIN13_RXPACKETTOG,fc1.pin13);
     ASSERT_EQ(CFG_FC_LED_RXTOG,fc1.led);
+
+    /*
+    struct function_config fc1_comp;
+    fc1_comp.led = CFG_FC_LED_RXTOG;
+    fc1_comp.pin13 = CFG_FC_PIN13_RXPACKETTOG;
+
+    fc1_comp.beacon_0 = 0;
+
+    struct function_config2 fc2;
+
+    print_binary(config2_value);
+    memcpy (&fc2,&config2_value,CFG_FUNCTION_CONFIG2_LENGTH);
+    ASSERT_EQ(0,fc2.t0);
+    ASSERT_EQ(0,fc2.t4);
+    ASSERT_EQ(0,fc2.t8);
+    ASSERT_EQ(0,fc2.tbd);
+    ASSERT_EQ(0,fc2.txcw);
+    ASSERT_EQ(0,fc2.rxcw);
+    ASSERT_EQ(0,fc2.rafc);
+    */
 }
 
 

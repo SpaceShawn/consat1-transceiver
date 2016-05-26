@@ -211,6 +211,21 @@ HE100_validateFrame (unsigned char *response, size_t length)
     return r;
 }
 
+void print_binary(int n)
+{
+    int r[100]={0},i=0;
+    while(n>0)
+    {
+        r[i]=n%2;
+        n=n/2;
+        i++;
+    }
+    for(;i>=0;i--)
+    {
+        printf("%d",r[i]);
+    }
+    printf("\n");
+}
 /* Function to dump a given array to a given file descriptor */
 int
 HE100_dumpBinary(FILE *fdout, unsigned char *bytes, size_t size)
@@ -710,7 +725,6 @@ HE100_collectConfig (unsigned char * buffer)
             buffer[CFG_FUNCTION_CONFIG2_BYTE] << 8 |
             buffer[CFG_FUNCTION_CONFIG2_BYTE+1]
         ;
-
         
         memcpy (
                 (unsigned char*)buffer+CFG_FUNCTION_CONFIG2_BYTE,
@@ -784,7 +798,7 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
 
     struct function_config fc1 = settings.function_config;
 
-    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_LED[fc1.crc_rx],fc1.crc_rx);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_LED[fc1.led],fc1.led);
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_PIN13[fc1.pin13],fc1.pin13);
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_PIN14[fc1.pin14],fc1.pin14);
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_RX_CRC[fc1.crc_rx],fc1.crc_rx);
@@ -829,6 +843,23 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     fprintf(fdout,"EXT:                   %s [%02X] \r\n", ext_conf_value, settings.ext_conf_setting);
     */
    
+    fprintf(
+        fdout,
+        "Function Config        [%1X%1X%1X%1X%1X%1X%1X%1X%1X%1X%1X%1X]\r\n",
+        fc1.beacon_0,
+        fc1.beacon_oa_cmd_status,
+        fc1.beacon_code_upload_status,
+        fc1.beacon_radio_reset_status,
+        fc1.telemetry_status,
+        fc1.telemetry_rate,
+        fc1.telemetry_dump_status,
+        fc1.crc_rx,
+        fc1.crc_tx,
+        fc1.pin14,
+        fc1.pin13,
+        fc1.led
+    );
+
     struct function_config2 fc2 = settings.function_config2;
     fprintf(
         fdout,
@@ -1002,6 +1033,10 @@ int HE100_swapConfigEndianness (struct he100_settings &settings)
     return HE_SUCCESS;
 }
 
+int HE100_swapFunctionConfigEndianness (struct he100_settings &settings)
+{
+    return -1;
+}
 /**  
  *  This function validates a he100_settings struct
  *  and converts to char array for safe deployment

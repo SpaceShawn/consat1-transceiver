@@ -117,6 +117,7 @@ struct HE100_checksum HE100_fletcher16 (unsigned char *data, size_t bytes);
 int HE100_validateFrame (unsigned char *response, size_t length);
 
 /* Function to dump a given array to a given file descriptor */
+void print_binary(int n);
 int HE100_dumpBinary (FILE *fdout, unsigned char *bytes, size_t size);
 void HE100_dumpHex (FILE *fdout, unsigned char *bytes, size_t size);
 
@@ -208,6 +209,7 @@ int HE100_getConfig (int fdin, struct he100_settings * settings);
 
 // swap endianness of anything larger than 1 byte in the config array
 int HE100_swapConfigEndianness (struct he100_settings & settings);
+int HE100_swapFunctionConfigEndianness (struct he100_settings & settings);
 
 //int HE100_validateConfig (struct he100_settings he100_new_settings, unsigned char * set_config_payload );
 int HE100_prepareConfig (unsigned char &prepared_bytes, struct he100_settings settings);

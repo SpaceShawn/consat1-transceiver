@@ -187,92 +187,67 @@ extern const char *CFG_BYTE_LIST[CFG_FRAME_LENGTH];
 #define CFG_FUNCTION_CONFIG2_BYTE   32
 #define CFG_FUNCTION_CONFIG2_LENGTH 2 // bytes
 
-
-// DEPRECATED
-// RX CRC config
-#define CFG_RX_CRC_BYTE     30 // 31st byte
-#define CFG_RX_CRC_ON       0x43
-#define CFG_RX_CRC_OFF      0x03
-// RX CRC config// DIO - Pin 13 config
-#define CFG_DIO_PIN13_BYTE      30 // 31st byte
-#define CFG_DIO_PIN13_OFF       0x43
-#define CFG_DIO_PIN13_TXRXS     0x47 
-#define CFG_DIO_PIN13_2p5HZ     0x4b
-#define CFG_DIO_PIN13_RXTOG     0x4f
-// LED config
-#define CFG_LED_BYTE 30  // 38th byte in byte array
-#define CFG_LED_PS  0x41 // 2.5 second pulse
-#define CFG_LED_TX  0x42 // flash on transmit
-#define CFG_LED_RX  0x43 // flash on receive
-// TX Test CW config
-#define CFG_RXTX_TEST_CW_BYTE 32 // 33rd byte
-#define CFG_RXTX_TEST_CW_DEF  0x00 
-#define CFG_RXTX_TEST_CW_OFF  0x00 
-#define CFG_TX_TEST_CW_ON     0x02 
-#define CFG_RX_TEST_CW_ON     0x04
-// END DEPRECATED
-
 // function_config
-#define CFG_FC_LED_OFFLOGICLOW              0 //0b00
-#define CFG_FC_LED_PULSE                    1 //0b01
-#define CFG_FC_LED_TXTOG                    2 //0b10
-#define CFG_FC_LED_RXTOG                    3 //0b11
+#define CFG_FC_LED_OFFLOGICLOW              0x0 
+#define CFG_FC_LED_PULSE                    0x1
+#define CFG_FC_LED_TXTOG                    0x2
+#define CFG_FC_LED_RXTOG                    0x3
 #define CFG_FC_LED_DEFAULT                  CFG_FC_LED_OFFLOGICLOW
 extern const char * CFG_FC_LED[4];
 
-#define CFG_FC_PIN13_OFFLOGICLOW            0 //0b00
-#define CFG_FC_PIN13_TXRXSWITCH             1 //0b01 // approx 0.35 seconds high, depends on pre/postamble
-#define CFG_FC_PIN13_2P5HZWDT               2 //0b10
-#define CFG_FC_PIN13_RXPACKETTOG            3 //0b11
+#define CFG_FC_PIN13_OFFLOGICLOW            0x0 
+#define CFG_FC_PIN13_TXRXSWITCH             0x1 //0x01 // approx 0.35 seconds high, depends on pre/postamble
+#define CFG_FC_PIN13_2P5HZWDT               0x2 
+#define CFG_FC_PIN13_RXPACKETTOG            0x3 
 #define CFG_FC_PIN13_DEFAULT                CFG_FC_PIN_13_OFFLOGICLOW
 extern const char * CFG_FC_PIN13[4];
 
-#define CFG_FC_PIN14_OFFLOGICLOW            0 //0b00
-#define CFG_FC_PIN14_DIOOVERAIR_ON          1 //0b01
-#define CFG_FC_PIN14_DIOOVERAIR_A           2 //0b10 // latching high
-#define CFG_FC_PIN14_DIOOVERAIR_B           3 //0b11 // toggle, 72 ms high
+#define CFG_FC_PIN14_OFFLOGICLOW            0x0 //0b00
+#define CFG_FC_PIN14_DIOOVERAIR_ON          0x1 //0b01
+#define CFG_FC_PIN14_DIOOVERAIR_A           0x2 //0b10 // latching high
+#define CFG_FC_PIN14_DIOOVERAIR_B           0x3 //0b11 // toggle, 72 ms high
 #define CFG_FC_PIN14_DEFAULT                CFG_FC_PIN14_OFFLOGICLOW
 extern const char * CFG_FC_PIN14[4];
 
-#define CFG_FC_RX_CRC_OFF                   0 //0b00
-#define CFG_FC_RX_CRC_ON                    1 //0b01
+#define CFG_FC_RX_CRC_OFF                   0x0 //0b00
+#define CFG_FC_RX_CRC_ON                    0x1 //0b01
 #define CFG_FC_RX_CRC_DEFAULT               CFG_FC_RX_CRC_OFF
 extern const char * CFG_FC_RX_CRC[2];
 
-#define CFG_FC_TX_CRC_OFF                   0 //0b00
-#define CFG_FC_TX_CRC_ON                    1 //0b01
+#define CFG_FC_TX_CRC_OFF                   0x0 //0b00
+#define CFG_FC_TX_CRC_ON                    0x1 //0b01
 #define CFG_FC_TX_CRC_DEFAULT               CFG_FC_TX_CRC_OFF
 extern const char * CFG_FC_TX_CRC[2];
 
-#define CFG_FC_TELEMETRY_OFF                0 //0b00
-#define CFG_FC_TELEMETRY_ON                 1 //0b01
+#define CFG_FC_TELEMETRY_OFF                0x0 //0b00
+#define CFG_FC_TELEMETRY_ON                 0x1 //0b01
 #define CFG_FC_TELEMETRY_DEFAULT            CFG_FC_TELEMETRY_OFF
 extern const char * CFG_FC_TELEMETRY[2];
 
-#define CFG_FC_TELEMETRY_RATE_P10HZ         0 //0b00
-#define CFG_FC_TELEMETRY_RATE_1HZ           1 //0b01
-#define CFG_FC_TELEMETRY_RATE_2HZ           2 //0b10
-#define CFG_FC_TELEMETRY_RATE_3HZ           3 //0b11
+#define CFG_FC_TELEMETRY_RATE_P10HZ         0x0 //0b00
+#define CFG_FC_TELEMETRY_RATE_1HZ           0x1 //0b01
+#define CFG_FC_TELEMETRY_RATE_2HZ           0x2 //0b10
+#define CFG_FC_TELEMETRY_RATE_3HZ           0x3 //0b11
 #define CFG_FC_TELEMETRY_RATE_DEFAULT       CFG_FC_TELEMETRY_RATE_P10HZ
 extern const char * CFG_FC_TELEMETRY_RATE[4];
 
-#define CFG_FC_TELEMETRY_DUMP_OFF           0 //0b00
-#define CFG_FC_TELEMETRY_DUMP_ON            1 //0b01
+#define CFG_FC_TELEMETRY_DUMP_OFF           0x0 //0b00
+#define CFG_FC_TELEMETRY_DUMP_ON            0x1 //0b01
 #define CFG_FC_TELEMETRY_DUMP_DEFAULT       CFG_FC_TELEMETRY_DUMP_OFF
 extern const char * CFG_FC_TELEMETRY_DUMP[2];
 
-#define CFG_FC_BEACON_OA_COMMANDS_OFF       0 //0b00
-#define CFG_FC_BEACON_OA_COMMANDS_ON        1 //0b01
+#define CFG_FC_BEACON_OA_COMMANDS_OFF       0x0 //0b00
+#define CFG_FC_BEACON_OA_COMMANDS_ON        0x1 //0b01
 #define CFG_FC_BEACON_OA_COMMANDS_DEFAULT   CFG_FC_BEACON_OA_COMMANDS_OFF
 extern const char * CFG_FC_BEACON_OA_COMMANDS[2];
 
-#define CFG_FC_BEACON_CODE_UPLOAD_OFF       0 //0b00
-#define CFG_FC_BEACON_CODE_UPLOAD_ON        1 //0b01
+#define CFG_FC_BEACON_CODE_UPLOAD_OFF       0x0 //0b00
+#define CFG_FC_BEACON_CODE_UPLOAD_ON        0x1 //0b01
 #define CFG_FC_BEACON_CODE_UPLOAD_DEFAULT   CFG_FC_BEACON_CODE_UPLOAD_OFF
 extern const char * CFG_FC_BEACON_CODE_UPLOAD[2];
 
-#define CFG_FC_BEACON_CODE_RESET_OFF        0 //0b00
-#define CFG_FC_BEACON_CODE_RESET_ON         1 //0b01
+#define CFG_FC_BEACON_CODE_RESET_OFF        0x0 //0b00
+#define CFG_FC_BEACON_CODE_RESET_ON         0x1 //0b01
 #define CFG_FC_BEACON_CODE_RESET_DEFAULT    CFG_FC_BEACON_CODE_RESET_OFF
 extern const char * CFG_FC_BEACON_RESET[2];
 

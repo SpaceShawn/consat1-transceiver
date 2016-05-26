@@ -8,6 +8,9 @@
 #include <shakespeare.h>
 #include <he100.h>
 
+#include <iostream>
+#include <bitset>
+
 #define MAX_TESTED_PAYLOAD 300
 #define PROCESS "HE100"
 #define LOG_PATH "/home/logs"
@@ -51,53 +54,6 @@ TEST_F(Helium_100_Live_Radio_Test, SetConfig)
     char source_callsign[] = CFG_SRC_CALL_DEF;
     char destination_callsign[] = CFG_DST_CALL_DEF;
     
-    unsigned char config_old[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x05,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
-
-    unsigned char config_manual[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-    /*
-    unsigned char config[CFG_PAYLOAD_LENGTH];
-    config[CFG_IF_BAUD_BYTE] = CFG_IF_BAUD_9600;
-    config[CFG_PA_BYTE] = 0;
-    config[CFG_RF_RX_BAUD_BYTE] = CFG_RF_BAUD_9600;
-    config[CFG_RF_TX_BAUD_BYTE] = CFG_RF_BAUD_9600;
-    config[CFG_RX_MOD_BYTE] = CFG_RX_MOD_GFSK;
-    config[CFG_TX_MOD_BYTE] = CFG_TX_MOD_GFSK;
-    config[CFG_RX_FREQ_BYTE1] = 0x48;
-    config[CFG_RX_FREQ_BYTE2] = 0x33;
-    config[CFG_RX_FREQ_BYTE3] = 0x02;
-    config[CFG_RX_FREQ_BYTE4] = 0x00;
-    config[CFG_TX_FREQ_BYTE1] = 0x98;
-    config[CFG_TX_FREQ_BYTE2] = 0x93;
-    config[CFG_TX_FREQ_BYTE3] = 0x06;
-    config[CFG_TX_FREQ_BYTE4] = 0x00;
-
-    char source_callsign[7] = "VA3ORB";
-    char destination_callsign[7] = "VE2CUA";
-    memcpy(config+CFG_SRC_CALL_BYTE, &source_callsign,7);
-    memcpy(config+CFG_DST_CALL_BYTE, &destination_callsign,7);
-
-    config[CFG_TX_PREAM_BYTE] = 0; //CFG_TX_PREAM_DEF;
-    config[CFG_TX_PREAM_BYTE+1] = 0; //CFG_TX_PREAM_DEF;
-    config[CFG_TX_POSTAM_BYTE] = 0; //CFG_TX_POSTAM_DEF;
-    config[CFG_TX_POSTAM_BYTE+1] = 0; //CFG_TX_POSTAM_DEF;
-    config[CFG_FUNCTION_CONFIG_BYTE] = 0;
-    config[CFG_FUNCTION_CONFIG_BYTE+1] = 0;
-    config[CFG_FUNCTION_CONFIG2_BYTE] = 0;
-    config[CFG_FUNCTION_CONFIG2_BYTE+1] = 0;
-
-    printf ("\nByte: x \t CFG_BYTE_LIST             \t Exp\t :\t Act\n");
-    for (z=0; z<CFG_PAYLOAD_LENGTH; z++) {
-        printf ("Byte: %d \t %s \t 0x%X\t :\t 0x%X\n",z,CFG_BYTE_LIST[z],config0[z],config[z]);
-        ASSERT_EQ(
-            config0[z],
-            config[z]
-        );
-    }
-    */
-    //struct he100_settings settings = HE100_collectConfig(config_manual);
-    //struct he100_settings settings = HE100_collectConfig(config);
-    //struct he100_settings settings = HE100_collectConfig(config_old);
-
     /* 
      * Method 2 - use the configuration structures
      * - Must create 
@@ -107,27 +63,27 @@ TEST_F(Helium_100_Live_Radio_Test, SetConfig)
      */
     struct he100_settings settings;
     struct function_config fc1;
-    fc1.led=0;
-    fc1.pin13=0;           
-    fc1.pin14=0;
-    fc1.crc_tx=0;
-    fc1.crc_rx=0; 
-    fc1.telemetry_dump_status=0; // enable telemetry dump
-    fc1.telemetry_rate=0; // logging rate 0 1/10 Hz, 1 1 Hz, 2 2 Hz, 3 4 Hz
-    fc1.telemetry_status=0;  // enable telemetry logging 
-    fc1.beacon_radio_reset_status=0; // enable radio reset
-    fc1.beacon_code_upload_status=0; // enable code upload
-    fc1.beacon_oa_cmd_status=0; // enable OA Commands
-    fc1.beacon_0=0;
+    fc1.led                       = CFG_FC_LED_OFFLOGICLOW;
+    fc1.pin13                     = CFG_FC_PIN13_OFFLOGICLOW;
+    fc1.pin14                     = CFG_FC_PIN14_OFFLOGICLOW;
+    fc1.crc_tx                    = CFG_FC_RX_CRC_OFF; 
+    fc1.crc_rx                    = CFG_FC_TX_CRC_OFF;
+    fc1.telemetry_dump_status     = CFG_FC_TELEMETRY_DUMP_ON;
+    fc1.telemetry_rate            = CFG_FC_TELEMETRY_RATE_P10HZ;
+    fc1.telemetry_status          = CFG_FC_TELEMETRY_OFF;
+    fc1.beacon_radio_reset_status = CFG_FC_BEACON_CODE_RESET_OFF;
+    fc1.beacon_code_upload_status = CFG_FC_BEACON_CODE_UPLOAD_OFF;
+    fc1.beacon_oa_cmd_status      = CFG_FC_BEACON_OA_COMMANDS_OFF;
+    fc1.beacon_0=0; // LEAVE 0 - factory settings restore flag
 
     struct function_config2 fc2;
-    fc2.t0=0;
-    fc2.t4=0;
-    fc2.t8=0;
-    fc2.tbd=0;
-    fc2.txcw=0;
-    fc2.rxcw=0;
-    fc2.rafc=0;
+    fc2.t0   = 0;  // leave 0, unknown
+    fc2.t4   = 0;  // leave 0, unknown
+    fc2.t8   = 0;  // leave 0, unknown
+    fc2.tbd  = 0; // leave 0, unknown
+    fc2.txcw = CFG_FC_TXCW_OFF;
+    fc2.rxcw = CFG_FC_RXCW_OFF;
+    fc2.rafc = CFG_FC_RAFC_OFF;
 
     settings.interface_baud_rate = CFG_IF_BAUD_9600;
     settings.tx_power_amp_level = 0;
@@ -158,6 +114,17 @@ TEST_F(Helium_100_Live_Radio_Test, SetConfig)
 
     HE100_printSettings(stdout, settings);
 
+    unsigned char config2[CFG_PAYLOAD_LENGTH] = {0};
+    ASSERT_EQ(
+        CS1_SUCCESS,
+        HE100_prepareConfig(*config2, settings)
+    );
+
+    int fc1_int = (int)config2[CFG_FUNCTION_CONFIG_BYTE];
+    print_binary(fc1_int);
+    int fc2_int = (int)config2[CFG_FUNCTION_CONFIG2_BYTE];
+    print_binary(fc2_int);
+
     FILE *test_log;
     if (test_log != NULL)
     {
@@ -176,6 +143,8 @@ TEST_F(Helium_100_Live_Radio_Test, GetConfig)
     struct he100_settings * settings;
     settings = (struct he100_settings *) malloc (sizeof(struct he100_settings));
     int result = HE100_getConfig(fdin,settings);
+
+    HE100_printSettings( stdout, *settings );
 
     FILE *test_log;
     if (test_log != NULL)
