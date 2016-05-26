@@ -22,40 +22,41 @@
  */
 
 // Transceiver error codes
-#define HE_SUCCESS                  0
-#define HE_FAILED_OPEN_PORT         1
-#define HE_FAILED_CLOSE_PORT        2
-#define HE_NOT_A_TTY                3 
-#define HE_INVALID_COMMAND          4
-#define HE_NOT_READY                5
-#define HE_POWER_OFF                6
-#define HE_FAILED_TTY_CONFIG        7
-#define HE_FAILED_SET_BAUD          8
-#define HE_FAILED_FLUSH             9
-#define HE_FAILED_CHECKSUM          10
-#define HE_FAILED_NACK              11
-#define HE_INVALID_BYTE_SEQUENCE    12
-#define HE_EMPTY_RESPONSE           13
-#define HE_INVALID_POWER_AMP_LEVEL  14
-#define HE_INVALID_IF_BAUD_RATE     15
-#define HE_INVALID_RF_BAUD_RATE     16
-#define HE_INVALID_RX_MOD           17
-#define HE_INVALID_TX_MOD           18
-#define HE_INVALID_RX_FREQ          19
-#define HE_INVALID_TX_FREQ          20
-#define HE_INVALID_CALLSIGN         21
-#define HE_INVALID_TX_PREAM         22
-#define HE_INVALID_TX_POSTAM        23
-#define HE_INVALID_RX_PREAM         24
-#define HE_INVALID_RX_POSTAM        25
-#define HE_INVALID_CRC              26
-#define HE_INVALID_DIO_PIN13        27
-#define HE_INVALID_RXTX_TEST        28
-#define HE_INVALID_EXT              29
-#define HE_INVALID_LED              30
-#define HE_INVALID_CONFIG           31
-#define HE_FAILED_GET_CONFIG        32
-#define HE_FAILED_READ              33
+#define HE_SUCCESS                      0
+#define HE_FAILED_OPEN_PORT             1
+#define HE_FAILED_CLOSE_PORT            2
+#define HE_NOT_A_TTY                    3 
+#define HE_INVALID_COMMAND              4
+#define HE_NOT_READY                    5
+#define HE_POWER_OFF                    6
+#define HE_FAILED_TTY_CONFIG            7
+#define HE_FAILED_SET_BAUD              8
+#define HE_FAILED_FLUSH                 9
+#define HE_FAILED_CHECKSUM              10
+#define HE_FAILED_NACK                  11
+#define HE_INVALID_BYTE_SEQUENCE        12
+#define HE_EMPTY_RESPONSE               13
+#define HE_INVALID_POWER_AMP_LEVEL      14
+#define HE_INVALID_IF_BAUD_RATE         15
+#define HE_INVALID_RF_BAUD_RATE         16
+#define HE_INVALID_RX_MOD               17
+#define HE_INVALID_TX_MOD               18
+#define HE_INVALID_RX_FREQ              19
+#define HE_INVALID_TX_FREQ              20
+#define HE_INVALID_CALLSIGN             21
+#define HE_INVALID_TX_PREAM             22
+#define HE_INVALID_TX_POSTAM            23
+#define HE_INVALID_RX_PREAM             24
+#define HE_INVALID_RX_POSTAM            25
+#define HE_INVALID_CRC                  26
+#define HE_INVALID_DIO_PIN13            27
+#define HE_INVALID_RXTX_TEST            28
+#define HE_INVALID_EXT                  29
+#define HE_INVALID_LED                  30
+#define HE_INVALID_CONFIG               31
+#define HE_FAILED_GET_CONFIG            32
+#define HE_FAILED_READ                  33
+#define HE_FAILED_PREPARE_TRANSMISSION  34
 
 extern const char *HE_STATUS[34];
 extern const char *CMD_CODE_LIST[32];
@@ -186,92 +187,67 @@ extern const char *CFG_BYTE_LIST[CFG_FRAME_LENGTH];
 #define CFG_FUNCTION_CONFIG2_BYTE   32
 #define CFG_FUNCTION_CONFIG2_LENGTH 2 // bytes
 
-
-// DEPRECATED
-// RX CRC config
-#define CFG_RX_CRC_BYTE     30 // 31st byte
-#define CFG_RX_CRC_ON       0x43
-#define CFG_RX_CRC_OFF      0x03
-// RX CRC config// DIO - Pin 13 config
-#define CFG_DIO_PIN13_BYTE      30 // 31st byte
-#define CFG_DIO_PIN13_OFF       0x43
-#define CFG_DIO_PIN13_TXRXS     0x47 
-#define CFG_DIO_PIN13_2p5HZ     0x4b
-#define CFG_DIO_PIN13_RXTOG     0x4f
-// LED config
-#define CFG_LED_BYTE 30  // 38th byte in byte array
-#define CFG_LED_PS  0x41 // 2.5 second pulse
-#define CFG_LED_TX  0x42 // flash on transmit
-#define CFG_LED_RX  0x43 // flash on receive
-// TX Test CW config
-#define CFG_RXTX_TEST_CW_BYTE 32 // 33rd byte
-#define CFG_RXTX_TEST_CW_DEF  0x00 
-#define CFG_RXTX_TEST_CW_OFF  0x00 
-#define CFG_TX_TEST_CW_ON     0x02 
-#define CFG_RX_TEST_CW_ON     0x04
-// END DEPRECATED
-
 // function_config
-#define CFG_FC_LED_OFFLOGICLOW              0 //0b00
-#define CFG_FC_LED_PULSE                    1 //0b01
-#define CFG_FC_LED_TXTOG                    2 //0b10
-#define CFG_FC_LED_RXTOG                    3 //0b11
+#define CFG_FC_LED_OFFLOGICLOW              0x0 
+#define CFG_FC_LED_PULSE                    0x1
+#define CFG_FC_LED_TXTOG                    0x2
+#define CFG_FC_LED_RXTOG                    0x3
 #define CFG_FC_LED_DEFAULT                  CFG_FC_LED_OFFLOGICLOW
 extern const char * CFG_FC_LED[4];
 
-#define CFG_FC_PIN13_OFFLOGICLOW            0 //0b00
-#define CFG_FC_PIN13_TXRXSWITCH             1 //0b01 // approx 0.35 seconds high, depends on pre/postamble
-#define CFG_FC_PIN13_2P5HZWDT               2 //0b10
-#define CFG_FC_PIN13_RXPACKETTOG            3 //0b11
+#define CFG_FC_PIN13_OFFLOGICLOW            0x0 
+#define CFG_FC_PIN13_TXRXSWITCH             0x1 //0x01 // approx 0.35 seconds high, depends on pre/postamble
+#define CFG_FC_PIN13_2P5HZWDT               0x2 
+#define CFG_FC_PIN13_RXPACKETTOG            0x3 
 #define CFG_FC_PIN13_DEFAULT                CFG_FC_PIN_13_OFFLOGICLOW
 extern const char * CFG_FC_PIN13[4];
 
-#define CFG_FC_PIN14_OFFLOGICLOW            0 //0b00
-#define CFG_FC_PIN14_DIOOVERAIR_ON          1 //0b01
-#define CFG_FC_PIN14_DIOOVERAIR_A           2 //0b10 // latching high
-#define CFG_FC_PIN14_DIOOVERAIR_B           3 //0b11 // toggle, 72 ms high
+#define CFG_FC_PIN14_OFFLOGICLOW            0x0 //0b00
+#define CFG_FC_PIN14_DIOOVERAIR_ON          0x1 //0b01
+#define CFG_FC_PIN14_DIOOVERAIR_A           0x2 //0b10 // latching high
+#define CFG_FC_PIN14_DIOOVERAIR_B           0x3 //0b11 // toggle, 72 ms high
 #define CFG_FC_PIN14_DEFAULT                CFG_FC_PIN14_OFFLOGICLOW
 extern const char * CFG_FC_PIN14[4];
 
-#define CFG_FC_RX_CRC_OFF                   0 //0b00
-#define CFG_FC_RX_CRC_ON                    1 //0b01
+#define CFG_FC_RX_CRC_OFF                   0x0 //0b00
+#define CFG_FC_RX_CRC_ON                    0x1 //0b01
 #define CFG_FC_RX_CRC_DEFAULT               CFG_FC_RX_CRC_OFF
 extern const char * CFG_FC_RX_CRC[2];
 
-#define CFG_FC_TX_CRC_OFF                   0 //0b00
-#define CFG_FC_TX_CRC_ON                    1 //0b01
+#define CFG_FC_TX_CRC_OFF                   0x0 //0b00
+#define CFG_FC_TX_CRC_ON                    0x1 //0b01
 #define CFG_FC_TX_CRC_DEFAULT               CFG_FC_TX_CRC_OFF
 extern const char * CFG_FC_TX_CRC[2];
 
-#define CFG_FC_TELEMETRY_OFF                0 //0b00
-#define CFG_FC_TELEMETRY_ON                 1 //0b01
+#define CFG_FC_TELEMETRY_OFF                0x0 //0b00
+#define CFG_FC_TELEMETRY_ON                 0x1 //0b01
 #define CFG_FC_TELEMETRY_DEFAULT            CFG_FC_TELEMETRY_OFF
 extern const char * CFG_FC_TELEMETRY[2];
 
-#define CFG_FC_TELEMETRY_RATE_P10HZ         0 //0b00
-#define CFG_FC_TELEMETRY_RATE_1HZ           1 //0b01
-#define CFG_FC_TELEMETRY_RATE_2HZ           2 //0b10
-#define CFG_FC_TELEMETRY_RATE_3HZ           3 //0b11
+#define CFG_FC_TELEMETRY_RATE_P10HZ         0x0 //0b00
+#define CFG_FC_TELEMETRY_RATE_1HZ           0x1 //0b01
+#define CFG_FC_TELEMETRY_RATE_2HZ           0x2 //0b10
+#define CFG_FC_TELEMETRY_RATE_3HZ           0x3 //0b11
 #define CFG_FC_TELEMETRY_RATE_DEFAULT       CFG_FC_TELEMETRY_RATE_P10HZ
 extern const char * CFG_FC_TELEMETRY_RATE[4];
 
-#define CFG_FC_TELEMETRY_DUMP_OFF           0 //0b00
-#define CFG_FC_TELEMETRY_DUMP_ON            1 //0b01
+#define CFG_FC_TELEMETRY_DUMP_OFF           0x0 //0b00
+#define CFG_FC_TELEMETRY_DUMP_ON            0x1 //0b01
 #define CFG_FC_TELEMETRY_DUMP_DEFAULT       CFG_FC_TELEMETRY_DUMP_OFF
 extern const char * CFG_FC_TELEMETRY_DUMP[2];
 
-#define CFG_FC_BEACON_OA_COMMANDS_OFF       0 //0b00
-#define CFG_FC_BEACON_OA_COMMANDS_ON        1 //0b01
+#define CFG_FC_BEACON_OA_COMMANDS_OFF       0x0 //0b00
+#define CFG_FC_BEACON_OA_COMMANDS_ON        0x1 //0b01
 #define CFG_FC_BEACON_OA_COMMANDS_DEFAULT   CFG_FC_BEACON_OA_COMMANDS_OFF
 extern const char * CFG_FC_BEACON_OA_COMMANDS[2];
 
-#define CFG_FC_BEACON_CODE_UPLOAD_OFF       0 //0b00
-#define CFG_FC_BEACON_CODE_UPLOAD_ON        1 //0b01
+#define CFG_FC_BEACON_CODE_UPLOAD_OFF       0x0 //0b00
+#define CFG_FC_BEACON_CODE_UPLOAD_ON        0x1 //0b01
 #define CFG_FC_BEACON_CODE_UPLOAD_DEFAULT   CFG_FC_BEACON_CODE_UPLOAD_OFF
 extern const char * CFG_FC_BEACON_CODE_UPLOAD[2];
 
-#define CFG_FC_BEACON_CODE_RESET_OFF        0 //0b00
-#define CFG_FC_BEACON_CODE_RESET_ON         1 //0b01
+#define CFG_FC_BEACON_CODE_RESET_OFF        0x0 //0b00
+#define CFG_FC_BEACON_CODE_RESET_ON         0x1 //0b01
 #define CFG_FC_BEACON_CODE_RESET_DEFAULT    CFG_FC_BEACON_CODE_RESET_OFF
 extern const char * CFG_FC_BEACON_RESET[2];
 

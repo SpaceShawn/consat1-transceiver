@@ -4,7 +4,9 @@ import sys
 import binascii # to convert incoming messages to ascii
 from itertools import islice, izip
 
-debug_flag = False
+from threading import Thread
+from time import sleep
+
 
 def SC_computeFletcher(data, size, modulo, limit=None):
 	#valA, valB = 0xf, 0xf
@@ -90,49 +92,26 @@ def SC_beacon(instance):
 def SC_listen(ser):
   while True:
     out = ''
-    while ser.inWaiting() > 6:
-      out += ser.read(6)
+    bytes_waiting = ser.inWaiting()
+    while int(bytes_waiting) > 10:
+      out += ser.read(10)
     if out != '':
-      print "Raw data: ", toHex(out), "\n\r"
-
       data = bytearray.fromhex(toHex(out))
-      payload_length = int(data[5])
-      print "Detected payload length" , str(payload_length), "\n\r"
-      #payload_length = len(data) - 10
-
-      sleep(1)
-      try:
-        out += ser.read(payload_length+5)
-        data = (bytearray.fromhex(toHex(out)))
-      except BufferError:
-        print "Incomplete buffer: ", toHex(out), "\n\r"
-
-      print "Raw data: ", toHex(out), "\n\r"
+      payload_length = len(data) - 10 
       
       payload = "" 
-      header_length = 8
-      preamble_length = 19
-      for i in xrange(header_length+preamble_length,payload_length-preamble_length) :
-        print "0x", str(data[i]), " "
-        #payload += chr(data[i])
-        payload += chr(out[i])
-
-      expected_frame_length = payload_length + 10
-      frame_length = len(data)
-
-      if frame_length != expected_frame_length:
-          print "WARNING: mismatched frame_length. Expected:",expected_frame_length, "Actual:",frame_length
-      else: 
-          print "SUCCESS: frame_length matches expected_frame_length! Expected:",expected_frame_length, "Actual:",frame_length 
+      for i in xrange(0,payload_length) :
+        j=i+8
+        payload += chr(data[j])
       #payload = payload.strip().decode('hex')
        
       print "\n<< Incoming:\n", toHex(out), "\n", toHex(out.strip()).decode('hex'), "\n"
       print "Sync Bytes: ", chr(data[0]), chr(data[1]), "\r"
-      print "Command Type: ", str(hex(data[2])), str(hex(data[3])), "\r"
-      print "Payload Size: ", data[4], str(int(data[5])), "\r"
+      print "Command Type: ", data[2], data[3], "\r"
+      print "Payload Size: ", data[4], data[5], "\r"
       print "Header Check: ", data[6], data[7], "\r"
-      print "Payload Check: ", data[len(data)-2], data[len(data)-1], "\r\n\r\n"
-      print "Payload: ", str(payload),"\r\n"
+      print "Payload Check: ", data[len(data)-2], data[len(data)-1], "\r\n"
+      print "\r\nPayload: ", payload,"\r\n"
 
 def SC_testTransmit():
 ## weirdness: "A payload checksum is then used to verify the accuracy of the payload. The checksum is calculated across all pertinent bytes of the message excluding the two sync characters of each message 'He'
@@ -148,39 +127,56 @@ def SC_prepare(payload, command):
   payload_byte_array = payload
   length = len(payload_byte_array)
   length_bytes = struct.pack('B',length)  
+  print "Payload:  ", length, " bytes out of a maximum 255\r\n"
 
-  # Keeping 2 bytes separate for sync characters
+  print 'Keeping 2 bytes separate for sync characters'
   transmission = bytearray.fromhex('48 65')
 
-  # adding 2 bytes for header
+  print 'Adding 2 bytes for header ...'
   packet=bytearray.fromhex(command) 
 
-  # adding 2 bytes for payload size
+  print "transmit: ", toHex(str(packet))
+
+  print "bytesize: ", len(packet), " bytes\r\n"
+
+  print "Adding 2 bytes for payload size ..."
   packet.extend(bytearray.fromhex('00'))
   packet.extend(length_bytes)
+  
+  print "transmit: ", toHex(str(packet))
 
-  # adding 2 bytes for header checksum
+  print "bytesize: ", len(packet), " bytes\r\n"
+
+  print "Adding 2 bytes for header checksum ..."  
   header_checksum = SC_fletcher(packet)
   packet.extend(struct.pack('B', header_checksum[0]))
   packet.extend(struct.pack('B', header_checksum[1]))
-  packet.extend(payload_byte_array)
+  print "checksum: ", header_checksum#, " should be: (12,48)" 
+  
+  print "transmit: ", toHex(str(packet))
+  
+  print "bytesize: ", len(packet), " bytes\r\n"
 
-  #adding 2 bytes for payloads checksum
+  print "Adding", len(payload_byte_array), "bytes for payload .."
+  packet.extend(payload_byte_array)
+  
+  print "Message:  ", toHex(str(payload_byte_array))
+
+  print "bytesize:  ", len(payload_byte_array), " bytes\r\n"
+  
+  print "transmit: ", toHex(str(packet))
+  
+  print "bytesize: ", len(packet), " bytes\r\n"
+
+  print "Adding 2 bytes for payload checksum"
   payload_checksum = SC_fletcher(payload)
   packet.extend(struct.pack('B', payload_checksum[0]))
   packet.extend(struct.pack('B', payload_checksum[1]))
-
-  if debug_flag is True:
-      print "Payload:  ", length, " bytes out of a maximum 255\r\n"
-      print "bytesize: ", len(packet), " bytes\r\n"
-      print "bytesize: ", len(packet), " bytes\r\n"
-      print "checksum: ", header_checksum#, " should be: (12,48)" 
-      print "bytesize: ", len(packet), " bytes\r\n"
-      print "Adding", len(payload_byte_array), "bytes for payload .."
-      print "transmit: ", toHex(str(packet))
-      print "Message:  ", toHex(str(payload_byte_array))
-      print "bytesize:  ", len(payload_byte_array), " bytes\r\n"
-      print "checksum: ", payload_checksum#, " should be: (170,75)\r\n"#aa,4b
+  print "checksum: ", payload_checksum#, " should be: (170,75)\r\n"#aa,4b
+  
+  print "transmit: ", toHex(str(packet))
+  
+  print "bytesize: ", len(packet), " bytes\r\n"
 
   transmission.extend(packet)
   print "total payload: ", len(transmission), " bytes\r\n"
@@ -191,34 +187,48 @@ def SC_transmit(payload):
   payload_byte_array = payload.encode('utf-8')
   length = len(payload_byte_array)
   length_bytes = struct.pack('B',length)  
-  print "\nPayload:  ", length, " bytes out of a maximum 255"
+  print "Payload:  ", length, " bytes out of a maximum 255\r\n"
 
-  #Keeping 2 bytes separate for sync characters
+  print 'Keeping 2 bytes separate for sync characters'
   transmission = bytearray.fromhex('48 65')
 
-  # Adding 2 bytes for header 
+  print 'Adding 2 bytes for header ...'
   header = '10 03' 
   packet=bytearray.fromhex(header) 
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
 
-  # adding 2 bytes for payload size
+  print "Adding 2 bytes for payload size ..."
   packet.extend(bytearray.fromhex('00'))
   packet.extend(length_bytes)
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
 
-  # adding 2 bytes for header checksum
+  print "Adding 2 bytes for header checksum ..."  
   header_checksum = SC_fletcher(packet)
   packet.extend(struct.pack('B', header_checksum[0]))
   packet.extend(struct.pack('B', header_checksum[1]))
+  print "checksum: ", header_checksum#, " should be: (12,48)" 
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
 
-  # adding", len(payload_byte_array), "bytes for payload .."
+  print "Adding", len(payload_byte_array), "bytes for payload .."
   packet.extend(payload_byte_array)
+  print "Message:  ", toHex(str(payload_byte_array))
+  print "bytesize:  ", len(payload_byte_array), " bytes\r\n"
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
 
-  # adding 2 bytes for payload checksum"
+  print "Adding 2 bytes for payload checksum"
   payload_checksum = SC_fletcher(payload)
   packet.extend(struct.pack('B', payload_checksum[0]))
   packet.extend(struct.pack('B', payload_checksum[1]))
+  print "checksum: ", payload_checksum#, " should be: (170,75)\r\n"#aa,4b
+  print "transmit: ", toHex(str(packet))
+  print "bytesize: ", len(packet), " bytes\r\n"
 
   transmission.extend(packet)
-  print "\ttotal payload: ", len(transmission), " bytes\n"
+  print "total payload: ", len(transmission), " bytes\r\n"
   print 'SENDING:: ', toHex(str(transmission))  
   return transmission
 

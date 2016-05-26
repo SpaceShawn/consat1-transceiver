@@ -75,8 +75,10 @@ HE100_write (int fdin, unsigned char *bytes, size_t size)
     }  else {
         valid_bytes_returned = 1;
     }
-    if ( valid_bytes_returned >= 0 && w>0 ) {
-       write_return = 0;
+
+    // if we wrote more than 0 bytes and did not receive -1 return status, set write_return to SUCCESS
+    if ( valid_bytes_returned != -1 && w>0 ) {
+       write_return = HE_SUCCESS;
     }
     return write_return;
 }
@@ -137,7 +139,10 @@ HE100_validateFrame (unsigned char *response, size_t length)
         p_chk = p_s1_chk + p_s2_chk; // should be zero given valid chk
     }
 
-    if (response[HE_LENGTH_BYTE_0] == response[HE_LENGTH_BYTE] ) /* ACK or NOACK or EMPTY length */
+    if (
+            response[HE_LENGTH_BYTE_0] == response[HE_LENGTH_BYTE] 
+        ||  response[HE_LENGTH_BYTE_0] == HE_NOACK
+       ) /* ACK or NOACK or EMPTY length */
     {
         char output[MAX_LOG_BUFFER_LEN];
         Shakespeare::Priority logPriority;
@@ -188,9 +193,9 @@ HE100_validateFrame (unsigned char *response, size_t length)
         r=HE_FAILED_CHECKSUM;
     }
 
-    if (payload_length==0 && response[HE_LENGTH_BYTE] != 0) {
+    if (payload_length==0 && response[HE_LENGTH_BYTE] != HE_NOACK && response[HE_LENGTH_BYTE] != HE_ACK) {
 #ifdef CS1_DEBUG
-        HE100_dumpHex(stdout, response, length);
+        //HE100_dumpHex(stdout, response, length);
 #endif
         char error[MAX_LOG_BUFFER_LEN];
         snprintf (
@@ -200,11 +205,27 @@ HE100_validateFrame (unsigned char *response, size_t length)
             __func__, __LINE__
         );
         Shakespeare::log(Shakespeare::WARNING, PROCESS, error);
+        r=HE_INVALID_BYTE_SEQUENCE;
     }
 
     return r;
 }
 
+void print_binary(int n)
+{
+    int r[100]={0},i=0;
+    while(n>0)
+    {
+        r[i]=n%2;
+        n=n/2;
+        i++;
+    }
+    for(;i>=0;i--)
+    {
+        printf("%d",r[i]);
+    }
+    printf("\n");
+}
 /* Function to dump a given array to a given file descriptor */
 int
 HE100_dumpBinary(FILE *fdout, unsigned char *bytes, size_t size)
@@ -362,14 +383,24 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
                     else if (SVR_result == CS1_NULL_MALLOC) 
                     {   // memory allocation problem in validateFrame()
                         char error[MAX_LOG_BUFFER_LEN];
-                        snprintf (error, MAX_LOG_BUFFER_LEN, "Memory allocation problem: %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+                        snprintf (
+                            error, 
+                            MAX_LOG_BUFFER_LEN, 
+                            "Memory allocation problem: %d, %s, %s, %d", 
+                            fdin, strerror(errno), __func__, __LINE__
+                        );
                         Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
                         r=-1;
                     }
                     else
                     {   // something unexpected
                         char error[MAX_LOG_BUFFER_LEN];
-                        snprintf (error, MAX_LOG_BUFFER_LEN, "Invalid Data: %d, %d, %s, %d", fdin, SVR_result, __func__, __LINE__);
+                        snprintf (
+                            error, 
+                            MAX_LOG_BUFFER_LEN, 
+                            "Invalid Data: %d, %d, %s, %d", 
+                            fdin, SVR_result, __func__, __LINE__
+                        );
                         Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
                         r=-1;
                        
@@ -378,20 +409,17 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
                         if ( HE100_softReset(fdin) == 0 ) {
                             snprintf (
                                 log_msg, 
-                                MAX_LOG_BUFFER_LEN, 
+                                MAX_LOG_BUFFER_LEN,
                                 "Soft Reset written successfully!: %d, %d, %s, %d", 
-                                fdin, 
-                                SVR_result, 
-                                __func__, __LINE__
+                                fdin, SVR_result, __func__, __LINE__
                             );
                         } 
                         else { 
                             snprintf (
-                                log_msg, MAX_LOG_BUFFER_LEN,
+                                log_msg, 
+                                MAX_LOG_BUFFER_LEN,
                                 "Soft Reset FAILED: %d, %d, %s, %d", 
-                                fdin, 
-                                SVR_result, 
-                                __func__, __LINE__
+                                fdin, SVR_result, __func__, __LINE__
                             );
                         }
                         Shakespeare::log(Shakespeare::ERROR, PROCESS, log_msg);
@@ -407,7 +435,12 @@ HE100_read (int fdin, time_t read_time, unsigned char * payload)
         else if (ret_value == -1) 
         {   // bad or no read
             char error[MAX_LOG_BUFFER_LEN];
-            snprintf (error, MAX_LOG_BUFFER_LEN, "Problem with poll(): %d, %s, %s, %d", fdin, strerror(errno), __func__, __LINE__);
+            snprintf (
+                error, 
+                MAX_LOG_BUFFER_LEN, 
+                "Problem with poll(): %d, %s, %s, %d", 
+                fdin, strerror(errno), __func__, __LINE__
+            );
             Shakespeare::log(Shakespeare::ERROR, PROCESS, error);
             r = -1;
         }
@@ -523,12 +556,11 @@ HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_leng
 
     int prepare_result = HE100_prepareTransmission(payload,transmission,payload_length,command);
 #ifdef CS1_DEBUG
-      char debug_msg[MAX_LOG_BUFFER_LEN] = {0};
-      char hex_representation[MAX_LOG_BUFFER_LEN] = {0};
-      HE100_snprintfHex(hex_representation,transmission,payload_length+WRAPPER_LENGTH);      
-      snprintf (debug_msg,MAX_LOG_BUFFER_LEN, "Prepared payload: %s",hex_representation);
+    char debug_msg[MAX_LOG_BUFFER_LEN] = {0};
+    char hex_representation[MAX_LOG_BUFFER_LEN] = {0};
+    HE100_snprintfHex(hex_representation,transmission,payload_length+WRAPPER_LENGTH);      
+    snprintf (debug_msg,MAX_LOG_BUFFER_LEN, "Prepared payload: %s",hex_representation);
 #endif
-    // if preparation successful, write the bytes to the radio
     if ( prepare_result == 0) {
 #ifdef CS1_DEBUG
       Shakespeare::log(Shakespeare::NOTICE,PROCESS,"Prepare successful");
@@ -540,7 +572,7 @@ HE100_dispatchTransmission(int fdin, unsigned char *payload, size_t payload_leng
       Shakespeare::log(Shakespeare::ERROR,PROCESS,"Prepare failed");
       Shakespeare::log(Shakespeare::ERROR,PROCESS,debug_msg);
 #endif
-        return 1;
+        return HE_FAILED_PREPARE_TRANSMISSION;
     }
 }
 
@@ -649,7 +681,6 @@ HE100_collectConfig (unsigned char * buffer)
     settings.tx_modulation = buffer[CFG_TX_MOD_BYTE];
 
     // swap endianess
-    // TODO CONDITIONAL ENDIANNESS conversion
     if (endian()==LE){
 
         uint16_t fc1_t = 0;
@@ -682,21 +713,23 @@ HE100_collectConfig (unsigned char * buffer)
             buffer[CFG_FUNCTION_CONFIG_BYTE+1]
         ;
 
+        
         memcpy (
                 (unsigned char*)buffer+CFG_FUNCTION_CONFIG_BYTE,
                 &fc1_t,
-                sizeof(struct function_config)
+                CFG_FUNCTION_CONFIG_LENGTH
         );
+        
 
         fc2_t =
             buffer[CFG_FUNCTION_CONFIG2_BYTE] << 8 |
             buffer[CFG_FUNCTION_CONFIG2_BYTE+1]
         ;
-
+        
         memcpy (
                 (unsigned char*)buffer+CFG_FUNCTION_CONFIG2_BYTE,
                 &fc2_t,
-                sizeof(struct function_config2)
+                CFG_FUNCTION_CONFIG2_LENGTH 
         );
     }
 
@@ -712,19 +745,6 @@ HE100_collectConfig (unsigned char * buffer)
             CFG_CALLSIGN_LEN
     );
 
-    /*
-    unsigned led:2;
-    unsigned pin13:2;           
-    unsigned pin14:2;
-    unsigned crc_tx:1;
-    unsigned crc_rx:1; 
-    unsigned telemetry_dump_status:1; // enable telemetry dump
-    unsigned telemetry_rate:2; // logging rate 0 1/10 Hz, 1 1 Hz, 2 2 Hz, 3 4 Hz
-    unsigned telemetry_status:1;  // enable telemetry logging 
-    unsigned beacon_radio_reset_status:1; // enable radio reset
-    unsigned beacon_code_upload_status:1; // enable code upload
-    unsigned beacon_oa_cmd_status:1; // enable OA Commands
-    unsigned beacon_0:1;
     uint16_t fc1 = (uint16_t)*buffer+CFG_FUNCTION_CONFIG_BYTE;
     settings.function_config.led                        = fc1 & 0xf;
     settings.function_config.pin13                      = fc1 & (0xf << 2);
@@ -738,25 +758,13 @@ HE100_collectConfig (unsigned char * buffer)
     settings.function_config.beacon_code_upload_status  = fc1 & (0xf << 12);
     settings.function_config.beacon_oa_cmd_status       = fc1 & (0xf << 13);
     settings.function_config.beacon_oa_cmd_status       = fc1 & (0xf << 14);
-    */
-
+    
     memcpy (
             &settings.function_config,
             (unsigned char*)buffer+CFG_FUNCTION_CONFIG_BYTE,
-            sizeof(struct function_config)
-            // CFG_FUNCTION_CONFIG_LENGTH
+            CFG_FUNCTION_CONFIG_LENGTH
     );
 
-    /*
-    struct function_config2 {
-        unsigned t0:4;
-        unsigned t4:4;
-        unsigned t8:4;
-        unsigned tbd:1;
-        unsigned txcw:1;
-        unsigned rxcw:1;
-        unsigned rafc:1;
-    };
     uint16_t fc2 = (uint16_t)*buffer+CFG_FUNCTION_CONFIG2_BYTE;
     settings.function_config2.t0        = fc2 & ( 0xf << 0  );
     settings.function_config2.t4        = fc2 & ( 0xf << 4  );
@@ -765,13 +773,11 @@ HE100_collectConfig (unsigned char * buffer)
     settings.function_config2.txcw      = fc2 & ( 0xf << 10 );
     settings.function_config2.rxcw      = fc2 & ( 0xf << 11 );
     settings.function_config2.rafc      = fc2 & ( 0xf << 12 );
-    */
 
     memcpy (
             &settings.function_config2,
             (unsigned char*)buffer+CFG_FUNCTION_CONFIG2_BYTE,
-            sizeof(struct function_config2)
-            // CFG_FUNCTION_CONFIG2_LENGTH
+            CFG_FUNCTION_CONFIG2_LENGTH
     );
 
     return settings;
@@ -784,7 +790,7 @@ HE100_collectConfig (unsigned char * buffer)
 void 
 HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     fprintf(fdout,"Interface Baud Rate:   %s [%d]\n\r", if_baudrate[settings.interface_baud_rate],settings.interface_baud_rate);
-    fprintf(fdout,"TX Power Amp Level:    %d [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
+    fprintf(fdout,"TX Power Amp Level:    %d% [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
     fprintf(fdout,"RX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.rx_rf_baud_rate],settings.rx_rf_baud_rate);
     fprintf(fdout,"TX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.tx_rf_baud_rate],settings.tx_rf_baud_rate);
     fprintf(fdout,"RX Frequency:          %d \r\n", settings.rx_freq);
@@ -792,7 +798,7 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
 
     struct function_config fc1 = settings.function_config;
 
-    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_LED[fc1.crc_rx],fc1.crc_rx);
+    fprintf(fdout,"%s [%02X] \r\n",CFG_FC_LED[fc1.led],fc1.led);
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_PIN13[fc1.pin13],fc1.pin13);
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_PIN14[fc1.pin14],fc1.pin14);
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_RX_CRC[fc1.crc_rx],fc1.crc_rx);
@@ -804,8 +810,14 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_BEACON_CODE_UPLOAD[fc1.beacon_code_upload_status],fc1.beacon_code_upload_status);
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_BEACON_RESET[fc1.beacon_radio_reset_status],fc1.beacon_radio_reset_status);
 
-    fprintf(fdout,"Source Callsign:       %s \r\n", settings.source_callsign);
-    fprintf(fdout,"Destination Callsign:  %s \r\n", settings.destination_callsign);
+    char source_callsign_buf[CFG_CALLSIGN_LEN+1] = {0};
+    snprintf(source_callsign_buf,CFG_CALLSIGN_LEN+1,"%s%c",settings.source_callsign,"\0");
+    fprintf(fdout,"Source Callsign:       %s \r\n", source_callsign_buf);
+
+    char destination_callsign_buf[CFG_CALLSIGN_LEN+1] = {0};
+    snprintf(destination_callsign_buf,CFG_CALLSIGN_LEN+1,"%s%c",settings.destination_callsign,"\0");
+    fprintf(fdout,"Destination Callsign:  %s \r\n", destination_callsign_buf);
+
     fprintf(fdout,"TX Preamble:           %d \r\n", settings.tx_preamble);
     fprintf(fdout,"TX Postamble:          %d \r\n", settings.tx_postamble);
 
@@ -831,6 +843,23 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     fprintf(fdout,"EXT:                   %s [%02X] \r\n", ext_conf_value, settings.ext_conf_setting);
     */
    
+    fprintf(
+        fdout,
+        "Function Config        [%1X%1X%1X%1X%1X%1X%1X%1X%1X%1X%1X%1X]\r\n",
+        fc1.beacon_0,
+        fc1.beacon_oa_cmd_status,
+        fc1.beacon_code_upload_status,
+        fc1.beacon_radio_reset_status,
+        fc1.telemetry_status,
+        fc1.telemetry_rate,
+        fc1.telemetry_dump_status,
+        fc1.crc_rx,
+        fc1.crc_tx,
+        fc1.pin14,
+        fc1.pin13,
+        fc1.led
+    );
+
     struct function_config2 fc2 = settings.function_config2;
     fprintf(
         fdout,
@@ -868,6 +897,7 @@ HE100_prepareConfig (unsigned char &prepared_bytes, struct he100_settings settin
         &settings.tx_rf_baud_rate,
         sizeof(settings.tx_rf_baud_rate)
     );
+
     memcpy(
         &prepared_bytes+CFG_RX_MOD_BYTE,
         &settings.rx_modulation,
@@ -891,12 +921,12 @@ HE100_prepareConfig (unsigned char &prepared_bytes, struct he100_settings settin
     memcpy(
         &prepared_bytes+CFG_SRC_CALL_BYTE,
         settings.source_callsign,
-        sizeof(settings.source_callsign)
+        CFG_CALLSIGN_LEN
     );
     memcpy(
         &prepared_bytes+CFG_DST_CALL_BYTE,
         &settings.destination_callsign,
-        sizeof(settings.destination_callsign)
+        CFG_CALLSIGN_LEN
     );
     memcpy(
         &prepared_bytes+CFG_TX_PREAM_BYTE,
@@ -911,12 +941,12 @@ HE100_prepareConfig (unsigned char &prepared_bytes, struct he100_settings settin
     memcpy(
         &prepared_bytes+CFG_FUNCTION_CONFIG_BYTE,
         &settings.function_config,
-        sizeof(settings.function_config)
+        CFG_FUNCTION_CONFIG_LENGTH
     );
     memcpy(
         &prepared_bytes+CFG_FUNCTION_CONFIG2_BYTE,
         &settings.function_config2,
-        sizeof(settings.function_config2)
+        CFG_FUNCTION_CONFIG2_LENGTH 
     );
 
     return HE_SUCCESS;
@@ -955,6 +985,9 @@ HE100_getConfig (int fdin, struct he100_settings * settings)
     return result;
 }
 
+/*
+ * Function to swap endianness of certain multi-byte parameters
+ */
 int HE100_swapConfigEndianness (struct he100_settings &settings)
 {
     uint32_t b0,b1,b2,b3=0;
@@ -1000,6 +1033,10 @@ int HE100_swapConfigEndianness (struct he100_settings &settings)
     return HE_SUCCESS;
 }
 
+int HE100_swapFunctionConfigEndianness (struct he100_settings &settings)
+{
+    return -1;
+}
 /**  
  *  This function validates a he100_settings struct
  *  and converts to char array for safe deployment
@@ -1013,16 +1050,14 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
     // validate new interface baud rate setting
     if (
             he100_new_settings.interface_baud_rate >= MAX_IF_BAUD_RATE 
-        //&&  he100_new_settings.interface_baud_rate <= MIN_IF_BAUD_RATE // always true
-        // TODO WHY // &&  he100_new_settings.interface_baud_rate != CFG_DEF_IF_BAUD 
     )
     {
         snprintf(
-                validation_log_entry,
-                MAX_LOG_BUFFER_LEN,
-                "%s %s ^%s@%d",
-                HE_STATUS[HE_INVALID_IF_BAUD_RATE],if_baudrate[he100_new_settings.interface_baud_rate],
-                __func__,__LINE__
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s %s ^%s@%d",
+            HE_STATUS[HE_INVALID_IF_BAUD_RATE],if_baudrate[he100_new_settings.interface_baud_rate],
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_IF_BAUD_RATE;
@@ -1035,11 +1070,11 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
     ) 
     { 
         snprintf(
-                validation_log_entry,
-                MAX_LOG_BUFFER_LEN,
-                "%s BAUD:%d ^%s@%d",
-                HE_STATUS[HE_INVALID_POWER_AMP_LEVEL],he100_new_settings.tx_power_amp_level,
-                __func__,__LINE__
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s BAUD:%d ^%s@%d",
+            HE_STATUS[HE_INVALID_POWER_AMP_LEVEL],he100_new_settings.tx_power_amp_level,
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_POWER_AMP_LEVEL;
@@ -1055,13 +1090,13 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
     ) 
     {
         snprintf(
-                validation_log_entry,
-                MAX_LOG_BUFFER_LEN,
-                "%s MAX:%d MIN:%d INDEX:%d BAUD:%s ^%s@%d",
-                HE_STATUS[HE_INVALID_RF_BAUD_RATE],
-                MAX_RF_BAUD_RATE, MIN_RF_BAUD_RATE,
-                he100_new_settings.tx_power_amp_level,rf_baudrate[he100_new_settings.tx_power_amp_level],
-                __func__,__LINE__
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s MAX:%d MIN:%d INDEX:%d BAUD:%s ^%s@%d",
+            HE_STATUS[HE_INVALID_RF_BAUD_RATE],
+            MAX_RF_BAUD_RATE, MIN_RF_BAUD_RATE,
+            he100_new_settings.tx_power_amp_level,rf_baudrate[he100_new_settings.tx_power_amp_level],
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_RF_BAUD_RATE;
@@ -1073,13 +1108,13 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
     )
     {
         snprintf(
-                validation_log_entry,
-                MAX_LOG_BUFFER_LEN,
-                "%s [rx] expected[%d] actual[%d] ^%s@%d",
-                HE_STATUS[HE_INVALID_RX_MOD],
-                CFG_RX_MOD_DEFAULT,
-                he100_new_settings.rx_modulation,
-                __func__,__LINE__
+            validation_log_entry,
+            MAX_LOG_BUFFER_LEN,
+            "%s [rx] expected[%d] actual[%d] ^%s@%d",
+            HE_STATUS[HE_INVALID_RX_MOD],
+            CFG_RX_MOD_DEFAULT,
+            he100_new_settings.rx_modulation,
+            __func__,__LINE__
         );
         Shakespeare::log(Shakespeare::ERROR, PROCESS, validation_log_entry);
         return HE_INVALID_RX_MOD; 

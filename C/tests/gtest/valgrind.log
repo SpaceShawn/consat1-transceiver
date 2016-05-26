@@ -1,0 +1,9 @@
+Running main() from gtest_main.cc
+[==========] Running 8 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 8 tests from Helium_100_Live_Radio_Test
+[ RUN      ] Helium_100_Live_Radio_Test.SetConfig
+
+timer 43a8d38 starting with timeout 2 s
+
+timer 43d6368 starting with timeout 2 s
