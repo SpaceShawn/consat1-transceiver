@@ -75,8 +75,10 @@ HE100_write (int fdin, unsigned char *bytes, size_t size)
     }  else {
         valid_bytes_returned = 1;
     }
-    if ( valid_bytes_returned >= 0 && w>0 ) {
-       write_return = 0;
+
+    // if we wrote more than 0 bytes and did not receive -1 return status, set write_return to SUCCESS
+    if ( valid_bytes_returned != -1 && w>0 ) {
+       write_return = HE_SUCCESS;
     }
     return write_return;
 }
@@ -191,7 +193,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
         r=HE_FAILED_CHECKSUM;
     }
 
-    if (payload_length==0 && response[HE_LENGTH_BYTE] != 0) {
+    if (payload_length==0 && response[HE_LENGTH_BYTE] != HE_NOACK && response[HE_LENGTH_BYTE] != HE_ACK) {
 #ifdef CS1_DEBUG
         //HE100_dumpHex(stdout, response, length);
 #endif
@@ -203,6 +205,7 @@ HE100_validateFrame (unsigned char *response, size_t length)
                 __func__, __LINE__
         );
         Shakespeare::log(Shakespeare::WARNING, PROCESS, error);
+        r=HE_INVALID_BYTE_SEQUENCE;
     }
 
     return r;
