@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 from array import *
 import time, sys, serial
 from transclib import *
@@ -34,7 +36,7 @@ def ConfigSectionMap(section):
 #print ConfigSectionMap("SERIAL")['writeTimeout']
 
 ser = serial.Serial(
-  port='/dev/ttyS1',
+  port='/dev/ttyUSB0',
   baudrate=9600,
   parity=serial.PARITY_NONE,
   bytesize=serial.EIGHTBITS,

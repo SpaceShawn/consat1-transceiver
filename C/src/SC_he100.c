@@ -820,7 +820,7 @@ HE100_collectConfig (unsigned char * buffer)
 void 
 HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     fprintf(fdout,"Interface Baud Rate:   %s [%d]\n\r", if_baudrate[settings.interface_baud_rate],settings.interface_baud_rate);
-    fprintf(fdout,"TX Power Amp Level:    %d% [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
+    fprintf(fdout,"TX Power Amp Level:    %d percent [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
     fprintf(fdout,"RX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.rx_rf_baud_rate],settings.rx_rf_baud_rate);
     fprintf(fdout,"TX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.tx_rf_baud_rate],settings.tx_rf_baud_rate);
     fprintf(fdout,"RX Frequency:          %d \r\n", settings.rx_freq);
@@ -841,11 +841,11 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_BEACON_RESET[fc1.beacon_radio_reset_status],fc1.beacon_radio_reset_status);
 
     char source_callsign_buf[CFG_CALLSIGN_LEN+1] = {0};
-    snprintf(source_callsign_buf,CFG_CALLSIGN_LEN+1,"%s%c",settings.source_callsign,"\0");
+    snprintf(source_callsign_buf,CFG_CALLSIGN_LEN+1,"%s%s",settings.source_callsign,"\0");
     fprintf(fdout,"Source Callsign:       %s \r\n", source_callsign_buf);
 
     char destination_callsign_buf[CFG_CALLSIGN_LEN+1] = {0};
-    snprintf(destination_callsign_buf,CFG_CALLSIGN_LEN+1,"%s%c",settings.destination_callsign,"\0");
+    snprintf(destination_callsign_buf,CFG_CALLSIGN_LEN+1,"%s%s",settings.destination_callsign,"\0");
     fprintf(fdout,"Destination Callsign:  %s \r\n", destination_callsign_buf);
 
     fprintf(fdout,"TX Preamble:           %d \r\n", settings.tx_preamble);

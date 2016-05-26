@@ -133,7 +133,7 @@ TEST_F(Helium_100_Live_Radio_Test, SetConfig)
         fclose(test_log);
     }
 
-    int result = HE100_setConfig(fdin,settings2);
+    int result = HE100_setConfig(fdin,settings);
 
     ASSERT_EQ(CS1_SUCCESS,result);
 }
