@@ -399,10 +399,10 @@ TEST_F(Helium_100_Test, TestCollectValidConfig)
 TEST_F(Helium_100_Test, PrepareConfig) 
 {
     unsigned char config1[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x00,0x00,0x00,0x00,0x41,0x80,0x00,0x00};
-    //unsigned char config1[CFG_PAYLOAD_LENGTH] = {0x00,0x00,0x01,0x01,0x00,0x00,0xa8,0x3c,0x02,0x00,0x08,0xab,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x01,0x02,0x03,0x04,0x41,0x80,0x00,0x00};
 
     unsigned char config_result[CFG_PAYLOAD_LENGTH] = {0};
     struct he100_settings test_settings = HE100_collectConfig(config1);
+    HE100_printSettings( stdout, test_settings );
 
     //HE100_swapConfigEndianness(test_settings);
 
@@ -420,44 +420,83 @@ TEST_F(Helium_100_Test, PrepareConfig)
     }
 }
 
+/*
+ * TestCollectValidConfig_ALL
+ * 
+ * This test compares both ways of setting the configuration on the radio.
+ * 
+ * Method 1 - assign the config byte array manually
+ * Method 2 - use the configuration structures
+ *
+ * Both methods are employed to produce config sequences, then they are 
+ * compared byte-by-byte for consistency
+ */
 TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
 {
-    /*
-    unsigned char config1[CFG_FRAME_LENGTH] = {0};
-    config1[CFG_IF_BAUD_BYTE] = CFG_IF_BAUD_9600;
-    config1[CFG_PA_BYTE] = 111;
-    config1[CFG_RF_RX_BAUD_BYTE] = CFG_RF_BAUD_9600;
-    config1[CFG_RF_TX_BAUD_BYTE] = CFG_RF_BAUD_9600;
-    config1[CFG_RX_MOD_BYTE] = CFG_RX_MOD_GFSK;
-    config1[CFG_TX_MOD_BYTE] = CFG_TX_MOD_GFSK;
-    //config1[CFG_RX_FREQ_BYTE1] = CFG_RX_FREQ_DEFAULT; // 144200L
-    config1[CFG_RX_FREQ_BYTE1] = 0xa8;
-    config1[CFG_RX_FREQ_BYTE2] = 0x3c;
-    config1[CFG_RX_FREQ_BYTE3] = 0x02;
-    config1[CFG_RX_FREQ_BYTE4] = 0x00;
-    //config1[CFG_TX_FREQ_BYTE1] = CFG_TX_FREQ_DEFAULT; // 431000L
-    config1[CFG_TX_FREQ_BYTE1] = 0x08;
-    config1[CFG_TX_FREQ_BYTE2] = 0xab;
-    config1[CFG_TX_FREQ_BYTE3] = 0x06;
-    config1[CFG_TX_FREQ_BYTE4] = 0x00;
-    config1[CFG_SRC_CALL_BYTE] = CFG_SRC_CALL_DEF; // "VA3ORB"
-    config1[CFG_DST_CALL_BYTE] = CFG_DST_CALL_DEF; // "VE2CUA" 
-    config1[CFG_TX_PREAM_BYTE] = CFG_TX_PREAM_DEF; // zero preamble bytes
-    config1[CFG_TX_PREAM_BYTE] = CFG_TX_PREAM_DEF; // zero preamble bytes
-    config1[CFG_TX_POSTAM_BYTE] = CFG_TX_POSTAM_DEF; // zero postamble bytes  
-    config1[CFG_RX_PREAM_BYTE] = CFG_RX_PREAM_DEF;  
-    config1[CFG_RX_POSTAM_BYTE] = CFG_RX_POSTAM_DEF;  
-    config1[CFG_FUNCTION_CONFIG_BYTE] = 0; 
-    config1[CFG_FUNCTION_CONFIG_BYTE+1] = 0; 
-    config1[CFG_FUNCTION_CONFIG2_BYTE] = 0;
-    config1[CFG_FUNCTION_CONFIG2_BYTE+1] = 0;
-    */
+    // assign callsigns to buffers which will be used later
+    char source_callsign[] = "VA3ORB";
+    char destination_callsign[] = "VE2CUA";
 
-    unsigned char config1a[CFG_FRAME_LENGTH] = {0x00,0x6f,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+    /* 
+     * Old method - assign each config byte explicitly
+     * - Insane
+     * - Terrible
+     * - Error Prone
+     */
+    //unsigned char config1a[CFG_FRAME_LENGTH] = {0x00,0x6f,0x01,0x01,0x00,0x00,0x48,0x33,0x02,0x00,0x98,0x93,0x06,0x00,0x56,0x41,0x33,0x4f,0x52,0x42,0x56,0x45,0x32,0x43,0x55,0x41,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
-    char source_callsign[7] = "VA3ORB";
-    char destination_callsign[7] = "VE2CUA";
+    /* 
+     * Method 1 - assign the config byte array manually
+     * - Must be careful to use macros for assignments
+     * - Error Prone
+     */
+    unsigned char config1a[CFG_FRAME_LENGTH] = {0};
+    config1a[CFG_IF_BAUD_BYTE] = CFG_IF_BAUD_9600;
+    config1a[CFG_PA_BYTE] = 111;
+    config1a[CFG_RF_RX_BAUD_BYTE] = CFG_RF_BAUD_9600;
+    config1a[CFG_RF_TX_BAUD_BYTE] = CFG_RF_BAUD_9600;
+    config1a[CFG_RX_MOD_BYTE] = CFG_RX_MOD_GFSK;
+    config1a[CFG_TX_MOD_BYTE] = CFG_TX_MOD_GFSK;
+    //config1a[CFG_RX_FREQ_BYTE1] = CFG_RX_FREQ_DEFAULT; // 144200L
+    config1a[CFG_RX_FREQ_BYTE1] = 0x48;
+    config1a[CFG_RX_FREQ_BYTE2] = 0x33;
+    config1a[CFG_RX_FREQ_BYTE3] = 0x02;
+    config1a[CFG_RX_FREQ_BYTE4] = 0x00;
+    //config1a[CFG_TX_FREQ_BYTE1] = CFG_TX_FREQ_DEFAULT; // 431000L
+    config1a[CFG_TX_FREQ_BYTE1] = 0x98;
+    config1a[CFG_TX_FREQ_BYTE2] = 0x93;
+    config1a[CFG_TX_FREQ_BYTE3] = 0x06;
+    config1a[CFG_TX_FREQ_BYTE4] = 0x00;
 
+    // need to use memcpy to assign the callsigns
+    memcpy (
+        config1a+CFG_SRC_CALL_BYTE,
+        &source_callsign,
+        CFG_CALLSIGN_LEN
+    );
+    memcpy (
+        config1a+CFG_DST_CALL_BYTE,
+        &destination_callsign,
+        CFG_CALLSIGN_LEN
+    );
+
+    config1a[CFG_TX_PREAM_BYTE] = CFG_TX_PREAM_DEF; // zero preamble bytes
+    config1a[CFG_TX_PREAM_BYTE] = CFG_TX_PREAM_DEF; // zero preamble bytes
+    config1a[CFG_TX_POSTAM_BYTE] = CFG_TX_POSTAM_DEF; // zero postamble bytes  
+    config1a[CFG_TX_POSTAM_BYTE] = CFG_TX_POSTAM_DEF; // zero postamble bytes  
+    config1a[CFG_FUNCTION_CONFIG_BYTE] = 0; 
+    config1a[CFG_FUNCTION_CONFIG_BYTE+1] = 0; 
+    config1a[CFG_FUNCTION_CONFIG2_BYTE] = 0;
+    config1a[CFG_FUNCTION_CONFIG2_BYTE+1] = 0;
+    
+
+    /* 
+     * Method 2 - use the configuration structures
+     * - Must create 
+     *   - he100_settings struct
+     *   - function_config struct (bitfield)
+     *   - function_config2 struct (bitfield)
+     */
     struct he100_settings config1b;
     struct function_config fc1;
     fc1.led=0;
@@ -490,14 +529,25 @@ TEST_F(Helium_100_Test, TestCollectValidConfig_ALL)
     config1b.tx_modulation = CFG_TX_MOD_GFSK;
     config1b.rx_freq = 144200L; // 0x23348
     config1b.tx_freq = 431000L; // 0x69398 
-    memcpy (&config1b.source_callsign,&source_callsign,CFG_CALLSIGN_LEN);
-    memcpy (&config1b.destination_callsign,&destination_callsign,CFG_CALLSIGN_LEN);
+    
+    // still need to use memcpy to assign the callsigns
+    memcpy (
+        &config1b.source_callsign,
+        &source_callsign,
+        CFG_CALLSIGN_LEN
+    );
+    memcpy (
+        &config1b.destination_callsign,
+        &destination_callsign,
+        CFG_CALLSIGN_LEN
+    );
+
     config1b.tx_preamble = CFG_TX_PREAM_DEF;
     config1b.tx_postamble = CFG_TX_POSTAM_DEF;
     config1b.function_config = fc1;
     config1b.function_config2 = fc2;
 
-    //HE100_swapConfigEndianness(config1b);
+    HE100_printSettings(stdout, config1b);
 
     unsigned char config2[CFG_PAYLOAD_LENGTH] = {0};
     ASSERT_EQ(

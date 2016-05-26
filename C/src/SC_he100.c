@@ -663,7 +663,6 @@ HE100_collectConfig (unsigned char * buffer)
     settings.tx_modulation = buffer[CFG_TX_MOD_BYTE];
 
     // swap endianess
-    // TODO CONDITIONAL ENDIANNESS conversion
     if (endian()==LE){
 
         uint16_t fc1_t = 0;
@@ -729,19 +728,6 @@ HE100_collectConfig (unsigned char * buffer)
             CFG_CALLSIGN_LEN
     );
 
-    /*
-    unsigned led:2;
-    unsigned pin13:2;           
-    unsigned pin14:2;
-    unsigned crc_tx:1;
-    unsigned crc_rx:1; 
-    unsigned telemetry_dump_status:1; // enable telemetry dump
-    unsigned telemetry_rate:2; // logging rate 0 1/10 Hz, 1 1 Hz, 2 2 Hz, 3 4 Hz
-    unsigned telemetry_status:1;  // enable telemetry logging 
-    unsigned beacon_radio_reset_status:1; // enable radio reset
-    unsigned beacon_code_upload_status:1; // enable code upload
-    unsigned beacon_oa_cmd_status:1; // enable OA Commands
-    unsigned beacon_0:1;
     uint16_t fc1 = (uint16_t)*buffer+CFG_FUNCTION_CONFIG_BYTE;
     settings.function_config.led                        = fc1 & 0xf;
     settings.function_config.pin13                      = fc1 & (0xf << 2);
@@ -755,38 +741,13 @@ HE100_collectConfig (unsigned char * buffer)
     settings.function_config.beacon_code_upload_status  = fc1 & (0xf << 12);
     settings.function_config.beacon_oa_cmd_status       = fc1 & (0xf << 13);
     settings.function_config.beacon_oa_cmd_status       = fc1 & (0xf << 14);
-    */
-    settings.function_config.led                        = 0;
-    settings.function_config.pin13                      = 0;
-    settings.function_config.pin14                      = 0;
-    settings.function_config.crc_tx                     = 0;
-    settings.function_config.crc_rx                     = 0;
-    settings.function_config.telemetry_dump_status      = 0;
-    settings.function_config.telemetry_rate             = 0;
-    settings.function_config.telemetry_status           = 0;
-    settings.function_config.beacon_radio_reset_status  = 0;
-    settings.function_config.beacon_code_upload_status  = 0;
-    settings.function_config.beacon_oa_cmd_status       = 0;
-    settings.function_config.beacon_oa_cmd_status       = 0;
-
-    /*
+    
     memcpy (
             &settings.function_config,
             (unsigned char*)buffer+CFG_FUNCTION_CONFIG_BYTE,
             CFG_FUNCTION_CONFIG_LENGTH
     );
-    */
 
-    /*
-    struct function_config2 {
-        unsigned t0:4;
-        unsigned t4:4;
-        unsigned t8:4;
-        unsigned tbd:1;
-        unsigned txcw:1;
-        unsigned rxcw:1;
-        unsigned rafc:1;
-    };
     uint16_t fc2 = (uint16_t)*buffer+CFG_FUNCTION_CONFIG2_BYTE;
     settings.function_config2.t0        = fc2 & ( 0xf << 0  );
     settings.function_config2.t4        = fc2 & ( 0xf << 4  );
@@ -795,22 +756,12 @@ HE100_collectConfig (unsigned char * buffer)
     settings.function_config2.txcw      = fc2 & ( 0xf << 10 );
     settings.function_config2.rxcw      = fc2 & ( 0xf << 11 );
     settings.function_config2.rafc      = fc2 & ( 0xf << 12 );
-    */
-    settings.function_config2.t0        = 0;
-    settings.function_config2.t4        = 0;
-    settings.function_config2.t8        = 0;
-    settings.function_config2.tbd       = 0;
-    settings.function_config2.txcw      = 0;
-    settings.function_config2.rxcw      = 0;
-    settings.function_config2.rafc      = 0;
 
-    /*
     memcpy (
             &settings.function_config2,
             (unsigned char*)buffer+CFG_FUNCTION_CONFIG2_BYTE,
             CFG_FUNCTION_CONFIG2_LENGTH
     );
-    */
 
     return settings;
 }
@@ -822,7 +773,7 @@ HE100_collectConfig (unsigned char * buffer)
 void 
 HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     fprintf(fdout,"Interface Baud Rate:   %s [%d]\n\r", if_baudrate[settings.interface_baud_rate],settings.interface_baud_rate);
-    fprintf(fdout,"TX Power Amp Level:    %d [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
+    fprintf(fdout,"TX Power Amp Level:    %d% [%d] \r\n", settings.tx_power_amp_level*100/255,settings.tx_power_amp_level);
     fprintf(fdout,"RX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.rx_rf_baud_rate],settings.rx_rf_baud_rate);
     fprintf(fdout,"TX Baud Rate:          %s [%d] \r\n", rf_baudrate[settings.tx_rf_baud_rate],settings.tx_rf_baud_rate);
     fprintf(fdout,"RX Frequency:          %d \r\n", settings.rx_freq);
@@ -842,8 +793,14 @@ HE100_printSettings( FILE* fdout, struct he100_settings settings ) {
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_BEACON_CODE_UPLOAD[fc1.beacon_code_upload_status],fc1.beacon_code_upload_status);
     fprintf(fdout,"%s [%02X] \r\n",CFG_FC_BEACON_RESET[fc1.beacon_radio_reset_status],fc1.beacon_radio_reset_status);
 
-    fprintf(fdout,"Source Callsign:       %s \r\n", settings.source_callsign);
-    fprintf(fdout,"Destination Callsign:  %s \r\n", settings.destination_callsign);
+    char source_callsign_buf[CFG_CALLSIGN_LEN+1] = {0};
+    snprintf(source_callsign_buf,CFG_CALLSIGN_LEN+1,"%s%c",settings.source_callsign,"\0");
+    fprintf(fdout,"Source Callsign:       %s \r\n", source_callsign_buf);
+
+    char destination_callsign_buf[CFG_CALLSIGN_LEN+1] = {0};
+    snprintf(destination_callsign_buf,CFG_CALLSIGN_LEN+1,"%s%c",settings.destination_callsign,"\0");
+    fprintf(fdout,"Destination Callsign:  %s \r\n", destination_callsign_buf);
+
     fprintf(fdout,"TX Preamble:           %d \r\n", settings.tx_preamble);
     fprintf(fdout,"TX Postamble:          %d \r\n", settings.tx_postamble);
 
@@ -994,6 +951,9 @@ HE100_getConfig (int fdin, struct he100_settings * settings)
     return result;
 }
 
+/*
+ * Function to swap endianness of certain multi-byte parameters
+ */
 int HE100_swapConfigEndianness (struct he100_settings &settings)
 {
     uint32_t b0,b1,b2,b3=0;
@@ -1052,8 +1012,6 @@ HE100_validateConfig (struct he100_settings he100_new_settings)
     // validate new interface baud rate setting
     if (
             he100_new_settings.interface_baud_rate >= MAX_IF_BAUD_RATE 
-        //&&  he100_new_settings.interface_baud_rate <= MIN_IF_BAUD_RATE // always true
-        // TODO WHY // &&  he100_new_settings.interface_baud_rate != CFG_DEF_IF_BAUD 
     )
     {
         snprintf(
