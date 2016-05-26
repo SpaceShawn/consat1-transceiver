@@ -696,26 +696,25 @@ HE100_collectConfig (unsigned char * buffer)
             buffer[CFG_FUNCTION_CONFIG_BYTE+1]
         ;
 
-        /*
+        
         memcpy (
                 (unsigned char*)buffer+CFG_FUNCTION_CONFIG_BYTE,
                 &fc1_t,
-                sizeof(struct function_config)
+                CFG_FUNCTION_CONFIG_LENGTH
         );
-        */
+        
 
         fc2_t =
             buffer[CFG_FUNCTION_CONFIG2_BYTE] << 8 |
             buffer[CFG_FUNCTION_CONFIG2_BYTE+1]
         ;
 
-        /*
+        
         memcpy (
                 (unsigned char*)buffer+CFG_FUNCTION_CONFIG2_BYTE,
                 &fc2_t,
-                sizeof(struct function_config2)
+                CFG_FUNCTION_CONFIG2_LENGTH 
         );
-        */
     }
 
     memcpy(
@@ -774,8 +773,7 @@ HE100_collectConfig (unsigned char * buffer)
     memcpy (
             &settings.function_config,
             (unsigned char*)buffer+CFG_FUNCTION_CONFIG_BYTE,
-            sizeof(struct function_config)
-            // CFG_FUNCTION_CONFIG_LENGTH
+            CFG_FUNCTION_CONFIG_LENGTH
     );
     */
 
@@ -810,8 +808,7 @@ HE100_collectConfig (unsigned char * buffer)
     memcpy (
             &settings.function_config2,
             (unsigned char*)buffer+CFG_FUNCTION_CONFIG2_BYTE,
-            sizeof(struct function_config2)
-            // CFG_FUNCTION_CONFIG2_LENGTH
+            CFG_FUNCTION_CONFIG2_LENGTH
     );
     */
 
@@ -909,6 +906,7 @@ HE100_prepareConfig (unsigned char &prepared_bytes, struct he100_settings settin
         &settings.tx_rf_baud_rate,
         sizeof(settings.tx_rf_baud_rate)
     );
+
     memcpy(
         &prepared_bytes+CFG_RX_MOD_BYTE,
         &settings.rx_modulation,
@@ -932,12 +930,12 @@ HE100_prepareConfig (unsigned char &prepared_bytes, struct he100_settings settin
     memcpy(
         &prepared_bytes+CFG_SRC_CALL_BYTE,
         settings.source_callsign,
-        sizeof(settings.source_callsign)
+        CFG_CALLSIGN_LEN
     );
     memcpy(
         &prepared_bytes+CFG_DST_CALL_BYTE,
         &settings.destination_callsign,
-        sizeof(settings.destination_callsign)
+        CFG_CALLSIGN_LEN
     );
     memcpy(
         &prepared_bytes+CFG_TX_PREAM_BYTE,
@@ -952,12 +950,12 @@ HE100_prepareConfig (unsigned char &prepared_bytes, struct he100_settings settin
     memcpy(
         &prepared_bytes+CFG_FUNCTION_CONFIG_BYTE,
         &settings.function_config,
-        sizeof(settings.function_config)
+        CFG_FUNCTION_CONFIG_LENGTH
     );
     memcpy(
         &prepared_bytes+CFG_FUNCTION_CONFIG2_BYTE,
         &settings.function_config2,
-        sizeof(settings.function_config2)
+        CFG_FUNCTION_CONFIG2_LENGTH 
     );
 
     return HE_SUCCESS;
