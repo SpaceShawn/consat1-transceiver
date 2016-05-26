@@ -111,10 +111,16 @@ HE100_validateFrame (unsigned char *response, size_t length)
     // calculate payload length
     size_t payload_length;
     if ( length >= 10 ) 
-    { // a message of this minimum length will have a payload
-        payload_length = length - WRAPPER_LENGTH; // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
+    { 
+        // a message of this minimum length will have a payload
+        payload_length = length - WRAPPER_LENGTH; 
+        // response minus header minus 4 checksum bytes and 2 sync bytes and 2 length bytes
+
         // validate length
-        if ( response[HE_LENGTH_BYTE] != payload_length ) return CS1_WRONG_LENGTH;    
+        if ( response[HE_LENGTH_BYTE] != payload_length ) 
+        { 
+            return CS1_WRONG_LENGTH;
+        }
     } 
     else 
     { // empty payload control sequences
@@ -147,19 +153,43 @@ HE100_validateFrame (unsigned char *response, size_t length)
         char output[MAX_LOG_BUFFER_LEN];
         Shakespeare::Priority logPriority;
         if (response[4] == HE_ACK) {
-            snprintf (output, MAX_LOG_BUFFER_LEN, "ACK>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
+            snprintf (
+                output, 
+                MAX_LOG_BUFFER_LEN, 
+                "ACK>%s:%s>%d", 
+                CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], 
+                __func__, __LINE__
+            );
             logPriority = Shakespeare::NOTICE;
             r = 0;
         } else if (response[4] == HE_NOACK) {
-            snprintf (output, MAX_LOG_BUFFER_LEN, "NACK>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
+            snprintf (
+                output, 
+                MAX_LOG_BUFFER_LEN, 
+                "NACK>%s:%s>%d", 
+                CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], 
+                __func__, __LINE__
+            );
             logPriority = Shakespeare::ERROR;
             r = HE_FAILED_NACK;
         } else if (response[4] == 0) {
-            snprintf (output, MAX_LOG_BUFFER_LEN, "Empty Response>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
+            snprintf (
+                output, 
+                MAX_LOG_BUFFER_LEN, 
+                "Empty Response>%s:%s>%d", 
+                CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], 
+                __func__, __LINE__
+            );
             logPriority = Shakespeare::ERROR;
             r = HE_EMPTY_RESPONSE;
         } else {
-            snprintf (output, MAX_LOG_BUFFER_LEN, "Unknown byte sequence>%s:%s>%d", CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], __func__, __LINE__);
+            snprintf (
+                output, 
+                MAX_LOG_BUFFER_LEN, 
+                "Unknown byte sequence>%s:%s>%d", 
+                CMD_CODE_LIST[(int)response[HE_CMD_BYTE]], 
+                __func__, __LINE__
+            );
             logPriority = Shakespeare::ERROR;
             r = HE_INVALID_BYTE_SEQUENCE;
         }

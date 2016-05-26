@@ -18,7 +18,7 @@ def ConfigSectionMap(section):
 		try:
 			dict1[option] = Config.get(section, option)
 			if dict1[option] == -1:
-				DebugPrint("skip: %s" % option)	
+				DebugPrint("skip: %s" % option)
 		except:
 			print("exception on %s!" % option)
 			dict1[option] = None
@@ -34,8 +34,7 @@ def ConfigSectionMap(section):
 #print ConfigSectionMap("SERIAL")['writeTimeout']
 
 ser = serial.Serial(
-#    3,# dell laptop
-  port='/dev/ttyUSB0',# toshiba laptop
+  port='/dev/ttyS1',
   baudrate=9600,
   parity=serial.PARITY_NONE,
   bytesize=serial.EIGHTBITS,
@@ -49,6 +48,28 @@ def signal_handler(signal, frame):
   ser.close()
   sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
+
+def SC_writeCallback(input):
+  ser.write(input)
+  out = ''
+  time.sleep(1);
+
+  while ser.inWaiting() > 0:
+    out += ser.read(1)
+
+  if out!= '':
+    print 'Response:'
+    response = toHex(out)
+    print response
+    if ((response == '486520060a0a3ab0') | (response == '486520010a0a35a1') | (response == '486520030a0a37a7') | (response == '486520200a0a54fe')):
+      print 'Acknowledge'
+    elif (response == '48652001ffff1f80'):
+      print 'Not-Acknowledge'
+    elif (bytearray.fromhex(response) == input):
+      print 'Serial device is off'
+  else :
+    print 'You suck'
+  print '\r'
 
 def SC_printMenu():
   print 'conv - k - enter conversation mode \r'
@@ -125,7 +146,7 @@ if ser.isOpen():
       tb.join()
        
     elif ((input == "listen") | (input == "l")):
-      SC_listen(ser) 
+      SC_listen(ser)
 
     elif ((input == "getconfig") | (input == "gc")):
       input = SC_getConfig()
@@ -164,7 +185,7 @@ if ser.isOpen():
         SC_writeCallback(SC_beacon(input))
       else:
         print "incorrect input"
-    
+
     elif ((input == "setpoweramp") | (input == "spa")):
       print 'Enter a power amplification level 0-100%'
       input=raw_input()
@@ -188,7 +209,7 @@ if ser.isOpen():
     elif ((input == "setconfig") | (input == "sc")):
       input=SC_setConfig()
       SC_writeCallback(input)
-   
+
     elif ((input == "looptransmit") | (input == "lt")):
       payload="A123456789B123456789C123456789D123456789E123456789F123456789G123456789H123456789I123456789J123456789K123456789L123456789M123456789N123456789O123456789P123456789Q123456789R123456789S"
       input=SC_prepare(payload.encode('utf-8'), '10 03')
@@ -221,9 +242,9 @@ if ser.isOpen():
       print '32-bit', SC_fletcher32(input)
     elif ((input == "writeflash") | (input == "wf")):
       input=SC_writeFlash()
-      SC_writeCallback(input)  
+      SC_writeCallback(input)
     else:
-      SC_printMenu() 
+      SC_printMenu()
 
 #	except Exception, e1:
 #		print "error communicating...:" + str(e1)
