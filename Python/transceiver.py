@@ -35,24 +35,12 @@ def ConfigSectionMap(section):
 #print ConfigSectionMap("SERIAL")['timeout']
 #print ConfigSectionMap("SERIAL")['writeTimeout']
 
-ser = serial.Serial(
-  port='/dev/ttyUSB0',
-  baudrate=9600,
-  parity=serial.PARITY_NONE,
-  bytesize=serial.EIGHTBITS,
-  stopbits=serial.STOPBITS_ONE,
-  timeout=1,
-  writeTimeout=3
-  )
-
-def signal_handler(signal, frame):
-  print '\r\nYou pressed Cntl+C! Exiting Cleanly...'
-  ser.close()
-  sys.exit(0)
-signal.signal(signal.SIGINT, signal_handler)
-
 def SC_writeCallback(input):
-  ser.write(input)
+  try:
+    ser.write(input)
+  except Exception, e:
+    print "Could not write for reasons"
+
   out = ''
   time.sleep(1);
 
@@ -73,6 +61,23 @@ def SC_writeCallback(input):
     print 'You suck'
   print '\r'
 
+ser = serial.Serial(
+  port='/dev/ttyUSB0',
+  baudrate=9600,
+  parity=serial.PARITY_NONE,
+  bytesize=serial.EIGHTBITS,
+  stopbits=serial.STOPBITS_ONE,
+  timeout=1,
+  writeTimeout=3
+  )
+
+def signal_handler(signal, frame):
+  print '\r\nYou pressed Cntl+C! Exiting Cleanly...'
+  ser.close()
+  sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
+
+
 def SC_printMenu():
   print 'conv - k - enter conversation mode \r'
   print 'checksum - cs - return a checksum of the entered text \r'
@@ -87,9 +92,9 @@ def SC_printMenu():
   print 'setbaud - sbaud - set the BAUD from 9600 to 38400\r'
   print 'setbeacon - sbeacon - set the Beacon rate from input\r'
   print 'setledpulse - slp - set the LED to pulse every 2.5 seconds\r'
-  print 'setconfig - sc - set the radio config\r'
+  #print 'setconfig - sc - set the radio config\r'
   print 'setpoweramp - spa - set the power amplification based on input'
-  print 'writeflash - wf - stores the current configuration in radio flash'
+  #print 'writeflash - wf - stores the current configuration in radio flash'
   print 'exit - q - and close the serial port\r\n'
 
 #  print "error opening serial port: " + str(e)
@@ -104,9 +109,8 @@ def SC_writeCallback(input):
     out += ser.read(1)
     
   if out!= '':
-    print 'Response:'    
     response = toHex(out)
-    print response
+    print 'Response: '+response
     if ( (response[4] == '0a') and (response[5] == '0a') ):
       print 'Acknowledge'
     elif ((response[4] == 'ff') and (response[5] == 'ff') ):
@@ -140,16 +144,19 @@ if ser.isOpen():
 
     elif ((input == "conv") | (input == "k")):
       ta = Thread( target=SC_transmitPrompt() )
-      tb = Thread( target=SC_listen(ser) )
-
+      tb = Thread( target=SC_listenLoop(ser) )
       ta.start()
       tb.start()
-    
-      ta.join()
-      tb.join()
+      while True:
+          ta.join()
+          tb.join()
 
     elif ((input == "digipeat") | (input == "dp")):
-      SC_digipeat(ser)
+      while True:
+        message = SC_listen(ser)
+        if message != None:
+            print "digipeat: "+message
+            SC_writeCallback(SC_transmit(message))
        
     elif ((input == "listen") | (input == "l")):
       SC_listen(ser)
@@ -252,9 +259,8 @@ if ser.isOpen():
     else:
       SC_printMenu()
 
-#	except Exception, e1:
-#		print "error communicating...:" + str(e1)
 else :
-  ser.open()
-	#except Exception, e:
-	#print "Cannot open serial port"
+  try:
+    ser.open()
+  except Exception, e:
+    print "Cannot open serial port"

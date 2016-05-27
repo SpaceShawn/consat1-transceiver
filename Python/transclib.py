@@ -7,6 +7,7 @@ from itertools import *
 from functools import reduce
 debug_flag = False
 
+
 def SC_computeFletcher(data, size, modulo, limit=None):
 	#valA, valB = 0xf, 0xf
 	#valA, valB = 0xf, 0xf
@@ -67,10 +68,6 @@ def SC_fletcher(data):
  # return fletcher_checksum(data)
 
 def SC_digipeat(ser):
-  while True:
-    message = SC_listen(ser)
-    if message != None:
-        print "digipeat:"+message
   
   return bytearray.fromhex('48 65 10 01 00 00 11 43 00 00')
 
@@ -96,6 +93,10 @@ def SC_beacon(instance):
     '3' : bytearray.fromhex('48 65 10 11 00 01 22 74 03 BB 2B'),
   }.get(instance, 0)
 
+def SC_listenLoop(ser):
+    while True:
+        SC_listen(ser)
+
 def SC_listen(ser):
     '''
     action = raw_input(": ")
@@ -104,54 +105,127 @@ def SC_listen(ser):
       break
     '''
     out = ''
-    while ser.inWaiting() > 6:
+    while ser.inWaiting() > 2:
+      # read 6 bytes to capture the 'length' byte
       out += ser.read(6)
     if out != '':
-      #print "Raw data: ", toHex(out), "\n\r"
+      # store the header bytes in an array
+      header = bytearray.fromhex(toHex(out))
+      '''
+      print "Header: " 
+      for h in header: print hex(h),
+      print "End Header"
+      '''
 
-      data = bytearray.fromhex(toHex(out))
-      payload_length = int(data[5])
-      print "Detected payload length" , str(payload_length), "\n\r"
-      #payload_length = len(data) - 10
+      # extract and print the payload length
+      payload_length = int(header[5])
+      '''
+      print "Detected payload length" , hex(header[5]), str(payload_length), "\n\r"
+      '''
 
-      time.sleep(1)
+      # wait a 1/4 sec
+      time.sleep(0.25)
+
+      # get the rest of the data
       try:
         out += ser.read(payload_length+5)
-        data = (bytearray.fromhex(toHex(out)))
       except BufferError:
         print "Incomplete buffer: ", toHex(out), "\n\r"
-
-      print "Raw data: ", toHex(out), "\n\r"
-      
-      payload = "" 
-      header_length = 8
-      preamble_length = 19
-      first_element = header_length+preamble_length-3
-      real_payload_length = payload_length-preamble_length
-
-      print "first element:" + str(first_element)
-      print "real payload length:" + str(real_payload_length)
-
-      payload = data[first_element:real_payload_length]
-      
-      print hex(data[27-3]) + " " + hex(data[28-3]) + " " + hex(data[29-3])
-
       '''
-      for i in xrange(first_element,real_payload_length):
-        print "i:" + str(i) + " Data:", str(data[i]), " Hex:" + hex(data[i])
-        payload += chr(data[i])
-        payload += str(out[i])
+      print "out:", toHex(out), "\n\r"
       '''
 
-      #payload = payload.strip().decode('hex')
-
+      # calculate frame length
       expected_frame_length = payload_length + 10
-      frame_length = len(data)
+      
+      # dump the raw data into a bytearray representing the frame
+      frame = bytearray.fromhex(toHex(out[0:expected_frame_length]))
+      frame_length = len(frame)
+      '''
+      print "Frame: "
+      for fb in frame: print hex(fb),
+      print "End Frame"
+      '''
 
+      # compare expected and actual frame lengths
+      '''
       if frame_length != expected_frame_length:
           print "WARNING: mismatched frame_length. Expected:",expected_frame_length, "Actual:",frame_length
       else: 
           print "SUCCESS: frame_length matches expected_frame_length! Expected:",expected_frame_length, "Actual:",frame_length 
+      '''
+      # determine frame segment lengths
+      header_length = 8
+      header_checksum_pos = 6
+      preamble_length = 16
+      first_element = header_length+preamble_length
+      real_payload_length = payload_length-preamble_length
+      '''
+      print "first element:" + str(first_element)
+      print "real payload length:" + str(real_payload_length)
+      '''
+
+      # extract the header checksum bytes
+      header_checksum = (frame[header_checksum_pos:header_checksum_pos+1])
+      '''
+      print "Header Checksum:"
+      for hcb in header_checksum: print hex(hcb),
+      print "\nEnd Header Checksum:"
+      '''
+
+      # extract the payload bytes
+      payload = (frame[header_length:first_element+real_payload_length-1])
+      '''
+      print "Payload:"
+      for pyb in payload: print hex(pyb),
+      print "\nEnd payload"
+      '''
+
+      # extract the payload checksum bytes
+      payload_checksum = (frame[frame_length-2:frame_length-1])
+      '''
+      print "Payload checksum:"
+      for pyb in payload: print hex(pyb),
+      print "\nEnd payload checksum"
+      '''
+
+      # check for kenwood garbage
+      if payload[0] == 0x86 and payload[1] == 0xa2 and payload[2] == 0x40:
+        preamble_start = header_length
+        preamble_end = header_length+preamble_length-1
+        postamble_start = first_element+real_payload_length-3
+        postamble_end = first_element+real_payload_length-2
+        real_payload_start = first_element
+        real_payload_end = first_element+real_payload_length-1-2
+
+        # extract the preamble bytes
+        preamble = (frame[preamble_start:preamble_end])
+        '''
+        print "Preamble:"
+        for pb in preamble: print hex(pb),
+        print "\nEnd preamble:"
+        '''
+
+        # extract the preamble bytes
+        postamble = (frame[postamble_start:postamble_end])
+        '''
+        print "Postamble"
+        for pob in postamble: print hex(pob),
+        print "\nEnd postamble:"
+        '''
+
+        # extract the payload bytes
+        payload = (frame[real_payload_start:real_payload_end])
+        '''
+        print "Real payload:"
+        for pyb in payload: print hex(pyb),
+        print "\nEnd real payload"
+        '''
+
+      #payload = payload.strip()
+      #payload = payload.strip().decode('hex')
+      #payload = payload.decode('hex')
+      #payload = binascii.a2b_hex(payload.strip())
 
       '''
       print "\n<< Incoming:\n", toHex(out), "\n", toHex(out.strip()).decode('hex'), "\n"
@@ -160,8 +234,8 @@ def SC_listen(ser):
       print "Payload Size: ", data[4], str(int(data[5])), "\r"
       print "Header Check: ", data[6], data[7], "\r"
       print "Payload Check: ", data[len(data)-2], data[len(data)-1], "\r\n\r\n"
-      '''
       print "Payload: ", str(payload),"\r\n"
+      '''
       
       return binascii.b2a_qp(payload)
 
@@ -215,14 +289,16 @@ def SC_prepare(payload, command):
 
   transmission.extend(packet)
   print("total payload: ", len(transmission), " bytes\r\n")
-  print("SENDING:: ", toHex(str(transmission)))
+  print("Sending: ", toHex(str(transmission)))
   return transmission
 
 def SC_transmit(payload):
   payload_byte_array = payload.encode('utf-8')
   length = len(payload_byte_array)
   length_bytes = struct.pack('B',length)  
+  '''
   print "\nPayload:  ", length, " bytes out of a maximum 255"
+  '''
 
   #Keeping 2 bytes separate for sync characters
   transmission = bytearray.fromhex('48 65')
@@ -249,16 +325,12 @@ def SC_transmit(payload):
   packet.extend(struct.pack('B', payload_checksum[1]))
 
   transmission.extend(packet)
+  '''
   print "\ttotal payload: ", len(transmission), " bytes\n"
-  print 'SENDING:: ', toHex(str(transmission))  
+  '''
+  print 'Sending::', toHex(str(transmission))  
 
   return transmission
-
-def SC_setConfig():
-  return bytearray.fromhex('48 65 10 06 00 22 38 74 00 00 01 01 00 00 48 33 02 00 98 93 06 00 56 41 33 4f 52 42 56 45 32 43 55 41 05 00 00 00 41 80 00 00 31 70');
-
-def SC_writeFlash():
-  return bytearray.fromhex('48 65 10 08 00 10 28 68 0B 91 F1 D5 4F 93 2D C6 38 2D C6 9F 19 79 00 CF 1A 33')
 
 def SC_size(data):
   return str(sys.getsizeof(data))
