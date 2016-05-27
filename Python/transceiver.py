@@ -142,7 +142,7 @@ if ser.isOpen():
             SC_writeCallback(SC_transmit(message))
        
     elif ((input == "listen") | (input == "l")):
-      SC_listen(ser)
+      SC_listenLoop(ser)
 
     elif ((input == "getconfig") | (input == "gc")):
       input = SC_getConfig()

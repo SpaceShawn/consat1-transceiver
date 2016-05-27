@@ -7,7 +7,6 @@ from itertools import *
 from functools import reduce
 debug_flag = False
 
-
 def SC_computeFletcher(data, size, modulo, limit=None):
 	#valA, valB = 0xf, 0xf
 	#valA, valB = 0xf, 0xf
