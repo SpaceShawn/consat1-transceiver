@@ -40,26 +40,30 @@ def SC_writeCallback(input):
     ser.write(input)
   except Exception, e:
     print "Could not write for reasons"
-
-  out = ''
+  out = ''	
   time.sleep(1);
 
   while ser.inWaiting() > 0:
     out += ser.read(1)
-
+    
   if out!= '':
-    print 'Response:'
     response = toHex(out)
-    print response
-    if ((response == '486520060a0a3ab0') | (response == '486520010a0a35a1') | (response == '486520030a0a37a7') | (response == '486520200a0a54fe')):
-      print 'Acknowledge'
-    elif (response == '48652001ffff1f80'):
-      print 'Not-Acknowledge'
-    elif (bytearray.fromhex(response) == input):
-      print 'Serial device is off'
+    SC_interpretResponse(response[0:])
   else :
-    print 'You suck'
+    print 'Unknown problem, maybe radio is off'
   print '\r'
+
+def SC_interpretResponse(response):
+  print 'Response:\t'+response
+  frame = bytearray.fromhex(response)
+  if ( (frame[4] == 0x0a ) and (frame[5] == 0x0a ) ):
+    print 'Status: \tAcknowledge\n',
+  elif ((frame[4] == 0xff) and (frame[5] == 0xff) ):
+    print 'Status: \tNot-Acknowledge\n',
+  elif (bytearray.fromhex(response) == input):
+    print 'Serial device is off'
+  else:
+    print 'No idea'
 
 ser = serial.Serial(
   port='/dev/ttyUSB0',
@@ -99,27 +103,6 @@ def SC_printMenu():
 
 #  print "error opening serial port: " + str(e)
 #  exit()
-
-def SC_writeCallback(input):
-  ser.write(input)
-  out = ''	
-  time.sleep(1);
-
-  while ser.inWaiting() > 0:
-    out += ser.read(1)
-    
-  if out!= '':
-    response = toHex(out)
-    print 'Response: '+response
-    if ( (response[4] == '0a') and (response[5] == '0a') ):
-      print 'Acknowledge'
-    elif ((response[4] == 'ff') and (response[5] == 'ff') ):
-      print 'Not-Acknowledge'
-    elif (bytearray.fromhex(response) == input):
-      print 'Serial device is off'
-  else :
-    print 'Unknown problem, maybe radio is off'
-  print '\r'
 
 def SC_transmitPrompt():
   while True:

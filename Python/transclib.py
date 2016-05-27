@@ -288,8 +288,8 @@ def SC_prepare(payload, command):
       print "checksum: ", payload_checksum#, " should be: (170,75)\r\n"#aa,4b
 
   transmission.extend(packet)
-  print("total payload: ", len(transmission), " bytes\r\n")
-  print("Sending: ", toHex(str(transmission)))
+  print("total payload:\t", len(transmission), " bytes\r\n")
+  print("Sending:\t", toHex(str(transmission)))
   return transmission
 
 def SC_transmit(payload):
@@ -328,7 +328,7 @@ def SC_transmit(payload):
   '''
   print "\ttotal payload: ", len(transmission), " bytes\n"
   '''
-  print 'Sending::', toHex(str(transmission))  
+  print 'Sending:\t', toHex(str(transmission))  
 
   return transmission
 
