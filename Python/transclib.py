@@ -1,6 +1,7 @@
 from math import *
 import struct
 import sys
+import time
 import binascii # to convert incoming messages to ascii
 from itertools import *
 from functools import reduce
@@ -65,6 +66,14 @@ def SC_fletcher(data):
   return SC_fletcher8(data)
  # return fletcher_checksum(data)
 
+def SC_digipeat(ser):
+  while True:
+    message = SC_listen(ser)
+    if message != None:
+        print "digipeat:"+message
+  
+  return bytearray.fromhex('48 65 10 01 00 00 11 43 00 00')
+
 def SC_noop():
   return bytearray.fromhex('48 65 10 01 00 00 11 43 00 00')
 
@@ -88,23 +97,24 @@ def SC_beacon(instance):
   }.get(instance, 0)
 
 def SC_listen(ser):
-  while True:
+    '''
     action = raw_input(": ")
     if action == 'q':
       print("Stopping listener")
       break
+    '''
     out = ''
     while ser.inWaiting() > 6:
       out += ser.read(6)
     if out != '':
-      print "Raw data: ", toHex(out), "\n\r"
+      #print "Raw data: ", toHex(out), "\n\r"
 
       data = bytearray.fromhex(toHex(out))
       payload_length = int(data[5])
       print "Detected payload length" , str(payload_length), "\n\r"
       #payload_length = len(data) - 10
 
-      sleep(1)
+      time.sleep(1)
       try:
         out += ser.read(payload_length+5)
         data = (bytearray.fromhex(toHex(out)))
@@ -116,10 +126,24 @@ def SC_listen(ser):
       payload = "" 
       header_length = 8
       preamble_length = 19
-      for i in xrange(header_length+preamble_length,payload_length-preamble_length) :
-        print "0x", str(data[i]), " "
-        #payload += chr(data[i])
-        payload += chr(out[i])
+      first_element = header_length+preamble_length-3
+      real_payload_length = payload_length-preamble_length
+
+      print "first element:" + str(first_element)
+      print "real payload length:" + str(real_payload_length)
+
+      payload = data[first_element:real_payload_length]
+      
+      print hex(data[27-3]) + " " + hex(data[28-3]) + " " + hex(data[29-3])
+
+      '''
+      for i in xrange(first_element,real_payload_length):
+        print "i:" + str(i) + " Data:", str(data[i]), " Hex:" + hex(data[i])
+        payload += chr(data[i])
+        payload += str(out[i])
+      '''
+
+      #payload = payload.strip().decode('hex')
 
       expected_frame_length = payload_length + 10
       frame_length = len(data)
@@ -128,15 +152,18 @@ def SC_listen(ser):
           print "WARNING: mismatched frame_length. Expected:",expected_frame_length, "Actual:",frame_length
       else: 
           print "SUCCESS: frame_length matches expected_frame_length! Expected:",expected_frame_length, "Actual:",frame_length 
-      #payload = payload.strip().decode('hex')
-       
+
+      '''
       print "\n<< Incoming:\n", toHex(out), "\n", toHex(out.strip()).decode('hex'), "\n"
       print "Sync Bytes: ", chr(data[0]), chr(data[1]), "\r"
       print "Command Type: ", str(hex(data[2])), str(hex(data[3])), "\r"
       print "Payload Size: ", data[4], str(int(data[5])), "\r"
       print "Header Check: ", data[6], data[7], "\r"
       print "Payload Check: ", data[len(data)-2], data[len(data)-1], "\r\n\r\n"
+      '''
       print "Payload: ", str(payload),"\r\n"
+      
+      return binascii.b2a_qp(payload)
 
 def SC_testTransmit():
 ## weirdness: "A payload checksum is then used to verify the accuracy of the payload. The checksum is calculated across all pertinent bytes of the message excluding the two sync characters of each message 'He'

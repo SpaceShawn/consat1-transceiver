@@ -7,7 +7,7 @@ import ConfigParser
 import signal # for interrupt handler
 
 from threading import Thread
-from time import sleep
+import time
 
 config = ConfigParser.ConfigParser()
 config.read('transceiver.ini')
@@ -77,6 +77,7 @@ def SC_printMenu():
   print 'conv - k - enter conversation mode \r'
   print 'checksum - cs - return a checksum of the entered text \r'
   print 'noop - np - send no-op sequence\r'
+  print 'digipeat - dp - digipeater mode\r'
   print 'listen - l - listen for incoming communication\r'
   print 'getconfig- gc - send getConfig\r'
   print 'getfirmware- gf - get firmware revision\r'
@@ -146,6 +147,9 @@ if ser.isOpen():
     
       ta.join()
       tb.join()
+
+    elif ((input == "digipeat") | (input == "dp")):
+      SC_digipeat(ser)
        
     elif ((input == "listen") | (input == "l")):
       SC_listen(ser)
