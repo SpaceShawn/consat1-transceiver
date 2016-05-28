@@ -1,5 +1,19 @@
 #! /usr/bin/env python
 
+'''
+Queueing 
+- read in data at a predetermined rate and sample size
+- check for sync bytes
+- check for length byte or ack bytes
+- read in rest of frame, and add to 'finished' queue'
+- if a frame is unfinished, add it to an 'unfinished' queue
+- if new data is receieved not matching the sync bytes, add it to the end of the 
+  unfinished frame
+- keep an 'unconfirmed' queue, for cases where preexisting data in the buffer
+  is read before a command response
+  - e.g. read and store the preexisting data, then 'confirm' the message response
+'''
+
 from array import *
 import time, sys, serial
 from transclib import *
