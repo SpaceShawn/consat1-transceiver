@@ -66,6 +66,7 @@ extern const char *rf_baudrate[5];
 // HELIUM VALUES
 #define NOPAY_COMMAND_LENGTH    8
 #define WRAPPER_LENGTH          10
+#define HE_READ_LEN_DEF         2
 #define MIN_POWER_LEVEL         0
 #define MAX_POWER_LEVEL         255
 #define MAX_TESTED_FRAME        190

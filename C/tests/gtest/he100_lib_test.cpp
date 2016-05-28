@@ -82,6 +82,67 @@ TEST_F(Helium_100_Test, ReadTest)
     ASSERT_EQ(26,r);
 }
 
+TEST_F(Helium_100_Test, Digipeat) 
+{
+    Shakespeare::log_shorthand(LOG_PATH, Shakespeare::NOTICE, PROCESS, "Digipeat");
+    // prepare mock bytes to test with
+    unsigned char mock_bytes[36] = {0x48,0x65,0x20,0x04,0x00,0x1a,0x3e,0xa6,0x86,0xa2,0x40,0x40,0x40,0x40,0x60,0xac,0x8a,0x64,0x86,0xaa,0x82,0xe1,0x03,0xf0,0x6b,0x65,0x6e,0x77,0x6f,0x6f,0x64,0x0d,0x8d,0x08,0x63,0x9f};
+
+    // set up our mock serial device
+    int pdm; // the master pseudo tty to write to
+    int pds; // the slave pseudo tty to read from
+
+    // set up master
+    pdm = open("/dev/ptmx", O_RDWR | O_NOCTTY);
+    if (pdm < 0) ASSERT_EQ(0,pdm);
+
+    // assign slave
+    grantpt(pdm);
+    unlockpt(pdm);
+    pds = open(ptsname(pdm), O_RDWR | O_NOCTTY);
+
+    if (pds < 0) ASSERT_EQ(0,pds);
+    // write series of bytes to mock serial device, intended to be our incoming transmission
+    int w;
+    w = write (pds, mock_bytes, 36);
+    ASSERT_EQ(w,36);
+
+    // invoke HE100_digipeat
+    int q;
+    unsigned char digipeat_payload[CS1_MAX_FRAME_SIZE] = {0};
+    q = HE100_digipeat(pdm, HE_READ_LEN_DEF, digipeat_payload);
+    
+    // ASSUMING THINGS WRITTEN TO PDM CAN BE READ FROM PDS
+    // invoke HE100_read
+    int r;
+    unsigned char payload[CS1_MAX_FRAME_SIZE] = {0};
+    r = HE100_read(pdm, 2, payload);
+    
+    // analyse the payload, ASSERT (all_expected_bytes, all_actual_bytes)
+    int y = 8;
+    for (z=0; z<26; z++) {
+        ASSERT_EQ(
+            mock_bytes[y],
+            payload[z]
+        );
+        y++;
+    }
+    for (z=0; z<26; z++) {
+        ASSERT_EQ(
+            digipeat_payload[z],
+            payload[z]
+        );
+    }
+    
+
+    // flush and close the pseudo serial devices
+    fsync(pdm);fsync(pds);
+    close(pdm);close(pds);
+
+    // final check to make sure read returns successfully
+    ASSERT_EQ(26,r);
+}
+
 // TODO regenerate sample bytes from latest HE100 boards
 // This test verifies the preparation of a transmission frame, and compares
 // with a previously captured transmission from the Radio itself

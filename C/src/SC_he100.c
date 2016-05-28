@@ -84,6 +84,44 @@ HE100_write (int fdin, unsigned char *bytes, size_t size)
 }
 
 /**
+ * Digipeat will retransmit any data it receives
+ * Not TECHNICALLY a digipeater since it will retransmit on 
+ * a different frequency
+ *
+ * If an HE100_read returns a number of bytes, that means
+ * that it received 'payload' data. 
+ * This data is then promptly sent back using the 
+ * HE100_transmitData function
+ *
+ * digipeat only runs once, it should be looped externally
+ *
+ * returns the number of bytes successfully written back
+ **/
+
+int HE100_digipeat (int fdin, time_t read_time, unsigned char * payload ) 
+{
+    size_t bytes_read;
+    size_t write_response = -1;
+    int return_value = -1;
+
+    bytes_read = 0;
+    memset (payload,'\0',MAX_FRAME_LENGTH);
+
+    bytes_read = HE100_read (fdin, 2, payload);
+
+    if (bytes_read > 0) {
+        write_response = HE100_transmitData (fdin,payload, bytes_read);
+    }
+
+    if (write_response == 0) {
+        return_value = 0;
+    }
+    // else it's -1 by default
+
+    return return_value;
+}
+
+/**
  * Function to validate a given frame
  * @param response - the frame data to be validated
  * @param length - the entire length of the frame in bytes

@@ -221,4 +221,11 @@ int HE100_setConfig (int fdin, struct he100_settings he100_new_settings);
 
 void HE100_printSettings(FILE* fdout, struct he100_settings settings);
 
+/**
+ * Digipeat will retransmit any data it receives
+ * Not TECHNICALLY a digipeater since it will retransmit on 
+ * a different frequency
+ **/
+int HE100_digipeat (int, time_t, unsigned char *);
+
 #endif
