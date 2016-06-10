@@ -74,15 +74,17 @@ def SC_printMenu():
 #  print "error opening serial port: " + str(e)
 #  exit()
 
-def SC_writeCallback(inp):
+def SC_writeCallback(inp, ser):
   ser.write(inp)
-  out = ''	
+  out = ''
   time.sleep(1);
+  out = ser.read(1)
 
   while ser.inWaiting() > 0:
     out += ser.read(1)
-    
+
   if out!= '':
+    out = str(out)
     response = toHex(out)
     print("Response: ", response)
     if ( (response[4] == '0a') and (response[5] == '0a') ):

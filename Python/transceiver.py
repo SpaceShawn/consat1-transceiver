@@ -62,7 +62,7 @@ def SC_writeCallback(input):
   print '\r'
 
 ser = serial.Serial(
-  port='/dev/ttyUSB0',
+  port='/dev/ttyS1',
   baudrate=9600,
   parity=serial.PARITY_NONE,
   bytesize=serial.EIGHTBITS,
@@ -102,12 +102,12 @@ def SC_printMenu():
 
 def SC_writeCallback(input):
   ser.write(input)
-  out = ''	
+  out = ''
   time.sleep(1);
 
   while ser.inWaiting() > 0:
     out += ser.read(1)
-    
+
   if out!= '':
     response = toHex(out)
     print 'Response: '+response
@@ -157,9 +157,12 @@ if ser.isOpen():
         if message != None:
             print "digipeat: "+message
             SC_writeCallback(SC_transmit(message))
-       
+
     elif ((input == "listen") | (input == "l")):
-      SC_listen(ser)
+      while True:
+        message = SC_listen(ser)
+        if message != None:
+            print "received: "+message
 
     elif ((input == "getconfig") | (input == "gc")):
       input = SC_getConfig()
