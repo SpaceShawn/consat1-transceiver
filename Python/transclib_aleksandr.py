@@ -104,13 +104,13 @@ def SC_listen(ser):
       print("Stopping listener")
       break
     '''
-    out = ''
+    out = bytes()
     while ser.inWaiting() > 2:
       # read 6 bytes to capture the 'length' byte
       out += ser.read(6)
-    if out != '':
+    if out != b'':
       # store the header bytes in an array
-      header = bytearray.fromhex(toHex(out))
+      header = bytearray.fromhex(toHex(str(out)))
       '''
       print("Header: ")
       for h in header: print hex(h),
@@ -139,7 +139,7 @@ def SC_listen(ser):
       expected_frame_length = payload_length + 10
       
       # dump the raw data into a bytearray representing the frame
-      frame = bytearray.fromhex(toHex(out[0:expected_frame_length]))
+      frame = bytearray.fromhex(toHex(str(out[0:expected_frame_length])))
       frame_length = len(frame)
       '''
       print("Frame: ")
@@ -237,6 +237,7 @@ def SC_listen(ser):
       print("Payload: ", str(payload),"\r\n"
       '''
       
+      return payload
       return binascii.b2a_qp(payload)
 
 def SC_testTransmit():
