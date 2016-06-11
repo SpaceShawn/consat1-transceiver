@@ -6,7 +6,7 @@ sys.path.append('/root/csdc3/src/utility')
 
 from array import *
 import time, sys, serial
-from transclib_aleksandr import *
+from transclib import *
 import signal # for interrupt handler
 
 from threading import Thread
@@ -109,7 +109,7 @@ def SC_writeCallback(inp):
 def SC_transmitPrompt():
   while True:
     print("Enter a message to transmit")
-    inp=input()
+    inp=raw_input()
     if len(inp) == 0:
         inp = " "
     SC_writeCallback(SC_transmit(inp))
@@ -118,7 +118,7 @@ if ser.isOpen():
   print("Enter commands for the transceiver below.\r\nType menu for predefined commands, and exit to quit")
   inp=1
   while 1:
-    inp=input(">> ")
+    inp=raw_input(">> ")
 
     if ((inp == "exit") | (inp == "q")):
       ser.close()
@@ -155,11 +155,11 @@ if ser.isOpen():
             print(timestamp)
             voltage = int(power[0]) / 1000.
 
-            uptime = get_uptime
+            uptime = get_uptime()
             freespace = get_disk_usage('/') / 1000000.
 
             date = datetime.datetime.fromtimestamp( curr_time ).strftime('%H:%M:%S %Y-%m-%d')
-            SC_writeCallback(SC_transmit("VBAT:%.2f | CDH_TEMP:%s | UPTIME: %s | FREESPACE | %.2f | %s" \
+            SC_writeCallback(SC_transmit("VBAT:%.2f V | CDH_TEMP:%s C | UPTIME: %s | FREESPACE: %.2f Mb | %s" \
                                       % (voltage, temp, uptime, freespace, date)))
             time.sleep(5)
 
@@ -195,7 +195,7 @@ if ser.isOpen():
 
     elif ((inp == "setbeacon") | (inp == "sbeacon")):
       print("Enter a beacon level from (0-3)")
-      inp=input()
+      inp=raw_input()
 
       try:
         beacon_level = int(inp)
@@ -209,7 +209,7 @@ if ser.isOpen():
 
     elif ((inp == "setpoweramp") | (inp == "spa")):
       print("Enter a power amplification level 0-100%")
-      inp=input()
+      inp=raw_input()
 
       try:
         pa_level = int(inp)
@@ -235,7 +235,7 @@ if ser.isOpen():
       payload="A123456789B123456789C123456789D123456789E123456789F123456789G123456789H123456789I123456789J123456789K123456789L123456789M123456789N123456789O123456789P123456789Q123456789R123456789S"
       inp=SC_prepare(payload.encode('utf-8'), '10 03')
       while True:
-        #action = input(": ")
+        #action = raw_input(": ")
         SC_writeCallback(inp)
         #if action == 'q':
          # print("Stopping looping transmit"
@@ -248,7 +248,7 @@ if ser.isOpen():
 
     elif ((inp == "dectohex") | (inp == "d2h")):
       print("Enter a message to convert")
-      inp=input()
+      inp=raw_input()
       print(hex(int(inp)))
 
     elif ((inp == "setledpulse") | (inp == "slp")):
@@ -257,7 +257,7 @@ if ser.isOpen():
 
     elif ((inp == "checksum") | (inp == "cs")):
       print("Enter a message to checksum")
-      inp=input()
+      inp=raw_input()
       print("8-bit", SC_fletcher8(inp))
 #      print SC_fletcher16(input)
       print("32-bit", SC_fletcher32(inp))
