@@ -3,20 +3,23 @@ import sys
 sys.path.append('/root/csdc3/src/logs')
 sys.path.append('/root/csdc3/src/sensors')
 sys.path.append('/root/csdc3/src/utility')
+sys.path.append('/root/csdc3/src/comms')
 
 from array import *
-import time, sys, serial
+import sys, serial
+from time import sleep
 from transclib import *
 import signal # for interrupt handler
 
 from threading import Thread
-import time
 from chomsky import selectTelemetryLog
 from sensor_constants import *
+from sensor_manager import SensorManager
 from ast import literal_eval
 import datetime
 from utility import get_disk_usage
 from utility import get_uptime
+from command import *
 
 def SC_writeCallback(inp, ser):
   try:
@@ -25,15 +28,15 @@ def SC_writeCallback(inp, ser):
     print("Could not write for reasons")
 
   out = ''
-  time.sleep(1);
+  sleep(1);
 
   while ser.inWaiting() > 0:
     out += ser.read(1)
 
   if out!= '':
-    print("Response:")
+    #print("Response:")
     response = toHex(out)
-    print(response)
+    #print(response)
     if ((response == '486520060a0a3ab0') | (response == '486520010a0a35a1') | (response == '486520030a0a37a7') | (response == '486520200a0a54fe')):
       print("Acknowledge")
     elif (response == '48652001ffff1f80'):
@@ -44,6 +47,7 @@ def SC_writeCallback(inp, ser):
     print("You suck")
   print("\r")
 
+SensorManager.gpio_output(RADIO_EN_GPIO, ON)
 ser = serial.Serial(
   port='/dev/ttyS1',
   baudrate=9600,
@@ -57,6 +61,7 @@ ser = serial.Serial(
 def signal_handler(signal, frame):
   print("\r\nYou pressed Cntl+C! Exiting Cleanly...")
   ser.close()
+  SensorManager.gpio_output(RADIO_EN_GPIO, OFF)
   sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -65,7 +70,8 @@ def SC_printMenu():
   print("checksum - cs - return a checksum of the entered text \r")
   print("noop - np - send no-op sequence\r")
   print("digipeat - dp - digipeater mode\r")
-  print("beacon - b - start beacon mode\r")
+  print("beacon -b - start beacon mode\r")
+  print("command -c - command mode\r")
   print("listen - l - listen for incoming communication\r")
   print("getconfig- gc - send getConfig\r")
   print("getfirmware- gf - get firmware revision\r")
@@ -86,7 +92,7 @@ def SC_printMenu():
 def SC_writeCallback(inp):
   ser.write(inp)
   out = ''
-  time.sleep(1);
+  sleep(1);
   out = ser.read(1)
 
   while ser.inWaiting() > 0:
@@ -95,7 +101,7 @@ def SC_writeCallback(inp):
   if out!= '':
     out = str(out)
     response = toHex(out)
-    print("Response: ", response)
+    #print("Response: ", response)
     if ( (response[4] == '0a') and (response[5] == '0a') ):
       print("Acknowledge")
     elif ((response[4] == 'ff') and (response[5] == 'ff') ):
@@ -145,7 +151,7 @@ if ser.isOpen():
 
     elif ((inp == "beacon") | (inp == "b")):
         for i in range(5):
-            curr_time = int(time.time())
+            curr_time = int(time())
             power_tuple = selectTelemetryLog(POWER)
             cdh_brd_temp = selectTelemetryLog(TEMP_CDH_BRD)
             temp = cdh_brd_temp[0][1]
@@ -159,15 +165,38 @@ if ser.isOpen():
             freespace = get_disk_usage('/') / 1000000.
 
             date = datetime.datetime.fromtimestamp( curr_time ).strftime('%H:%M:%S %Y-%m-%d')
-            SC_writeCallback(SC_transmit("VBAT:%.2f V | CDH_TEMP:%s C | UPTIME: %s | FREESPACE: %.2f Mb | %s" \
+            SC_writeCallback(SC_transmit("VBAT: %.2f V | CDH_TEMP: %s C | UPTIME: %s | FREESPACE: %.2f Mb | %s" \
                                       % (voltage, temp, uptime, freespace, date)))
-            time.sleep(5)
+            sleep(5)
 
     elif ((inp == "listen") | (inp == "l")):
       while True:
         message = SC_listen(ser)
         if message != None:
             print("received: ", message)
+
+    elif ((inp == "command") | (inp == "c")):
+      command = None
+      while True:
+        message = SC_listen(ser)
+        if message != None:
+            print("received command: ", message)
+            cmd_parsed = message.split(' ')
+            cmd = cmd_parsed[0]
+            try:
+                if cmd == '!' and command is not None:
+                    output = command.execute()
+                    SC_writeCallback(SC_transmit("[SUCCESS] %s" % output))
+                else:
+                    command = COMMANDS[cmd]
+                    params = None
+                    if len(cmd_parsed) > 1:
+                        params = cmd_parsed[1]
+                    output = command.arm(params)
+                    SC_writeCallback(SC_transmit(output))
+            except KeyError:
+                SC_writeCallback(SC_transmit("[ERROR] Command not found: %s" % cmd))
+                print "[ERROR] Command not found: %s" % cmd
 
     elif ((inp == "getconfig") | (inp == "gc")):
       inp = SC_getConfig()
