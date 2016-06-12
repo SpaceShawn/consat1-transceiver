@@ -151,22 +151,24 @@ if ser.isOpen():
 
     elif ((inp == "beacon") | (inp == "b")):
         for i in range(5):
+            """
             curr_time = int(time())
+            timestamp = power_tuple[0][3]
+            print(timestamp)
+            date = datetime.datetime.fromtimestamp( curr_time ).strftime('%H:%M:%S %Y-%m-%d')
+            """
             power_tuple = selectTelemetryLog(POWER)
             cdh_brd_temp = selectTelemetryLog(TEMP_CDH_BRD)
             temp = cdh_brd_temp[0][1]
 
             power = literal_eval(power_tuple[0][1])
-            timestamp = power_tuple[0][3]
-            print(timestamp)
             voltage = int(power[0]) / 1000.
 
             uptime = get_uptime()
             freespace = get_disk_usage('/') / 1000000.
 
-            date = datetime.datetime.fromtimestamp( curr_time ).strftime('%H:%M:%S %Y-%m-%d')
-            SC_writeCallback(SC_transmit("VBAT: %.2f V | CDH_TEMP: %s C | UPTIME: %s | FREESPACE: %.2f Mb | %s" \
-                                      % (voltage, temp, uptime, freespace, date)))
+            SC_writeCallback(SC_transmit("VBAT: %.2f V | CDH_TEMP: %s C | UPTIME: %s | FREESPACE: %.2f Mb" \
+                                      % (voltage, temp, uptime, freespace)))
             sleep(5)
 
     elif ((inp == "listen") | (inp == "l")):

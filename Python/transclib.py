@@ -68,7 +68,6 @@ def SC_fletcher(data):
  # return fletcher_checksum(data)
 
 def SC_digipeat(ser):
-  
   return bytearray.fromhex('48 65 10 01 00 00 11 43 00 00')
 
 def SC_noop():
@@ -112,7 +111,7 @@ def SC_listen(ser):
       # store the header bytes in an array
       header = bytearray.fromhex(toHex(out))
       '''
-      print "Header: " 
+      print "Header: "
       for h in header: print hex(h),
       print "End Header"
       '''
@@ -137,7 +136,7 @@ def SC_listen(ser):
 
       # calculate frame length
       expected_frame_length = payload_length + 10
-      
+
       # dump the raw data into a bytearray representing the frame
       frame = bytearray.fromhex(toHex(out[0:expected_frame_length]))
       frame_length = len(frame)
@@ -151,8 +150,8 @@ def SC_listen(ser):
       '''
       if frame_length != expected_frame_length:
           print "WARNING: mismatched frame_length. Expected:",expected_frame_length, "Actual:",frame_length
-      else: 
-          print "SUCCESS: frame_length matches expected_frame_length! Expected:",expected_frame_length, "Actual:",frame_length 
+      else:
+          print "SUCCESS: frame_length matches expected_frame_length! Expected:",expected_frame_length, "Actual:",frame_length
       '''
       # determine frame segment lengths
       header_length = 8
@@ -236,7 +235,7 @@ def SC_listen(ser):
       print "Payload Check: ", data[len(data)-2], data[len(data)-1], "\r\n\r\n"
       print "Payload: ", str(payload),"\r\n"
       '''
-      
+
       return binascii.b2a_qp(payload)
 
 def SC_testTransmit():
@@ -252,13 +251,13 @@ def SC_testTransmit():
 def SC_prepare(payload, command):
   payload_byte_array = payload
   length = len(payload_byte_array)
-  length_bytes = struct.pack('B',length)  
+  length_bytes = struct.pack('B',length)
 
   # Keeping 2 bytes separate for sync characters
   transmission = bytearray.fromhex('48 65')
 
   # adding 2 bytes for header
-  packet=bytearray.fromhex(command) 
+  packet=bytearray.fromhex(command)
 
   # adding 2 bytes for payload size
   packet.extend(bytearray.fromhex('00'))
@@ -279,7 +278,7 @@ def SC_prepare(payload, command):
       print "Payload:  ", length, " bytes out of a maximum 255\r\n"
       print "bytesize: ", len(packet), " bytes\r\n"
       print "bytesize: ", len(packet), " bytes\r\n"
-      print "checksum: ", header_checksum#, " should be: (12,48)" 
+      print "checksum: ", header_checksum#, " should be: (12,48)"
       print "bytesize: ", len(packet), " bytes\r\n"
       print "Adding", len(payload_byte_array), "bytes for payload .."
       print "transmit: ", toHex(str(packet))
@@ -293,9 +292,11 @@ def SC_prepare(payload, command):
   return transmission
 
 def SC_transmit(payload):
+  timestamp = '[' + datetime.datetime.fromtimestamp(time.time()).strftime('%H:%M:%S %Y-%m-%d') + ']'
+  payload = timestamp + payload
   payload_byte_array = payload.encode('utf-8')
   length = len(payload_byte_array)
-  length_bytes = struct.pack('B',length)  
+  length_bytes = struct.pack('B',length)
   '''
   print "\nPayload:  ", length, " bytes out of a maximum 255"
   '''
@@ -303,9 +304,9 @@ def SC_transmit(payload):
   #Keeping 2 bytes separate for sync characters
   transmission = bytearray.fromhex('48 65')
 
-  # Adding 2 bytes for header 
-  header = '10 03' 
-  packet=bytearray.fromhex(header) 
+  # Adding 2 bytes for header
+  header = '10 03'
+  packet=bytearray.fromhex(header)
 
   # adding 2 bytes for payload size
   packet.extend(bytearray.fromhex('00'))
@@ -328,7 +329,7 @@ def SC_transmit(payload):
   '''
   print "\ttotal payload: ", len(transmission), " bytes\n"
   '''
-  print 'Sending::', toHex(str(transmission))  
+  print 'Sending::', toHex(str(transmission))
 
   return transmission
 
